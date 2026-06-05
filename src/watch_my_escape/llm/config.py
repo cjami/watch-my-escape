@@ -6,7 +6,11 @@ import os
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Final
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 DEFAULT_CONTEXT_TOKENS: Final = 4096
 DEFAULT_MAX_TOKENS: Final = 256
@@ -15,6 +19,44 @@ DEFAULT_TOP_P: Final = 0.95
 DEFAULT_TOP_K: Final = 64
 DEFAULT_GPU_LAYERS: Final = -1
 DEFAULT_ZEROGPU_DURATION: Final = 60
+
+
+@dataclass(frozen=True, slots=True)
+class ModelPreset:
+    """Known Hub GGUF model source."""
+
+    repo_id: str
+    filename: str
+
+
+MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
+    {
+        "gemma-4-12b-it": ModelPreset(
+            repo_id="ggml-org/gemma-4-12B-it-GGUF",
+            filename="gemma-4-12B-it-Q4_K_M.gguf",
+        ),
+        "nvidia-nemotron-3-nano-4b": ModelPreset(
+            repo_id="nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF",
+            filename="NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
+        ),
+        "minicpm5-1b": ModelPreset(
+            repo_id="openbmb/MiniCPM5-1B-GGUF",
+            filename="MiniCPM5-1B-Q4_K_M.gguf",
+        ),
+        "tiny-aya-global": ModelPreset(
+            repo_id="CohereLabs/tiny-aya-global-GGUF",
+            filename="tiny-aya-global-q4_k_m.gguf",
+        ),
+        "mellum2-12b-a2.5b-thinking": ModelPreset(
+            repo_id="JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M",
+            filename="Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf",
+        ),
+    }
+)
+
+
+class ModelPresetError(ValueError):
+    """Raised when a configured model preset is unknown."""
 
 
 class LlmProviderName(StrEnum):
@@ -30,6 +72,7 @@ class LlamaCppConfig:
     """Resolved llama.cpp runtime configuration."""
 
     provider: LlmProviderName
+    model_preset: str | None
     model_path: Path | None
     model_repo_id: str | None
     model_filename: str | None
@@ -68,11 +111,17 @@ def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
     env = dict(os.environ) if environ is None else environ
     requested_provider = LlmProviderName(env.get("WME_LLM_PROVIDER", LlmProviderName.AUTO))
     model_path = env.get("WME_MODEL_PATH")
+    model_preset_name = _resolve_model_preset_name(env.get("WME_MODEL_PRESET"))
+    model_preset = MODEL_PRESETS[model_preset_name] if model_preset_name else None
+    model_repo_id = env.get("WME_MODEL_REPO_ID")
+    model_filename = env.get("WME_MODEL_FILENAME")
+    should_use_preset_source = model_path is None and model_repo_id is None and model_filename is None and model_preset
     return LlamaCppConfig(
         provider=resolve_provider(requested_provider, env),
+        model_preset=model_preset_name,
         model_path=Path(model_path).expanduser() if model_path else None,
-        model_repo_id=env.get("WME_MODEL_REPO_ID"),
-        model_filename=env.get("WME_MODEL_FILENAME"),
+        model_repo_id=model_preset.repo_id if should_use_preset_source else model_repo_id,
+        model_filename=model_preset.filename if should_use_preset_source else model_filename,
         chat_format=env.get("WME_CHAT_FORMAT"),
         context_tokens=int(env.get("WME_CONTEXT_TOKENS", DEFAULT_CONTEXT_TOKENS)),
         max_tokens=int(env.get("WME_MAX_TOKENS", DEFAULT_MAX_TOKENS)),
@@ -92,3 +141,14 @@ def _optional_float(env: dict[str, str], key: str) -> float | None:
 def _optional_int(env: dict[str, str], key: str) -> int | None:
     value = env.get(key)
     return int(value) if value is not None else None
+
+
+def _resolve_model_preset_name(raw_name: str | None) -> str | None:
+    if raw_name is None:
+        return None
+    name = raw_name.strip().lower()
+    if name in MODEL_PRESETS:
+        return name
+    available = ", ".join(MODEL_PRESETS)
+    msg = f"Unknown WME_MODEL_PRESET {raw_name!r}. Available presets: {available}."
+    raise ModelPresetError(msg)

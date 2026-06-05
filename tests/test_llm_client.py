@@ -18,6 +18,7 @@ from watch_my_escape.llm.models import ChatMessage, InferenceRequest, ToolSpec
 def _config(provider: LlmProviderName, model_path: str = "model.gguf") -> LlamaCppConfig:
     return LlamaCppConfig(
         provider=provider,
+        model_preset=None,
         model_path=None if model_path == "" else Path(model_path),
         model_repo_id=None,
         model_filename=None,
