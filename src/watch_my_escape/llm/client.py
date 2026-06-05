@@ -1,1 +1,190 @@
-"""llama.cpp client placeholders."""
+"""llama-cpp-python inference providers."""
+
+from __future__ import annotations
+
+from functools import cached_property
+from importlib import import_module
+from pathlib import Path
+from typing import Any, Protocol
+
+from watch_my_escape.llm.config import (
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_TOP_P,
+    LlamaCppConfig,
+    LlmProviderName,
+    load_config,
+)
+from watch_my_escape.llm.gguf import GgufMetadataError, GgufSamplingMetadata, read_sampling_metadata
+from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
+from watch_my_escape.llm.tool_calls import parse_tool_call
+
+
+class InferenceProvider(Protocol):
+    """Protocol implemented by all inference providers."""
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Run one chat completion."""
+
+
+class LlmConfigurationError(RuntimeError):
+    """Raised when inference cannot be configured."""
+
+
+class EmbeddedLlamaCppProvider:
+    """Local llama-cpp-python provider."""
+
+    def __init__(self, config: LlamaCppConfig) -> None:
+        self._config = config
+
+    @cached_property
+    def _llama(self) -> Any:
+        return self._load_llama()
+
+    @cached_property
+    def _model_path(self) -> Path:
+        return Path(self._resolve_model_path())
+
+    @cached_property
+    def _sampling_metadata(self) -> GgufSamplingMetadata:
+        try:
+            return read_sampling_metadata(self._model_path)
+        except GgufMetadataError:
+            return GgufSamplingMetadata()
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Run one local llama.cpp chat completion."""
+        return self._complete_with_loaded_model(request)
+
+    def _complete_with_loaded_model(self, request: InferenceRequest) -> InferenceResponse:
+        payload: dict[str, Any] = {
+            "messages": [message.as_llama_message() for message in request.messages],
+        }
+        payload.update(self._sampling_payload(request))
+        if request.tools:
+            payload["tools"] = [tool.as_llama_tool() for tool in request.tools]
+            payload["tool_choice"] = "auto"
+
+        raw_response = self._llama.create_chat_completion(**payload)
+        choice_message = raw_response["choices"][0]["message"]
+        return InferenceResponse(
+            content=choice_message.get("content") or "",
+            tool_call=parse_tool_call(choice_message),
+            raw=raw_response,
+        )
+
+    def _load_llama(self) -> Any:
+        try:
+            llama_cls = import_module("llama_cpp").__dict__["Llama"]
+        except ImportError as exc:
+            msg = (
+                "llama-cpp-python is not installed. Run one setup profile, for example "
+                "`uv run python -m watch_my_escape.setup_llm cpu`."
+            )
+            raise LlmConfigurationError(msg) from exc
+
+        llama_kwargs: dict[str, Any] = {
+            "model_path": str(self._model_path),
+            "n_ctx": self._config.context_tokens,
+            "n_gpu_layers": self._config.gpu_layers,
+            "verbose": False,
+        }
+        if self._config.chat_format:
+            llama_kwargs["chat_format"] = self._config.chat_format
+        return llama_cls(**llama_kwargs)
+
+    def _resolve_model_path(self) -> str:
+        if self._config.model_path is not None:
+            if not self._config.model_path.is_file():
+                msg = f"Configured WME_MODEL_PATH does not exist: {self._config.model_path}"
+                raise LlmConfigurationError(msg)
+            return str(self._config.model_path)
+
+        if self._config.model_repo_id and self._config.model_filename:
+            try:
+                hf_hub_download = import_module("huggingface_hub").__dict__["hf_hub_download"]
+            except ImportError as exc:
+                msg = "huggingface-hub is required to download WME_MODEL_REPO_ID/WME_MODEL_FILENAME."
+                raise LlmConfigurationError(msg) from exc
+            return hf_hub_download(repo_id=self._config.model_repo_id, filename=self._config.model_filename)
+
+        msg = "Configure WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME before running inference."
+        raise LlmConfigurationError(msg)
+
+    def _sampling_payload(self, request: InferenceRequest) -> dict[str, int | float]:
+        max_tokens = request.settings.max_tokens if request.settings.max_tokens is not None else self._config.max_tokens
+        return {
+            "max_tokens": max_tokens,
+            "temperature": _first_float(
+                request.settings.temperature,
+                self._config.temperature,
+                self._sampling_metadata.temperature,
+                DEFAULT_TEMPERATURE,
+            ),
+            "top_p": _first_float(
+                request.settings.top_p,
+                self._config.top_p,
+                self._sampling_metadata.top_p,
+                DEFAULT_TOP_P,
+            ),
+            "top_k": _first_int(
+                request.settings.top_k,
+                self._config.top_k,
+                self._sampling_metadata.top_k,
+                DEFAULT_TOP_K,
+            ),
+        }
+
+
+class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
+    """Hugging Face ZeroGPU provider using the same embedded llama.cpp backend."""
+
+    def __init__(self, config: LlamaCppConfig) -> None:
+        super().__init__(config)
+        self._complete_on_gpu = self._build_gpu_completion()
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Run one ZeroGPU-backed chat completion."""
+        return self._complete_on_gpu(request)
+
+    def _build_gpu_completion(self) -> Any:
+        try:
+            gpu_decorator = import_module("spaces").__dict__["GPU"]
+        except ImportError as exc:
+            msg = "The `spaces` package is required for WME_LLM_PROVIDER=zerogpu."
+            raise LlmConfigurationError(msg) from exc
+
+        @gpu_decorator(duration=self._config.zerogpu_duration)
+        def complete_on_gpu(request: InferenceRequest) -> InferenceResponse:
+            return self._complete_with_loaded_model(request)
+
+        return complete_on_gpu
+
+
+def create_provider(config: LlamaCppConfig | None = None) -> InferenceProvider:
+    """Create the configured inference provider."""
+    resolved_config = load_config() if config is None else config
+    match resolved_config.provider:
+        case LlmProviderName.LLAMA_CPP:
+            return EmbeddedLlamaCppProvider(resolved_config)
+        case LlmProviderName.ZEROGPU:
+            return ZeroGpuLlamaCppProvider(resolved_config)
+        case LlmProviderName.AUTO:
+            msg = "Provider auto-selection should be resolved before provider creation."
+            raise LlmConfigurationError(msg)
+
+
+def _first_float(*values: float | None) -> float:
+    for value in values:
+        if value is not None:
+            return value
+    msg = "At least one float fallback is required."
+    raise AssertionError(msg)
+
+
+def _first_int(*values: int | None) -> int:
+    for value in values:
+        if value is not None:
+            return value
+    msg = "At least one integer fallback is required."
+    raise AssertionError(msg)

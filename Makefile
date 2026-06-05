@@ -1,4 +1,4 @@
-.PHONY: assets dev format lint test
+.PHONY: assets dev doctor format lint setup-llm-cpu setup-llm-cuda setup-llm-metal setup-hf-zerogpu test
 
 assets:
 	npx @tailwindcss/cli -i src/watch_my_escape/web/static/input.css -o build/web/static/styles.css --minify
@@ -6,6 +6,21 @@ assets:
 
 test:
 	uv run pytest
+
+doctor:
+	uv run python -m watch_my_escape.doctor
+
+setup-llm-cpu:
+	uv run python -m watch_my_escape.setup_llm cpu
+
+setup-llm-cuda:
+	uv run python -m watch_my_escape.setup_llm cuda
+
+setup-llm-metal:
+	uv run python -m watch_my_escape.setup_llm metal
+
+setup-hf-zerogpu:
+	uv run python -m watch_my_escape.setup_llm hf-zerogpu
 
 lint:
 	uv run ruff check .

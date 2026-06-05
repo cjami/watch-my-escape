@@ -7,15 +7,29 @@ name = "watch-my-escape"
 version = "0.1.0"
 description = "An LLM tries to escape a man-made puzzle room."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "gradio",
+    "huggingface-hub",
     "jinja2",
+]
+
+[project.optional-dependencies]
+llm = [
+    "llama-cpp-python",
+]
+zerogpu = [
+    "hf_transfer",
+    "llama-cpp-python",
+    "spaces",
+    "torch==2.8.0",
 ]
 
 [project.scripts]
 watch-my-escape = "watch_my_escape.app.server:main"
+watch-my-escape-doctor = "watch_my_escape.doctor:main"
+watch-my-escape-setup-llm = "watch_my_escape.setup_llm:main"
 
 [dependency-groups]
 dev = [
@@ -30,23 +44,29 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py314"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "ANN401", # Dynamic library boundaries can require Any despite otherwise useful typing.
+    "CPY001", # Do not require copyright headers in this small application.
     "D203", # Prefer no blank line before class docstrings; this conflicts with D211.
     "D213", # Prefer multi-line docstring summaries on the first line; this conflicts with D212.
+    "D107", # __init__ methods are usually clear from class docs and assignments.
     "COM812", # Let Ruff format manage trailing commas to avoid formatter/linter churn.
     "ISC001", # Let Ruff format manage implicit string concatenation spacing.
+    "S603", # Setup helpers run fixed command tuples; subprocess heuristics add little signal here.
+    "T201", # CLI entry points should be allowed to print user-facing output.
+    "TC002", # Framework annotations, especially FastAPI, may need third-party imports at runtime.
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"src/**/*.py" = [
-    "CPY001", # Do not require copyright headers in this small application skeleton.
-]
 "tests/**/*.py" = [
-    "CPY001", # Do not require copyright headers in test files.
+    "ANN001", # Pytest fixture annotations add noise to small tests.
+    "ANN003", # Test fakes can accept loose keyword arguments.
+    "ANN202", # Test helper return types are obvious from assertions.
+    "ANN204", # Test fake initializers do not need annotations.
     "D100", # Test modules can be named clearly without module docstrings.
     "D103", # Test function names describe behavior without extra docstrings.
     "S101", # Pytest assertions are the standard test assertion style.

@@ -1,0 +1,76 @@
+"""Shared inference request and response models."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+MessageRole = Literal["system", "user", "assistant", "tool"]
+
+
+@dataclass(frozen=True, slots=True)
+class ChatMessage:
+    """A chat message passed to llama.cpp."""
+
+    role: MessageRole
+    content: str
+
+    def as_llama_message(self) -> dict[str, str]:
+        """Return the mapping shape expected by llama-cpp-python."""
+        return {"role": self.role, "content": self.content}
+
+
+@dataclass(frozen=True, slots=True)
+class ToolSpec:
+    """JSON schema for one tool the model may call."""
+
+    name: str
+    description: str
+    parameters: dict[str, Any]
+
+    def as_llama_tool(self) -> dict[str, Any]:
+        """Return an OpenAI-compatible tool descriptor."""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            },
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class InferenceSettings:
+    """Generation settings for one inference call."""
+
+    max_tokens: int | None = None
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class InferenceRequest:
+    """A chat completion request."""
+
+    messages: tuple[ChatMessage, ...]
+    tools: tuple[ToolSpec, ...] = ()
+    settings: InferenceSettings = field(default_factory=InferenceSettings)
+
+
+@dataclass(frozen=True, slots=True)
+class ToolCall:
+    """A parsed tool call returned by the model."""
+
+    name: str
+    arguments: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class InferenceResponse:
+    """A normalized model response."""
+
+    content: str
+    tool_call: ToolCall | None = None
+    raw: dict[str, Any] | None = None
