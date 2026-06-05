@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ app_name }}</title>
+    <link rel="stylesheet" href="/static/dist/styles.css" />
+    <script type="module" src="/static/dist/app.js"></script>
+  </head>
+  <body>
+    <main class="grid min-h-screen w-[min(1120px,calc(100%-2rem))] grid-cols-1 items-center gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(320px,460px)] lg:gap-12 mx-auto">
+      <section class="room-stage grid min-h-90 place-items-center border border-white/10 lg:min-h-140" aria-label="Puzzle room">
+        <div class="escape-door relative aspect-[.68] w-[min(320px,72%)] border border-white/20">
+          <span class="absolute inset-[12%] border border-white/15" aria-hidden="true"></span>
+          <span class="absolute right-[16%] top-[48%] aspect-square w-6 rounded-full bg-mechanism shadow-[0_0_28px_rgb(215_184_102_/_42%)]" aria-hidden="true"></span>
+        </div>
+      </section>
+
+      <section class="grid gap-5" aria-labelledby="console-title">
+        <p class="m-0 text-xs font-bold uppercase tracking-[.12em] text-mechanism">{{ app_name }}</p>
+        <h1 id="console-title" class="m-0 text-[clamp(2rem,4vw,4rem)] leading-none tracking-normal">{{ project_description }}</h1>
+        <form id="escape-form" class="grid gap-3">
+          <label for="action" class="font-bold text-[#c4cbc1]">Next move</label>
+          <textarea id="action" name="action" rows="5" class="w-full resize-y rounded-md border border-white/15 bg-white/10 p-3.5 text-room-light" placeholder="Inspect the keypad by the locked door."></textarea>
+          <button type="submit" class="justify-self-start rounded-md bg-mechanism px-4 py-3 font-extrabold text-[#171812]">Attempt escape</button>
+        </form>
+        <output id="room-response" class="min-h-20 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">The room is quiet. The first move is yours.</output>
+      </section>
+    </main>
+  </body>
+</html>

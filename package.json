@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "devDependencies": {
+    "@tailwindcss/cli": "^4",
+    "esbuild": "^0.25",
+    "tailwindcss": "^4"
+  }
+}
