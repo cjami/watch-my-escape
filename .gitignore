@@ -22,7 +22,6 @@ node_modules/
 # Build artifacts
 /build/
 /dist/
-src/watch_my_escape/web/static/dist/
 *.egg-info/
 .eggs/
 

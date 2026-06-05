@@ -1,4 +1,4 @@
-from watch_my_escape.escape_room import describe_escape_attempt
+from watch_my_escape.game.engine import describe_escape_attempt
 
 
 def test_describe_escape_attempt_uses_submitted_action():

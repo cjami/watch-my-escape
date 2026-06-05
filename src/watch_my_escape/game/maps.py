@@ -1,0 +1,1 @@
+"""Room map loading placeholders."""

@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-watch-my-escape = "watch_my_escape.server:main"
+watch-my-escape = "watch_my_escape.app.server:main"
 
 [dependency-groups]
 dev = [

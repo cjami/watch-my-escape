@@ -6,7 +6,10 @@
 
 ## Project Structure
 
-- `src/watch_my_escape/` contains the Python backend package.
+- `src/watch_my_escape/app/` contains Gradio/FastAPI app wiring and API schemas.
+- `src/watch_my_escape/game/` contains escape-room state, maps, rules, and tool wrappers.
+- `src/watch_my_escape/agent/` contains LLM agent orchestration, prompts, history, and emotions.
+- `src/watch_my_escape/llm/` contains local model integration and tool-call parsing.
 - `src/watch_my_escape/web/` contains the Jinja2 templates and custom frontend assets.
 - `tests/` contains pytest tests for backend behavior.
 - `pyproject.toml` defines dependencies, Ruff linting, pytest settings, and package metadata.

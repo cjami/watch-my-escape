@@ -1,8 +1,8 @@
 .PHONY: assets dev format lint test
 
 assets:
-	npx @tailwindcss/cli -i src/watch_my_escape/web/static/input.css -o src/watch_my_escape/web/static/dist/styles.css --minify
-	npx esbuild src/watch_my_escape/web/static/app.js --minify --format=esm --outfile=src/watch_my_escape/web/static/dist/app.js
+	npx @tailwindcss/cli -i src/watch_my_escape/web/static/input.css -o build/web/static/styles.css --minify
+	npx esbuild src/watch_my_escape/web/static/app.js --minify --format=esm --outfile=build/web/static/app.js
 
 test:
 	uv run pytest

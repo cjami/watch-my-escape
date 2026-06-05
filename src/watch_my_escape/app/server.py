@@ -10,13 +10,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from gradio import Server
 
-from watch_my_escape.escape_room import describe_escape_attempt
+from watch_my_escape.game.engine import describe_escape_attempt
 
 if TYPE_CHECKING:
     from fastapi.responses import Response
 
-WEB_DIR: Final = Path(__file__).resolve().parent / "web"
-STATIC_DIR: Final = WEB_DIR / "static"
+PACKAGE_DIR: Final = Path(__file__).resolve().parents[1]
+PROJECT_DIR: Final = PACKAGE_DIR.parents[1]
+WEB_DIR: Final = PACKAGE_DIR / "web"
+SOURCE_STATIC_DIR: Final = WEB_DIR / "static"
+GENERATED_STATIC_DIR: Final = PROJECT_DIR / "build" / "web" / "static"
 TEMPLATES_DIR: Final = WEB_DIR / "templates"
 templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
 
@@ -24,7 +27,7 @@ templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
 def create_app() -> Server:
     """Create the Gradio server application."""
     app = Server()
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", StaticFiles(directory=GENERATED_STATIC_DIR), name="static")
 
     @app.get("/")
     async def homepage(request: Request) -> Response:
