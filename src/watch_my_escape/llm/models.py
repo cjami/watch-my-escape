@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from pydantic import BaseModel
+
 MessageRole = Literal["system", "user", "assistant", "tool"]
 
 
@@ -41,6 +43,23 @@ class ToolSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class StructuredOutputSpec:
+    """JSON schema used to constrain model text output."""
+
+    name: str
+    schema: dict[str, Any]
+
+    @classmethod
+    def from_pydantic_model(cls, model: type[BaseModel]) -> StructuredOutputSpec:
+        """Build a structured output spec from a Pydantic model."""
+        return cls(name=model.__name__, schema=model.model_json_schema())
+
+    def as_llama_response_format(self) -> dict[str, Any]:
+        """Return the response format expected by llama-cpp-python."""
+        return {"type": "json_object", "schema": self.schema}
+
+
+@dataclass(frozen=True, slots=True)
 class InferenceSettings:
     """Generation settings for one inference call."""
 
@@ -56,6 +75,7 @@ class InferenceRequest:
 
     messages: tuple[ChatMessage, ...]
     tools: tuple[ToolSpec, ...] = ()
+    structured_output: StructuredOutputSpec | None = None
     settings: InferenceSettings = field(default_factory=InferenceSettings)
 
 

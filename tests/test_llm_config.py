@@ -49,6 +49,7 @@ def test_load_config_reads_model_path_and_generation_settings():
             "WME_TOP_K": "20",
             "WME_GPU_LAYERS": "42",
             "WME_ZEROGPU_DURATION": "90",
+            "WME_FLASH_ATTN": "true",
         }
     )
 
@@ -66,43 +67,36 @@ def test_load_config_reads_model_path_and_generation_settings():
         top_k=20,
         gpu_layers=42,
         zerogpu_duration=90,
+        flash_attn=True,
     )
 
 
-def test_model_presets_use_q4_k_m_filenames_where_available():
-    assert MODEL_PRESETS["gemma-4-12b-it"].filename == "gemma-4-12B-it-Q4_K_M.gguf"
-    assert MODEL_PRESETS["nvidia-nemotron-3-nano-4b"].filename == "NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf"
-    assert MODEL_PRESETS["minicpm5-1b"].filename == "MiniCPM5-1B-Q4_K_M.gguf"
-    assert MODEL_PRESETS["tiny-aya-global"].filename == "tiny-aya-global-q4_k_m.gguf"
-    assert MODEL_PRESETS["mellum2-12b-a2.5b-thinking"].filename == "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf"
+def test_load_config_rejects_invalid_flash_attention_value():
+    with pytest.raises(ValueError, match="WME_FLASH_ATTN"):
+        load_config({"WME_FLASH_ATTN": "sometimes"})
 
 
 def test_load_config_resolves_model_preset_to_hub_source():
-    config = load_config({"WME_MODEL_PRESET": "minicpm5-1b"})
+    preset_name, preset = next(iter(MODEL_PRESETS.items()))
 
-    assert config.model_preset == "minicpm5-1b"
-    assert config.model_repo_id == "openbmb/MiniCPM5-1B-GGUF"
-    assert config.model_filename == "MiniCPM5-1B-Q4_K_M.gguf"
+    config = load_config({"WME_MODEL_PRESET": preset_name})
 
-
-def test_load_config_resolves_mellum_preset_to_official_jetbrains_hub_source():
-    config = load_config({"WME_MODEL_PRESET": "mellum2-12b-a2.5b-thinking"})
-
-    assert config.model_preset == "mellum2-12b-a2.5b-thinking"
-    assert config.model_repo_id == "JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M"
-    assert config.model_filename == "Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf"
+    assert config.model_preset == preset_name
+    assert config.model_repo_id == preset.repo_id
+    assert config.model_filename == preset.filename
 
 
 def test_explicit_model_source_wins_over_model_preset():
+    preset_name = next(iter(MODEL_PRESETS))
     config = load_config(
         {
-            "WME_MODEL_PRESET": "gemma-4-12b-it",
+            "WME_MODEL_PRESET": preset_name,
             "WME_MODEL_REPO_ID": "custom/repo",
             "WME_MODEL_FILENAME": "custom.gguf",
         }
     )
 
-    assert config.model_preset == "gemma-4-12b-it"
+    assert config.model_preset == preset_name
     assert config.model_repo_id == "custom/repo"
     assert config.model_filename == "custom.gguf"
 

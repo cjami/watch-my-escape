@@ -33,6 +33,7 @@ def build_report() -> list[str]:
         f"Model repo: {config.model_repo_id or '(not set)'}",
         f"Model filename: {config.model_filename or '(not set)'}",
         f"GPU layers: {config.gpu_layers}",
+        f"Flash Attention: {_format_optional_bool(value=config.flash_attn)}",
     ]
     if not _installed("llama_cpp"):
         lines.append("Suggested fix: uv run python -m watch_my_escape.setup_llm cpu")
@@ -43,6 +44,12 @@ def build_report() -> list[str]:
             f"{presets}, or set WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME."
         )
     return lines
+
+
+def _format_optional_bool(*, value: bool | None) -> str:
+    if value is None:
+        return "auto"
+    return "yes" if value else "no"
 
 
 def main(argv: Sequence[str] | None = None) -> None:

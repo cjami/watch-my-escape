@@ -64,6 +64,8 @@ class EmbeddedLlamaCppProvider:
         if request.tools:
             payload["tools"] = [tool.as_llama_tool() for tool in request.tools]
             payload["tool_choice"] = "auto"
+        if request.structured_output is not None:
+            payload["response_format"] = request.structured_output.as_llama_response_format()
 
         raw_response = self._llama.create_chat_completion(**payload)
         choice_message = raw_response["choices"][0]["message"]
@@ -75,7 +77,8 @@ class EmbeddedLlamaCppProvider:
 
     def _load_llama(self) -> Any:
         try:
-            llama_cls = import_module("llama_cpp").__dict__["Llama"]
+            llama_module = import_module("llama_cpp")
+            llama_cls = llama_module.__dict__["Llama"]
         except ImportError as exc:
             msg = (
                 "llama-cpp-python is not installed. Run one setup profile, for example "
@@ -89,9 +92,19 @@ class EmbeddedLlamaCppProvider:
             "n_gpu_layers": self._config.gpu_layers,
             "verbose": False,
         }
+        llama_kwargs["flash_attn"] = self._resolve_flash_attn(llama_module)
         if self._config.chat_format:
             llama_kwargs["chat_format"] = self._config.chat_format
         return llama_cls(**llama_kwargs)
+
+    def _resolve_flash_attn(self, llama_module: Any) -> bool:
+        if self._config.flash_attn is not None:
+            return self._config.flash_attn
+        if self._config.gpu_layers == 0:
+            return False
+
+        supports_gpu_offload = getattr(llama_module, "llama_supports_gpu_offload", None)
+        return bool(supports_gpu_offload and supports_gpu_offload())
 
     def _resolve_model_path(self) -> str:
         if self._config.model_path is not None:
@@ -102,8 +115,8 @@ class EmbeddedLlamaCppProvider:
 
         if self._config.model_repo_id and self._config.model_filename:
             try:
-                hf_hub_download = import_module("huggingface_hub").__dict__["hf_hub_download"]
-            except ImportError as exc:
+                hf_hub_download = import_module("huggingface_hub").hf_hub_download
+            except (AttributeError, ImportError) as exc:
                 msg = "huggingface-hub is required to download WME_MODEL_REPO_ID/WME_MODEL_FILENAME."
                 raise LlmConfigurationError(msg) from exc
             return hf_hub_download(repo_id=self._config.model_repo_id, filename=self._config.model_filename)

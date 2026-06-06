@@ -1,9 +1,11 @@
 import sys
+from dataclasses import replace
 from pathlib import Path
 from types import ModuleType
-from typing import ClassVar
+from typing import Any, ClassVar, cast
 
 import pytest
+from pydantic import BaseModel
 
 from watch_my_escape.llm.client import (
     EmbeddedLlamaCppProvider,
@@ -12,7 +14,13 @@ from watch_my_escape.llm.client import (
     create_provider,
 )
 from watch_my_escape.llm.config import LlamaCppConfig, LlmProviderName
-from watch_my_escape.llm.models import ChatMessage, InferenceRequest, ToolSpec
+from watch_my_escape.llm.models import ChatMessage, InferenceRequest, StructuredOutputSpec, ToolSpec
+
+
+class StructuredProbe(BaseModel):
+    """Simple structured output model for provider tests."""
+
+    value: str
 
 
 def _config(provider: LlmProviderName, model_path: str = "model.gguf") -> LlamaCppConfig:
@@ -66,6 +74,80 @@ def test_embedded_provider_does_not_import_llama_cpp_until_completion(monkeypatc
     assert isinstance(provider, EmbeddedLlamaCppProvider)
 
 
+def test_embedded_provider_reports_missing_huggingface_hub_download(monkeypatch):
+    fake_module = ModuleType("huggingface_hub")
+    monkeypatch.setitem(sys.modules, "huggingface_hub", fake_module)
+    config = _config(LlmProviderName.LLAMA_CPP, "")
+    config = replace(config, model_repo_id="example/model", model_filename="model.gguf")
+
+    provider = EmbeddedLlamaCppProvider(config)
+
+    with pytest.raises(LlmConfigurationError, match="huggingface-hub is required"):
+        provider._resolve_model_path()  # noqa: SLF001
+
+
+def test_embedded_provider_enables_flash_attention_when_gpu_offload_is_supported(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        init_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            type(self).init_kwargs = kwargs
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    fake_module.__dict__["llama_supports_gpu_offload"] = lambda: True
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))._load_llama()  # noqa: SLF001
+
+    assert FakeLlama.init_kwargs["flash_attn"] is True
+
+
+def test_embedded_provider_disables_auto_flash_attention_without_gpu_offload(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        init_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            type(self).init_kwargs = kwargs
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    fake_module.__dict__["llama_supports_gpu_offload"] = lambda: False
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))._load_llama()  # noqa: SLF001
+
+    assert FakeLlama.init_kwargs["flash_attn"] is False
+
+
+def test_embedded_provider_honors_explicit_flash_attention_override(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        init_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            type(self).init_kwargs = kwargs
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    fake_module.__dict__["llama_supports_gpu_offload"] = lambda: True
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    config = replace(_config(LlmProviderName.LLAMA_CPP, str(model_path)), flash_attn=False)
+
+    EmbeddedLlamaCppProvider(config)._load_llama()  # noqa: SLF001
+
+    assert FakeLlama.init_kwargs["flash_attn"] is False
+
+
 def test_embedded_provider_parses_tool_call(monkeypatch, tmp_path):
     model_path = tmp_path / "model.gguf"
     model_path.write_text("stub", encoding="utf-8")
@@ -115,6 +197,38 @@ def test_embedded_provider_parses_tool_call(monkeypatch, tmp_path):
     assert response.tool_call is not None
     assert response.tool_call.name == "move_north"
     assert response.tool_call.arguments == {"emotion": "neutral"}
+
+
+def test_embedded_provider_passes_structured_output_response_format(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        completion_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def create_chat_completion(self, **kwargs):
+            type(self).completion_kwargs = kwargs
+            return {"choices": [{"message": {"content": '{"value":"ok"}'}}]}
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+    provider.complete(
+        InferenceRequest(
+            messages=(ChatMessage(role="user", content="Return JSON."),),
+            structured_output=StructuredOutputSpec.from_pydantic_model(StructuredProbe),
+        )
+    )
+
+    response_format = cast("dict[str, Any]", FakeLlama.completion_kwargs["response_format"])
+    assert response_format["type"] == "json_object"
+    schema = cast("dict[str, Any]", response_format["schema"])
+    assert schema["title"] == "StructuredProbe"
 
 
 def test_embedded_provider_uses_reasoning_fallback_sampling(monkeypatch, tmp_path):

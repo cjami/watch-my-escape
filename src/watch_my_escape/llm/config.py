@@ -12,13 +12,15 @@ from typing import TYPE_CHECKING, Final
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
-DEFAULT_CONTEXT_TOKENS: Final = 4096
+DEFAULT_CONTEXT_TOKENS: Final = 8192
 DEFAULT_MAX_TOKENS: Final = 256
 DEFAULT_TEMPERATURE: Final = 1.0
 DEFAULT_TOP_P: Final = 0.95
 DEFAULT_TOP_K: Final = 64
 DEFAULT_GPU_LAYERS: Final = -1
 DEFAULT_ZEROGPU_DURATION: Final = 60
+BOOLEAN_TRUE_VALUES: Final = frozenset({"1", "true", "yes", "on"})
+BOOLEAN_FALSE_VALUES: Final = frozenset({"0", "false", "no", "off"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,9 +41,9 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             repo_id="nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF",
             filename="NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
         ),
-        "minicpm5-1b": ModelPreset(
-            repo_id="openbmb/MiniCPM5-1B-GGUF",
-            filename="MiniCPM5-1B-Q4_K_M.gguf",
+        "minicpm-v-4.6-thinking": ModelPreset(
+            repo_id="openbmb/MiniCPM-V-4.6-Thinking-gguf",
+            filename="MiniCPM-V-4_6-Thinking-Q4_K_M.gguf",
         ),
         "tiny-aya-global": ModelPreset(
             repo_id="CohereLabs/tiny-aya-global-GGUF",
@@ -84,6 +86,7 @@ class LlamaCppConfig:
     top_k: int | None
     gpu_layers: int
     zerogpu_duration: int
+    flash_attn: bool | None = None
 
     @property
     def has_model_source(self) -> bool:
@@ -130,6 +133,7 @@ def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
         top_k=_optional_int(env, "WME_TOP_K"),
         gpu_layers=int(env.get("WME_GPU_LAYERS", DEFAULT_GPU_LAYERS)),
         zerogpu_duration=int(env.get("WME_ZEROGPU_DURATION", DEFAULT_ZEROGPU_DURATION)),
+        flash_attn=_optional_bool(env, "WME_FLASH_ATTN"),
     )
 
 
@@ -141,6 +145,21 @@ def _optional_float(env: dict[str, str], key: str) -> float | None:
 def _optional_int(env: dict[str, str], key: str) -> int | None:
     value = env.get(key)
     return int(value) if value is not None else None
+
+
+def _optional_bool(env: dict[str, str], key: str) -> bool | None:
+    value = env.get(key)
+    if value is None:
+        return None
+
+    normalized = value.strip().lower()
+    if normalized in BOOLEAN_TRUE_VALUES:
+        return True
+    if normalized in BOOLEAN_FALSE_VALUES:
+        return False
+
+    msg = f"{key} must be one of: 1, 0, true, false, yes, no, on, off."
+    raise ValueError(msg)
 
 
 def _resolve_model_preset_name(raw_name: str | None) -> str | None:
