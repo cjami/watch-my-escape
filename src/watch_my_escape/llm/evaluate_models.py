@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from dataclasses import dataclass, replace
 from enum import StrEnum
@@ -23,6 +22,7 @@ from watch_my_escape.llm.models import (
     InferenceSettings,
     StructuredOutputSpec,
 )
+from watch_my_escape.llm.structured import StructuredOutputError, parse_json_object, strip_thinking_sections
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
@@ -291,10 +291,10 @@ def _score_pydantic_json(
     expected: ExpectedPydanticJson,
     response: InferenceResponse,
 ) -> CaseResult:
-    sanitized_content = _strip_thinking_sections(response.content)
+    sanitized_content = strip_thinking_sections(response.content)
     try:
-        parsed = _parse_json_object(sanitized_content)
-    except ValueError as exc:
+        parsed = parse_json_object(sanitized_content)
+    except StructuredOutputError as exc:
         return CaseResult(
             case_name=case.name,
             capability=case.capability,
@@ -320,44 +320,6 @@ def _score_pydantic_json(
         expected=_format_json(_model_dump(expected.value)),
         actual=_format_json(_model_dump(actual_value)),
     )
-
-
-def _parse_json_object(content: str) -> dict[str, Any]:
-    stripped = _strip_thinking_sections(content)
-    if not stripped:
-        msg = "Response was empty"
-        raise ValueError(msg)
-
-    candidates = [stripped, *_json_code_blocks(stripped), *_json_object_substrings(stripped)]
-    for candidate in candidates:
-        try:
-            parsed = json.loads(candidate)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(parsed, dict):
-            return parsed
-
-    msg = "Response did not contain a valid JSON object"
-    raise ValueError(msg)
-
-
-def _json_code_blocks(content: str) -> list[str]:
-    return [match.group(1).strip() for match in re.finditer(r"```(?:json)?\s*(.*?)```", content, re.DOTALL)]
-
-
-def _json_object_substrings(content: str) -> list[str]:
-    start = content.find("{")
-    end = content.rfind("}")
-    if start == -1 or end == -1 or end <= start:
-        return []
-    return [content[start : end + 1]]
-
-
-def _strip_thinking_sections(content: str) -> str:
-    stripped = re.sub(r"<think\b[^>]*>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
-    stripped = re.sub(r"^.*?</think>", "", stripped, count=1, flags=re.DOTALL | re.IGNORECASE)
-    stripped = re.sub(r"<think\b[^>]*>.*$", "", stripped, count=1, flags=re.DOTALL | re.IGNORECASE)
-    return stripped.strip()
 
 
 def _normalize_value(value: Any) -> Any:
