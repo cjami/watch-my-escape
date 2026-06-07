@@ -37,6 +37,7 @@ watch-my-escape-setup-llm = "watch_my_escape.setup_llm:main"
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.3.0",
     "pre-commit",
     "pytest",
     "ruff",
