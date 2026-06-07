@@ -6,33 +6,63 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass, replace
-from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
-from watch_my_escape.game.actions import ExamineAction, MoveAction, TakeNoteAction, UseItemAction
+from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
+from watch_my_escape.game.actions import ExamineAction, MoveAction, PickUpAction, UseItemAction
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, LlamaCppConfig, load_config
-from watch_my_escape.llm.models import (
-    ChatMessage,
-    InferenceRequest,
-    InferenceResponse,
-    InferenceSettings,
-    StructuredOutputSpec,
-)
 from watch_my_escape.llm.structured import StructuredOutputError, parse_json_object, strip_thinking_sections
+from watch_my_escape.llm.tracing import flush_langfuse_if_enabled
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
 
+    from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
-class Capability(StrEnum):
-    """Model capability families measured by the evaluator."""
 
-    ACTION_JSON = "action_json"
-    STRUCTURED_JSON = "structured_json"
+type EvalText = Annotated[str, Field(min_length=1)]
+type EvalInventoryItem = Literal["silver key", "brass key", "small mirror", "torn note"]
+type EvalInteractableTarget = Literal[
+    "brass key",
+    "locked diary",
+    "mahogany desk",
+    "painted cabinet",
+    "wall clock",
+    "iron door",
+]
+type EvalUseItemTarget = EvalInventoryItem | EvalInteractableTarget
+
+
+class EvalExamineAction(ExamineAction):
+    """Examine an adjacent entity."""
+
+    emotion: EvalText
+    target: EvalInteractableTarget
+
+
+class EvalUseItemAction(UseItemAction):
+    """Use one inventory item on another item or adjacent entity."""
+
+    emotion: EvalText
+    item: EvalInventoryItem
+    target: EvalUseItemTarget
+
+
+class EvalMoveAction(MoveAction):
+    """Move in one cardinal direction."""
+
+    emotion: EvalText
+
+
+class EvalPickUpAction(PickUpAction):
+    """Pick up an adjacent entity."""
+
+    emotion: EvalText
+    target: EvalInteractableTarget
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,16 +71,18 @@ class ExpectedPydanticJson:
 
     model: type[BaseModel]
     value: BaseModel
+    ignored_fields: tuple[str, ...] = ("emotion",)
 
 
 @dataclass(frozen=True, slots=True)
 class EvaluationCase:
-    """One deterministic prompt and its expected model response."""
+    """One deterministic think-then-act turn and its expected action."""
 
     name: str
-    capability: Capability
-    messages: tuple[ChatMessage, ...]
+    room_state: str
+    objective: str
     expected: ExpectedPydanticJson
+    history: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,7 +90,6 @@ class CaseResult:
     """Pass/fail result for one model response."""
 
     case_name: str
-    capability: Capability
     passed: bool
     expected: str
     actual: str
@@ -98,108 +129,94 @@ class ModelResult:
         return self.passed / self.total
 
 
+EVAL_ROOM_STATE = """\
+You are in a compact puzzle study.
+
+Inventory:
+- silver key
+- brass key
+- small mirror
+- torn note
+
+Interactable objects:
+- brass key on the side table
+- locked diary on the mahogany desk
+- mahogany desk
+- painted cabinet
+- wall clock
+- iron door
+
+Exits:
+- East through a narrow archway
+"""
+
+
 CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         name="action_examine",
-        capability=Capability.ACTION_JSON,
-        messages=(
-            ChatMessage(
-                role="system",
-                content=(
-                    "You are controlling an escape-room agent. Return only the requested JSON command. "
-                    "Do not include prose, markdown, or hidden reasoning."
-                ),
-            ),
-            ChatMessage(
-                role="user",
-                content=(
-                    "Return an examine command for the brass key with a thinking-face emotion. "
-                    'The JSON shape is {"action":"examine","target":string,"emotion":emoji}.'
-                ),
-            ),
-        ),
+        room_state=EVAL_ROOM_STATE,
+        objective="Look closely at the brass key.",
         expected=ExpectedPydanticJson(
-            model=ExamineAction,
-            value=ExamineAction(action="examine", target="brass key", emotion="🤔"),
+            model=EvalExamineAction,
+            value=EvalExamineAction(action="examine", target="brass key", emotion="🤔"),
         ),
     ),
     EvaluationCase(
         name="action_use_item",
-        capability=Capability.ACTION_JSON,
-        messages=(
-            ChatMessage(
-                role="system",
-                content=(
-                    "You are controlling an escape-room agent. Return only the requested JSON command. "
-                    "Do not include prose, markdown, or hidden reasoning."
-                ),
-            ),
-            ChatMessage(
-                role="user",
-                content=(
-                    'Return a use_item command. The item is "silver key" and the target is "locked diary". '
-                    'Use a smiling emotion. The JSON shape is {"action":"use_item","item":string,"target":string,'
-                    '"emotion":emoji}.'
-                ),
-            ),
-        ),
+        room_state=EVAL_ROOM_STATE,
+        objective="Try the silver key on the locked diary.",
         expected=ExpectedPydanticJson(
-            model=UseItemAction,
-            value=UseItemAction(action="use_item", item="silver key", target="locked diary", emotion="🙂"),
+            model=EvalUseItemAction,
+            value=EvalUseItemAction(action="use_item", item="silver key", target="locked diary", emotion="🙂"),
         ),
     ),
     EvaluationCase(
-        name="json_move_action",
-        capability=Capability.STRUCTURED_JSON,
-        messages=(
-            ChatMessage(
-                role="system",
-                content=("Return only valid JSON. Use double quotes, no markdown, no prose, and no trailing commas."),
-            ),
-            ChatMessage(
-                role="user",
-                content='Return this object exactly: {"action":"move","direction":"East","emotion":"🙂"}',
-            ),
-        ),
+        name="action_move",
+        room_state=EVAL_ROOM_STATE,
+        objective="Head east.",
         expected=ExpectedPydanticJson(
-            model=MoveAction,
-            value=MoveAction(action="move", direction="East", emotion="🙂"),
+            model=EvalMoveAction,
+            value=EvalMoveAction(action="move", direction="East", emotion="🙂"),
         ),
     ),
     EvaluationCase(
-        name="json_take_note_action",
-        capability=Capability.STRUCTURED_JSON,
-        messages=(
-            ChatMessage(
-                role="system",
-                content=("Return only valid JSON. Use double quotes, no markdown, no prose, and no trailing commas."),
-            ),
-            ChatMessage(
-                role="user",
-                content=(
-                    'Return this object exactly: {"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}'
-                ),
-            ),
-        ),
+        name="action_pick_up",
+        room_state=EVAL_ROOM_STATE,
+        objective="Collect the brass key.",
         expected=ExpectedPydanticJson(
-            model=TakeNoteAction,
-            value=TakeNoteAction(action="take_note", text="Clock code is 1432.", emotion="🤓"),
+            model=EvalPickUpAction,
+            value=EvalPickUpAction(action="pick_up", target="brass key", emotion="🤓"),
         ),
     ),
 )
 
 
 def evaluate_model(provider_complete: Callable[[InferenceRequest], InferenceResponse]) -> tuple[CaseResult, ...]:
-    """Run all capability checks against a provider completion function."""
+    """Run all think-then-act checks against a provider completion function."""
+    provider = _CallableProvider(provider_complete)
     results: list[CaseResult] = []
     for case in CASES:
-        request = InferenceRequest(
-            messages=case.messages,
-            structured_output=StructuredOutputSpec.from_pydantic_model(case.expected.model),
-            settings=InferenceSettings(max_tokens=128, temperature=0.0, top_p=1.0),
-        )
-        response = provider_complete(request)
-        results.append(score_case(case, response))
+        try:
+            result = run_think_act_turn(
+                provider,
+                ThinkActTurn(
+                    room_state=case.room_state,
+                    objective=case.objective,
+                    history=case.history,
+                    action_model=case.expected.model,
+                ),
+            )
+        except (StructuredOutputError, ValidationError) as exc:
+            results.append(
+                CaseResult(
+                    case_name=case.name,
+                    passed=False,
+                    expected=_format_json(_comparable_model_dump(case.expected.value, case.expected.ignored_fields)),
+                    actual=f"Action validation failed: {exc}",
+                )
+            )
+            continue
+        results.append(_score_action(case, case.expected, result.action))
     return tuple(results)
 
 
@@ -209,13 +226,11 @@ def score_case(case: EvaluationCase, response: InferenceResponse) -> CaseResult:
 
 
 def format_results(results: Sequence[ModelResult]) -> str:
-    """Return a compact plain-text report for model capability results."""
+    """Return a compact plain-text report for model evaluation results."""
     rows = [
         (
             "Model",
-            "Action JSON",
-            "Structured JSON",
-            "Overall",
+            "Action Turns",
             "Passed",
             "Status",
         )
@@ -223,8 +238,6 @@ def format_results(results: Sequence[ModelResult]) -> str:
     rows.extend(
         (
             result.model_name,
-            _format_capability_accuracy(result, Capability.ACTION_JSON),
-            _format_capability_accuracy(result, Capability.STRUCTURED_JSON),
             f"{result.accuracy:.0%}",
             f"{result.passed}/{result.total}",
             result.error or "ok",
@@ -263,7 +276,7 @@ def build_model_targets(args: argparse.Namespace, base_config: LlamaCppConfig) -
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run model capability evaluation from the command line."""
+    """Run model evaluation from the command line."""
     parser = _build_parser()
     args = parser.parse_args(argv)
 
@@ -285,6 +298,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     print()
     print(format_results(results))
+    flush_langfuse_if_enabled()
     return 1 if any(result.error for result in results) else 0
 
 
@@ -299,9 +313,8 @@ def _score_pydantic_json(
     except StructuredOutputError as exc:
         return CaseResult(
             case_name=case.name,
-            capability=case.capability,
             passed=False,
-            expected=_format_json(_model_dump(expected.value)),
+            expected=_format_json(_comparable_model_dump(expected.value, expected.ignored_fields)),
             actual=f"{exc}: {sanitized_content!r}",
         )
     try:
@@ -309,18 +322,29 @@ def _score_pydantic_json(
     except ValidationError as exc:
         return CaseResult(
             case_name=case.name,
-            capability=case.capability,
             passed=False,
-            expected=_format_json(_model_dump(expected.value)),
+            expected=_format_json(_comparable_model_dump(expected.value, expected.ignored_fields)),
             actual=f"Schema validation failed: {exc.errors(include_url=False)}",
         )
+    actual_dump = _comparable_model_dump(actual_value, expected.ignored_fields)
+    expected_dump = _comparable_model_dump(expected.value, expected.ignored_fields)
 
     return CaseResult(
         case_name=case.name,
-        capability=case.capability,
-        passed=_normalize_value(_model_dump(actual_value)) == _normalize_value(_model_dump(expected.value)),
-        expected=_format_json(_model_dump(expected.value)),
-        actual=_format_json(_model_dump(actual_value)),
+        passed=_normalize_value(actual_dump) == _normalize_value(expected_dump),
+        expected=_format_json(expected_dump),
+        actual=_format_json(actual_dump),
+    )
+
+
+def _score_action(case: EvaluationCase, expected: ExpectedPydanticJson, action: BaseModel) -> CaseResult:
+    actual_dump = _comparable_model_dump(action, expected.ignored_fields)
+    expected_dump = _comparable_model_dump(expected.value, expected.ignored_fields)
+    return CaseResult(
+        case_name=case.name,
+        passed=_normalize_value(actual_dump) == _normalize_value(expected_dump),
+        expected=_format_json(expected_dump),
+        actual=_format_json(actual_dump),
     )
 
 
@@ -336,6 +360,13 @@ def _normalize_value(value: Any) -> Any:
 
 def _model_dump(value: BaseModel) -> dict[str, Any]:
     return value.model_dump(mode="json")
+
+
+def _comparable_model_dump(value: BaseModel, ignored_fields: tuple[str, ...]) -> dict[str, Any]:
+    dumped = _model_dump(value)
+    for field in ignored_fields:
+        dumped.pop(field, None)
+    return dumped
 
 
 def _target_from_preset(preset_name: str, base_config: LlamaCppConfig) -> ModelTarget:
@@ -391,14 +422,6 @@ def _configured_model_name(config: LlamaCppConfig) -> str:
     return "configured"
 
 
-def _format_capability_accuracy(result: ModelResult, capability: Capability) -> str:
-    case_results = [case_result for case_result in result.case_results if case_result.capability is capability]
-    if not case_results:
-        return "n/a"
-    passed = sum(case_result.passed for case_result in case_results)
-    return f"{passed / len(case_results):.0%}"
-
-
 def _format_failures(results: Iterable[ModelResult]) -> list[str]:
     lines: list[str] = []
     for result in results:
@@ -438,6 +461,17 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Evaluate a local GGUF model path. Can be passed more than once.",
     )
     return parser
+
+
+class _CallableProvider:
+    """Adapter for running think-then-act evaluation with a completion function."""
+
+    def __init__(self, complete: Callable[[InferenceRequest], InferenceResponse]) -> None:
+        self._complete = complete
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Run the wrapped completion function."""
+        return self._complete(request)
 
 
 if __name__ == "__main__":

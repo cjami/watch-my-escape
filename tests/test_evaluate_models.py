@@ -6,7 +6,6 @@ import pytest
 from watch_my_escape.llm.config import MODEL_PRESETS, LlamaCppConfig, LlmProviderName
 from watch_my_escape.llm.evaluate_models import (
     CASES,
-    Capability,
     CaseResult,
     ModelResult,
     build_model_targets,
@@ -35,30 +34,53 @@ def _config(model_path: Path | None = None) -> LlamaCppConfig:
     )
 
 
-def test_evaluate_model_scores_action_json_and_structured_json():
+def test_evaluate_model_scores_think_then_act_turns():
+    requests: list[InferenceRequest] = []
+
     def complete(request: InferenceRequest) -> InferenceResponse:
-        assert request.structured_output is not None
+        requests.append(request)
+        if request.structured_output is None:
+            return InferenceResponse(content="I should choose the action that directly satisfies the objective.")
+
         user_content = request.messages[-1].content
-        if "brass key" in user_content:
-            return InferenceResponse(content='{"action":"examine","target":"Brass Key","emotion":"🤔"}')
-        if "silver key" in user_content:
+        normalized_prompt = user_content.lower()
+        if "collect the brass key" in normalized_prompt:
+            return InferenceResponse(content='Here is JSON: {"action":"pick_up","target":"brass key","emotion":"🤓"}')
+        if "try the silver key" in normalized_prompt:
             return InferenceResponse(
                 content='{"action":"use_item","item":"silver key","target":"locked diary","emotion":"🙂"}'
             )
-        if "move" in user_content:
+        if "head east" in normalized_prompt:
             return InferenceResponse(content='```json\n{"action":"move","direction":"East","emotion":"🙂"}\n```')
-        return InferenceResponse(
-            content='Here is JSON: {"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}'
-        )
+        if "look closely at the brass key" in normalized_prompt:
+            return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"🤔"}')
+        raise AssertionError
 
     results = evaluate_model(complete)
 
     assert all(result.passed for result in results)
-    assert {result.capability for result in results} == {Capability.ACTION_JSON, Capability.STRUCTURED_JSON}
+    assert len(requests) == len(CASES) * 2
+    assert all(request.structured_output is None for request in requests[::2])
+    assert all(request.structured_output is not None for request in requests[1::2])
+    deliberation_prompts = "\n".join(request.messages[-1].content for request in requests[::2])
+    assert "Evaluation-specific constraints" not in deliberation_prompts
+    assert "Pick up an adjacent entity." in deliberation_prompts
+    assert "Use one inventory item on another item or adjacent entity." in deliberation_prompts
+
+
+def test_evaluation_prompts_do_not_embed_json_or_specific_emotions():
+    prompt_parts: list[str] = []
+    for case in CASES:
+        prompt_parts.extend((case.room_state, case.objective, *case.history))
+    prompt_text = "\n".join(prompt_parts).lower()
+
+    assert "{" not in prompt_text
+    assert "emotion" not in prompt_text
+    assert "mood" not in prompt_text
 
 
 def test_score_case_fails_when_action_json_has_wrong_shape():
-    action_case = next(case for case in CASES if case.capability is Capability.ACTION_JSON)
+    action_case = next(case for case in CASES if case.name == "action_examine")
 
     result = score_case(action_case, InferenceResponse(content='{"action":"inspect_object"}'))
 
@@ -66,15 +88,50 @@ def test_score_case_fails_when_action_json_has_wrong_shape():
     assert result.actual.startswith("Schema validation failed:")
 
 
+def test_score_case_ignores_emotion_value():
+    action_case = next(case for case in CASES if case.name == "action_examine")
+
+    result = score_case(
+        action_case,
+        InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"curious"}'),
+    )
+
+    assert result.passed
+
+
+def test_score_case_rejects_target_outside_interactable_vocabulary():
+    action_case = next(case for case in CASES if case.name == "action_examine")
+
+    result = score_case(
+        action_case,
+        InferenceResponse(content='{"action":"examine","target":"ceiling vent","emotion":"curious"}'),
+    )
+
+    assert not result.passed
+    assert result.actual.startswith("Schema validation failed:")
+
+
+def test_score_case_rejects_item_outside_inventory_vocabulary():
+    action_case = next(case for case in CASES if case.name == "action_use_item")
+
+    result = score_case(
+        action_case,
+        InferenceResponse(content='{"action":"use_item","item":"rusty coin","target":"locked diary","emotion":"🙂"}'),
+    )
+
+    assert not result.passed
+    assert result.actual.startswith("Schema validation failed:")
+
+
 def test_score_case_strips_thinking_sections_before_parsing_json():
-    json_case = next(case for case in CASES if case.name == "json_take_note_action")
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
-                '<think>\nThe answer is {"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}.\n</think>\n'
-                '{"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}'
+                '<think>\nThe answer is {"action":"pick_up","target":"brass key","emotion":"🤓"}.\n</think>\n'
+                '{"action":"pick_up","target":"brass key","emotion":"🤓"}'
             )
         ),
     )
@@ -83,7 +140,7 @@ def test_score_case_strips_thinking_sections_before_parsing_json():
 
 
 def test_score_case_strips_dangling_thinking_close_before_parsing_json():
-    json_case = next(case for case in CASES if case.name == "json_move_action")
+    json_case = next(case for case in CASES if case.name == "action_move")
 
     result = score_case(
         json_case,
@@ -99,14 +156,14 @@ def test_score_case_strips_dangling_thinking_close_before_parsing_json():
 
 
 def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failure():
-    json_case = next(case for case in CASES if case.name == "json_take_note_action")
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
                 '<think>\nFirst, the user says: "Return this object exactly: '
-                '{"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}"\n\n'
+                '{"action":"pick_up","target":"brass key","emotion":"🤓"}"\n\n'
                 "So, I need to return this object exactly as it is."
             )
         ),
@@ -117,7 +174,7 @@ def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failu
 
 
 def test_score_case_strips_thinking_sections_before_reporting_action_json_failure():
-    action_case = next(case for case in CASES if case.capability is Capability.ACTION_JSON)
+    action_case = next(case for case in CASES if case.name == "action_examine")
 
     result = score_case(action_case, InferenceResponse(content='<think>Use JSON.</think>\n{"action":"examine"}'))
 
@@ -156,14 +213,12 @@ def test_format_results_outputs_accuracy_table_and_failures():
         case_results=(
             CaseResult(
                 case_name="action_case",
-                capability=Capability.ACTION_JSON,
                 passed=True,
                 expected="ok",
                 actual="ok",
             ),
             CaseResult(
                 case_name="json_case",
-                capability=Capability.STRUCTURED_JSON,
                 passed=False,
                 expected='{"ok":true}',
                 actual="not json",

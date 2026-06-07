@@ -4,6 +4,7 @@ import pytest
 
 from watch_my_escape.llm.config import (
     MODEL_PRESETS,
+    LangfuseConfig,
     LlamaCppConfig,
     LlmProviderName,
     ModelPresetError,
@@ -68,12 +69,55 @@ def test_load_config_reads_model_path_and_generation_settings():
         gpu_layers=42,
         zerogpu_duration=90,
         flash_attn=True,
+        langfuse=LangfuseConfig(),
     )
 
 
 def test_load_config_rejects_invalid_flash_attention_value():
     with pytest.raises(ValueError, match="WME_FLASH_ATTN"):
         load_config({"WME_FLASH_ATTN": "sometimes"})
+
+
+def test_load_config_disables_langfuse_when_tracing_env_is_missing():
+    config = load_config(
+        {
+            "LANGFUSE_SECRET_KEY": "secret",
+            "LANGFUSE_PUBLIC_KEY": "public",
+            "LANGFUSE_BASE_URL": "https://langfuse.example",
+        }
+    )
+
+    assert not config.langfuse.tracing_enabled
+
+
+def test_load_config_disables_langfuse_when_credentials_are_incomplete():
+    config = load_config(
+        {
+            "LANGFUSE_TRACING_ENABLED": "true",
+            "LANGFUSE_PUBLIC_KEY": "public",
+            "LANGFUSE_BASE_URL": "https://langfuse.example",
+        }
+    )
+
+    assert not config.langfuse.tracing_enabled
+
+
+def test_load_config_enables_langfuse_when_requested_and_complete():
+    config = load_config(
+        {
+            "LANGFUSE_TRACING_ENABLED": "true",
+            "LANGFUSE_SECRET_KEY": "secret",
+            "LANGFUSE_PUBLIC_KEY": "public",
+            "LANGFUSE_BASE_URL": "https://langfuse.example",
+        }
+    )
+
+    assert config.langfuse.tracing_enabled
+
+
+def test_load_config_rejects_invalid_langfuse_tracing_value():
+    with pytest.raises(ValueError, match="LANGFUSE_TRACING_ENABLED"):
+        load_config({"LANGFUSE_TRACING_ENABLED": "sometimes"})
 
 
 def test_load_config_resolves_model_preset_to_hub_source():

@@ -9,7 +9,8 @@ from pydantic import BaseModel
 
 from watch_my_escape.agent.prompts import build_action_messages, build_deliberation_messages
 from watch_my_escape.llm.models import InferenceRequest, InferenceSettings, StructuredOutputSpec
-from watch_my_escape.llm.structured import validate_structured_output
+from watch_my_escape.llm.structured import strip_thinking_sections, validate_structured_output
+from watch_my_escape.llm.tracing import observe_if_enabled
 
 if TYPE_CHECKING:
     from watch_my_escape.llm.client import InferenceProvider
@@ -46,24 +47,36 @@ class ThinkActResult:
 
 def run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> ThinkActResult:
     """Run one unconstrained deliberation call followed by one constrained action call."""
+    traced_turn = observe_if_enabled(
+        _run_think_act_turn,
+        name="agent.think_act_turn",
+        as_type="agent",
+    )
+    return traced_turn(provider, turn)
+
+
+def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> ThinkActResult:
+    """Run one unconstrained deliberation call followed by one constrained action call."""
     deliberation_response = provider.complete(
         InferenceRequest(
             messages=build_deliberation_messages(
                 room_state=turn.room_state,
                 objective=turn.objective,
+                action_model=turn.action_model,
                 history=turn.history,
             ),
             settings=turn.settings.deliberation,
         )
     )
     deliberation = deliberation_response.content.strip()
+    action_deliberation = strip_thinking_sections(deliberation)
 
     action_response = provider.complete(
         InferenceRequest(
             messages=build_action_messages(
                 room_state=turn.room_state,
                 objective=turn.objective,
-                deliberation=deliberation,
+                deliberation=action_deliberation,
                 action_model=turn.action_model,
                 history=turn.history,
             ),

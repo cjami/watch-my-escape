@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
+from importlib import import_module
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
@@ -21,6 +22,7 @@ DEFAULT_GPU_LAYERS: Final = -1
 DEFAULT_ZEROGPU_DURATION: Final = 60
 BOOLEAN_TRUE_VALUES: Final = frozenset({"1", "true", "yes", "on"})
 BOOLEAN_FALSE_VALUES: Final = frozenset({"0", "false", "no", "off"})
+LANGFUSE_REQUIRED_KEYS: Final = ("LANGFUSE_SECRET_KEY", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_BASE_URL")
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +31,13 @@ class ModelPreset:
 
     repo_id: str
     filename: str
+
+
+@dataclass(frozen=True, slots=True)
+class LangfuseConfig:
+    """Resolved Langfuse tracing configuration."""
+
+    tracing_enabled: bool = False
 
 
 MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
@@ -41,9 +50,9 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             repo_id="nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF",
             filename="NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
         ),
-        "minicpm-v-4.6-thinking": ModelPreset(
-            repo_id="openbmb/MiniCPM-V-4.6-Thinking-gguf",
-            filename="MiniCPM-V-4_6-Thinking-Q4_K_M.gguf",
+        "minicpm5-1b": ModelPreset(
+            repo_id="openbmb/MiniCPM5-1B-GGUF",
+            filename="MiniCPM5-1B-Q4_K_M.gguf",
         ),
         "tiny-aya-global": ModelPreset(
             repo_id="CohereLabs/tiny-aya-global-GGUF",
@@ -87,6 +96,7 @@ class LlamaCppConfig:
     gpu_layers: int
     zerogpu_duration: int
     flash_attn: bool | None = None
+    langfuse: LangfuseConfig = field(default_factory=LangfuseConfig)
 
     @property
     def has_model_source(self) -> bool:
@@ -111,6 +121,8 @@ def resolve_provider(provider: LlmProviderName, environ: dict[str, str] | None =
 
 def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
     """Load llama.cpp settings from environment variables."""
+    if environ is None:
+        load_dotenv_if_available()
     env = dict(os.environ) if environ is None else environ
     requested_provider = LlmProviderName(env.get("WME_LLM_PROVIDER", LlmProviderName.AUTO))
     model_path = env.get("WME_MODEL_PATH")
@@ -134,7 +146,20 @@ def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
         gpu_layers=int(env.get("WME_GPU_LAYERS", DEFAULT_GPU_LAYERS)),
         zerogpu_duration=int(env.get("WME_ZEROGPU_DURATION", DEFAULT_ZEROGPU_DURATION)),
         flash_attn=_optional_bool(env, "WME_FLASH_ATTN"),
+        langfuse=_load_langfuse_config(env),
     )
+
+
+def load_dotenv_if_available() -> None:
+    """Load local .env variables when python-dotenv is installed."""
+    try:
+        dotenv_module = import_module("dotenv")
+    except ImportError:
+        return
+
+    load_dotenv = getattr(dotenv_module, "load_dotenv", None)
+    if callable(load_dotenv):
+        load_dotenv()
 
 
 def _optional_float(env: dict[str, str], key: str) -> float | None:
@@ -160,6 +185,16 @@ def _optional_bool(env: dict[str, str], key: str) -> bool | None:
 
     msg = f"{key} must be one of: 1, 0, true, false, yes, no, on, off."
     raise ValueError(msg)
+
+
+def _load_langfuse_config(env: dict[str, str]) -> LangfuseConfig:
+    requested = _optional_bool(env, "LANGFUSE_TRACING_ENABLED")
+    tracing_enabled = requested is True and all(_has_value(env, key) for key in LANGFUSE_REQUIRED_KEYS)
+    return LangfuseConfig(tracing_enabled=tracing_enabled)
+
+
+def _has_value(env: dict[str, str], key: str) -> bool:
+    return bool(env.get(key, "").strip())
 
 
 def _resolve_model_preset_name(raw_name: str | None) -> str | None:

@@ -13,7 +13,9 @@ dependencies = [
     "gradio",
     "huggingface-hub",
     "jinja2",
+    "langfuse",
     "pydantic",
+    "python-dotenv",
 ]
 
 [project.optional-dependencies]

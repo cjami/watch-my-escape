@@ -18,6 +18,7 @@ from watch_my_escape.llm.config import (
 from watch_my_escape.llm.gguf import GgufMetadataError, GgufSamplingMetadata, read_sampling_metadata
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 from watch_my_escape.llm.tool_calls import parse_tool_call
+from watch_my_escape.llm.tracing import observe_if_enabled
 
 
 class InferenceProvider(Protocol):
@@ -54,7 +55,13 @@ class EmbeddedLlamaCppProvider:
 
     def complete(self, request: InferenceRequest) -> InferenceResponse:
         """Run one local llama.cpp chat completion."""
-        return self._complete_with_loaded_model(request)
+        traced_complete = observe_if_enabled(
+            self._complete_with_loaded_model,
+            name="llm.complete",
+            as_type="generation",
+            enabled=self._config.langfuse.tracing_enabled,
+        )
+        return traced_complete(request)
 
     def _complete_with_loaded_model(self, request: InferenceRequest) -> InferenceResponse:
         payload: dict[str, Any] = {
