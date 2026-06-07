@@ -17,6 +17,15 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class Coordinate(StrictModel):
+    """A location on the 16x16 map grid."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    x: Annotated[int, Field(ge=0, le=15)]
+    y: Annotated[int, Field(ge=0, le=15)]
+
+
 class BehaviorTrigger(StrictModel):
     """Agent action that can trigger an entity behavior."""
 
@@ -87,6 +96,12 @@ class SetEntityVisibleEffect(StrictModel):
     entity_id: Annotated[str | None, Field(default=None, min_length=1)] = None
 
 
+class EscapeMapEffect(StrictModel):
+    """Request that the active session is marked as escaped."""
+
+    type: Literal["escape_map"]
+
+
 type BehaviorEffect = Annotated[
     MessageEffect
     | AddInventoryEffect
@@ -94,7 +109,8 @@ type BehaviorEffect = Annotated[
     | SetEntityStateEffect
     | SetEntityPropertyEffect
     | SetEntityPassableEffect
-    | SetEntityVisibleEffect,
+    | SetEntityVisibleEffect
+    | EscapeMapEffect,
     Field(discriminator="type"),
 ]
 
@@ -137,6 +153,7 @@ class BehaviorResult(StrictModel):
     add_inventory: tuple[str, ...] = ()
     remove_inventory: tuple[str, ...] = ()
     entity_updates: dict[str, EntityUpdate] = Field(default_factory=dict)
+    escaped: bool = False
 
     @property
     def text(self) -> str:
@@ -171,6 +188,7 @@ class _BehaviorAccumulator:
         self.add_inventory: list[str] = []
         self.remove_inventory: list[str] = []
         self.entity_updates: dict[str, EntityUpdate] = {}
+        self.escaped = False
 
     def to_result(self) -> BehaviorResult:
         return BehaviorResult(
@@ -178,6 +196,7 @@ class _BehaviorAccumulator:
             add_inventory=tuple(self.add_inventory),
             remove_inventory=tuple(self.remove_inventory),
             entity_updates=self.entity_updates,
+            escaped=self.escaped,
         )
 
 
@@ -240,6 +259,9 @@ def _apply_effect(
         return
     if isinstance(effect, RemoveInventoryEffect):
         accumulator.remove_inventory.append(effect.item)
+        return
+    if isinstance(effect, EscapeMapEffect):
+        accumulator.escaped = True
         return
 
     update = accumulator.entity_updates.setdefault(_effect_entity_id(effect, current_entity), EntityUpdate())
