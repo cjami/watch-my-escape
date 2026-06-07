@@ -1,5 +1,5 @@
 from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
-from watch_my_escape.game.actions import InspectObjectAction
+from watch_my_escape.game.actions import EscapeRoomAction, ExamineAction
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
 
@@ -14,7 +14,7 @@ class FakeProvider:
         self.requests.append(request)
         if len(self.requests) == 1:
             return InferenceResponse(content="<think>Inspect the key before trying the door.</think>")
-        return InferenceResponse(content='{"action":"inspect_object","object_name":"brass key","detail_level":2}')
+        return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"🤔"}')
 
 
 def test_run_think_act_turn_deliberates_before_constrained_action():
@@ -25,13 +25,13 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
         ThinkActTurn(
             room_state="A brass key rests on a table beside a locked door.",
             objective="Escape the room.",
-            action_model=InspectObjectAction,
+            action_model=EscapeRoomAction,
             history=("Looked around the room.",),
         ),
     )
 
     assert result.deliberation == "<think>Inspect the key before trying the door.</think>"
-    assert result.action == InspectObjectAction(action="inspect_object", object_name="brass key", detail_level=2)
+    assert result.action == EscapeRoomAction(root=ExamineAction(action="examine", target="brass key", emotion="🤔"))
     assert provider.requests[0].structured_output is None
     assert provider.requests[0].settings.temperature == 1.0
     assert provider.requests[0].settings.max_tokens == 2048
@@ -49,7 +49,7 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
             return InferenceResponse(
                 content=(
                     "<think>I should not show this in the final action.</think>\n"
-                    '{"action":"inspect_object","object_name":"brass key","detail_level":2}'
+                    '{"action":"examine","target":"brass key","emotion":"🤔"}'
                 )
             )
 
@@ -58,9 +58,10 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
         ThinkActTurn(
             room_state="A brass key rests on a table.",
             objective="Escape the room.",
-            action_model=InspectObjectAction,
+            action_model=EscapeRoomAction,
         ),
     )
 
-    assert isinstance(result.action, InspectObjectAction)
-    assert result.action.object_name == "brass key"
+    assert isinstance(result.action, EscapeRoomAction)
+    assert isinstance(result.action.root, ExamineAction)
+    assert result.action.root.target == "brass key"

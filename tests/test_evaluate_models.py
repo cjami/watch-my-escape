@@ -40,14 +40,16 @@ def test_evaluate_model_scores_action_json_and_structured_json():
         assert request.structured_output is not None
         user_content = request.messages[-1].content
         if "brass key" in user_content:
-            return InferenceResponse(content='{"action":"inspect_object","object_name":"Brass Key","detail_level":2}')
+            return InferenceResponse(content='{"action":"examine","target":"Brass Key","emotion":"🤔"}')
         if "silver key" in user_content:
             return InferenceResponse(
-                content='{"action":"combine_items","items":["silver key","locked diary"],"purpose":"unlock"}'
+                content='{"action":"use_item","item":"silver key","target":"locked diary","emotion":"🙂"}'
             )
         if "move" in user_content:
-            return InferenceResponse(content='```json\n{"action":"move","direction":"east","emotion":"curious"}\n```')
-        return InferenceResponse(content='Here is JSON: {"clue_id":"clock","code":"1432","useful":true}')
+            return InferenceResponse(content='```json\n{"action":"move","direction":"East","emotion":"🙂"}\n```')
+        return InferenceResponse(
+            content='Here is JSON: {"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}'
+        )
 
     results = evaluate_model(complete)
 
@@ -65,14 +67,14 @@ def test_score_case_fails_when_action_json_has_wrong_shape():
 
 
 def test_score_case_strips_thinking_sections_before_parsing_json():
-    json_case = next(case for case in CASES if case.name == "json_clue_record")
+    json_case = next(case for case in CASES if case.name == "json_take_note_action")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
-                '<think>\nThe answer is {"clue_id":"clock","code":"1432","useful":true}.\n</think>\n'
-                '{"clue_id":"clock","code":"1432","useful":true}'
+                '<think>\nThe answer is {"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}.\n</think>\n'
+                '{"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}'
             )
         ),
     )
@@ -87,8 +89,8 @@ def test_score_case_strips_dangling_thinking_close_before_parsing_json():
         json_case,
         InferenceResponse(
             content=(
-                'We need to output {"action":"move","direction":"east","emotion":"curious"}.\n'
-                '</think>\n{"action":"move","direction":"east","emotion":"curious"}'
+                'We need to output {"action":"move","direction":"East","emotion":"🙂"}.\n'
+                '</think>\n{"action":"move","direction":"East","emotion":"🙂"}'
             )
         ),
     )
@@ -97,14 +99,14 @@ def test_score_case_strips_dangling_thinking_close_before_parsing_json():
 
 
 def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failure():
-    json_case = next(case for case in CASES if case.name == "json_clue_record")
+    json_case = next(case for case in CASES if case.name == "json_take_note_action")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
                 '<think>\nFirst, the user says: "Return this object exactly: '
-                '{"clue_id":"clock","code":"1432","useful":true}"\n\n'
+                '{"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}"\n\n'
                 "So, I need to return this object exactly as it is."
             )
         ),
@@ -117,7 +119,7 @@ def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failu
 def test_score_case_strips_thinking_sections_before_reporting_action_json_failure():
     action_case = next(case for case in CASES if case.capability is Capability.ACTION_JSON)
 
-    result = score_case(action_case, InferenceResponse(content='<think>Use JSON.</think>\n{"action":"inspect_object"}'))
+    result = score_case(action_case, InferenceResponse(content='<think>Use JSON.</think>\n{"action":"examine"}'))
 
     assert not result.passed
     assert result.actual.startswith("Schema validation failed:")

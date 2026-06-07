@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ValidationError
 
-from watch_my_escape.game.actions import ClueRecord, CombineItemsAction, InspectObjectAction, MoveAction
+from watch_my_escape.game.actions import ExamineAction, MoveAction, TakeNoteAction, UseItemAction
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, LlamaCppConfig, load_config
 from watch_my_escape.llm.models import (
@@ -100,7 +100,7 @@ class ModelResult:
 
 CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
-        name="action_inspect_object",
+        name="action_examine",
         capability=Capability.ACTION_JSON,
         messages=(
             ChatMessage(
@@ -113,18 +113,18 @@ CASES: tuple[EvaluationCase, ...] = (
             ChatMessage(
                 role="user",
                 content=(
-                    "Return an inspect_object command for the brass key with detail level 2. "
-                    'The JSON shape is {"action":"inspect_object","object_name":string,"detail_level":1|2|3}.'
+                    "Return an examine command for the brass key with a thinking-face emotion. "
+                    'The JSON shape is {"action":"examine","target":string,"emotion":emoji}.'
                 ),
             ),
         ),
         expected=ExpectedPydanticJson(
-            model=InspectObjectAction,
-            value=InspectObjectAction(action="inspect_object", object_name="brass key", detail_level=2),
+            model=ExamineAction,
+            value=ExamineAction(action="examine", target="brass key", emotion="🤔"),
         ),
     ),
     EvaluationCase(
-        name="action_combine_items",
+        name="action_use_item",
         capability=Capability.ACTION_JSON,
         messages=(
             ChatMessage(
@@ -137,15 +137,15 @@ CASES: tuple[EvaluationCase, ...] = (
             ChatMessage(
                 role="user",
                 content=(
-                    'Return a combine_items command. The two items are "silver key" and "locked diary". '
-                    'The purpose is "unlock". '
-                    'The JSON shape is {"action":"combine_items","items":[string,string],"purpose":string}.'
+                    'Return a use_item command. The item is "silver key" and the target is "locked diary". '
+                    'Use a smiling emotion. The JSON shape is {"action":"use_item","item":string,"target":string,'
+                    '"emotion":emoji}.'
                 ),
             ),
         ),
         expected=ExpectedPydanticJson(
-            model=CombineItemsAction,
-            value=CombineItemsAction(action="combine_items", items=("silver key", "locked diary"), purpose="unlock"),
+            model=UseItemAction,
+            value=UseItemAction(action="use_item", item="silver key", target="locked diary", emotion="🙂"),
         ),
     ),
     EvaluationCase(
@@ -158,16 +158,16 @@ CASES: tuple[EvaluationCase, ...] = (
             ),
             ChatMessage(
                 role="user",
-                content='Return this object exactly: {"action":"move","direction":"east","emotion":"curious"}',
+                content='Return this object exactly: {"action":"move","direction":"East","emotion":"🙂"}',
             ),
         ),
         expected=ExpectedPydanticJson(
             model=MoveAction,
-            value=MoveAction(action="move", direction="east", emotion="curious"),
+            value=MoveAction(action="move", direction="East", emotion="🙂"),
         ),
     ),
     EvaluationCase(
-        name="json_clue_record",
+        name="json_take_note_action",
         capability=Capability.STRUCTURED_JSON,
         messages=(
             ChatMessage(
@@ -176,12 +176,14 @@ CASES: tuple[EvaluationCase, ...] = (
             ),
             ChatMessage(
                 role="user",
-                content='Return this object exactly: {"clue_id":"clock","code":"1432","useful":true}',
+                content=(
+                    'Return this object exactly: {"action":"take_note","text":"Clock code is 1432.","emotion":"🤓"}'
+                ),
             ),
         ),
         expected=ExpectedPydanticJson(
-            model=ClueRecord,
-            value=ClueRecord(clue_id="clock", code="1432", useful=True),
+            model=TakeNoteAction,
+            value=TakeNoteAction(action="take_note", text="Clock code is 1432.", emotion="🤓"),
         ),
     ),
 )

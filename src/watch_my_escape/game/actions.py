@@ -2,46 +2,216 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, RootModel
+
+type Emotion = Literal[
+    "😀",
+    "😃",
+    "😄",
+    "😁",
+    "😆",
+    "😅",
+    "😂",
+    "🙂",
+    "🙃",
+    "😉",
+    "😊",
+    "😇",
+    "🥰",
+    "😍",
+    "🤩",
+    "😘",
+    "😗",
+    "☺️",
+    "😚",
+    "😙",
+    "🥲",
+    "😋",
+    "😛",
+    "😜",
+    "🤪",
+    "😝",
+    "🤑",
+    "🤗",
+    "🤭",
+    "🫢",
+    "🫣",
+    "🤫",
+    "🤔",
+    "🫡",
+    "🤐",
+    "🤨",
+    "😐",
+    "😑",
+    "😶",
+    "🫥",
+    "😶‍🌫️",
+    "😏",
+    "😒",
+    "🙄",
+    "😬",
+    "😮‍💨",
+    "🤥",
+    "😌",
+    "😔",
+    "😪",
+    "🤤",
+    "😴",
+    "😷",
+    "🤒",
+    "🤕",
+    "🤢",
+    "🤮",
+    "🤧",
+    "🥵",
+    "🥶",
+    "🥴",
+    "😵",
+    "😵‍💫",
+    "🤯",
+    "🤠",
+    "🥳",
+    "🥸",
+    "😎",
+    "🤓",
+    "🧐",
+    "😕",
+    "🫤",
+    "😟",
+    "🙁",
+    "☹️",
+    "😮",
+    "😯",
+    "😲",
+    "😳",
+    "🥺",
+    "🥹",
+    "😦",
+    "😧",
+    "😨",
+    "😰",
+    "😥",
+    "😢",
+    "😭",
+    "😱",
+    "😖",
+    "😣",
+    "😞",
+    "😓",
+    "😩",
+    "😫",
+    "🥱",
+    "😤",
+    "😡",
+    "😠",
+    "🤬",
+]
+type Direction = Literal["North", "East", "South", "West"]
+type InventoryItem = Annotated[str, Field(min_length=1, description="An item currently in the agent's inventory.")]
+type AdjacentTarget = Annotated[str, Field(min_length=1, description="An entity adjacent to the agent.")]
+type Target = Annotated[
+    str,
+    Field(min_length=1, description="Another inventory item or an entity adjacent to the agent."),
+]
+type NoteText = Annotated[str, Field(min_length=1, description="Text to record for later use.")]
 
 
-class InspectObjectAction(BaseModel):
-    """Inspect one object in the room."""
+class ActionBase(BaseModel):
+    """Common configuration for all agent actions."""
 
     model_config = ConfigDict(extra="forbid")
 
-    action: Literal["inspect_object"]
-    object_name: str
-    detail_level: Literal[1, 2, 3]
+    emotion: Emotion
 
 
-class CombineItemsAction(BaseModel):
-    """Combine two inventory items for a purpose."""
+class UseItemAction(ActionBase):
+    """Use one inventory item on another item or adjacent entity."""
 
-    model_config = ConfigDict(extra="forbid")
-
-    action: Literal["combine_items"]
-    items: tuple[str, str] = Field(min_length=2, max_length=2)
-    purpose: str
+    action: Literal["use_item"]
+    item: InventoryItem
+    target: Target
 
 
-class MoveAction(BaseModel):
+class PickUpAction(ActionBase):
+    """Pick up an adjacent entity."""
+
+    action: Literal["pick_up"]
+    target: AdjacentTarget
+
+
+class OpenAction(ActionBase):
+    """Open an adjacent entity."""
+
+    action: Literal["open"]
+    target: AdjacentTarget
+
+
+class CloseAction(ActionBase):
+    """Close an adjacent entity."""
+
+    action: Literal["close"]
+    target: AdjacentTarget
+
+
+class ExamineAction(ActionBase):
+    """Examine an adjacent entity."""
+
+    action: Literal["examine"]
+    target: AdjacentTarget
+
+
+class PushAction(ActionBase):
+    """Push an adjacent entity."""
+
+    action: Literal["push"]
+    target: AdjacentTarget
+
+
+class PullAction(ActionBase):
+    """Pull an adjacent entity."""
+
+    action: Literal["pull"]
+    target: AdjacentTarget
+
+
+class TalkToAction(ActionBase):
+    """Talk to an adjacent entity."""
+
+    action: Literal["talk_to"]
+    target: AdjacentTarget
+
+
+class TakeNoteAction(ActionBase):
+    """Record a note."""
+
+    action: Literal["take_note"]
+    text: NoteText
+
+
+class MoveAction(ActionBase):
     """Move in one cardinal direction."""
 
-    model_config = ConfigDict(extra="forbid")
-
     action: Literal["move"]
-    direction: Literal["north", "east", "south", "west"]
-    emotion: str
+    direction: Direction
 
 
-class ClueRecord(BaseModel):
-    """Record a clue found while evaluating structured output."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    clue_id: str
-    code: str
-    useful: bool
+class EscapeRoomAction(
+    RootModel[
+        Annotated[
+            UseItemAction
+            | PickUpAction
+            | OpenAction
+            | CloseAction
+            | ExamineAction
+            | PushAction
+            | PullAction
+            | TalkToAction
+            | TakeNoteAction
+            | MoveAction,
+            Field(discriminator="action"),
+        ]
+    ]
+):
+    """Any allowed escape-room action."""
