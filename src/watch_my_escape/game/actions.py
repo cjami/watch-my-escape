@@ -134,6 +134,13 @@ class UseItemAction(ActionBase):
     target: Target
 
 
+class UseAction(ActionBase):
+    """Use an adjacent entity."""
+
+    action: Literal["use"]
+    target: AdjacentTarget
+
+
 class PickUpAction(ActionBase):
     """Pick up an adjacent entity."""
 
@@ -201,6 +208,7 @@ class EscapeRoomAction(
     RootModel[
         Annotated[
             UseItemAction
+            | UseAction
             | PickUpAction
             | OpenAction
             | CloseAction

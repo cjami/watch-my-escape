@@ -12,6 +12,7 @@ from watch_my_escape.game.actions import (
     PushAction,
     TakeNoteAction,
     TalkToAction,
+    UseAction,
     UseItemAction,
 )
 
@@ -20,6 +21,7 @@ from watch_my_escape.game.actions import (
     ("model", "payload"),
     [
         (UseItemAction, {"action": "use_item", "item": "brass key", "target": "locked door", "emotion": "🤔"}),
+        (UseAction, {"action": "use", "target": "keypad", "emotion": "🤔"}),
         (PickUpAction, {"action": "pick_up", "target": "brass key", "emotion": "🙂"}),
         (OpenAction, {"action": "open", "target": "locked door", "emotion": "😀"}),
         (CloseAction, {"action": "close", "target": "cabinet", "emotion": "😌"}),

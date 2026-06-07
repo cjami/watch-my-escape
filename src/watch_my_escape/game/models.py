@@ -7,7 +7,7 @@ from typing import Annotated, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 type JsonScalar = str | int | float | bool | None
-type ActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use_item"]
+type ActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"]
 type EntityPropertyUpdates = dict[str, JsonScalar]
 
 
