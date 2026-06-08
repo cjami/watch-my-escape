@@ -28,7 +28,6 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
         provider,
         ThinkActTurn(
             game_state="A brass key rests on a table beside a locked door.",
-            objective="Escape the room.",
             action_model=EscapeRoomAction,
             history=("Looked around the room.",),
         ),
@@ -41,8 +40,14 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert provider.requests[0].structured_output is None
     assert provider.requests[0].settings.temperature == 1.0
     assert provider.requests[0].settings.max_tokens == 4096
+    deliberation_system_prompt = provider.requests[0].messages[0].content
+    assert "Briefly outline your overall plan." in deliberation_system_prompt
+    assert "Choose the immediate next single action to perform." in deliberation_system_prompt
+    assert "Choose a target for this action." in deliberation_system_prompt
+    assert "Provide a reason why you wish to perform this action." in deliberation_system_prompt
     deliberation_prompt = provider.requests[0].messages[-1].content
     assert "Game state:" in deliberation_prompt
+    assert "Objective:" not in deliberation_prompt
     assert "Available actions:" in deliberation_prompt
     assert "- examine: Examine an entity." in deliberation_prompt
     assert "- use_item: Use one inventory item on another item or entity." in deliberation_prompt
@@ -75,7 +80,6 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
         ThinkingActionProvider(),
         ThinkActTurn(
             game_state="A brass key rests on a table.",
-            objective="Escape the room.",
             action_model=EscapeRoomAction,
         ),
     )

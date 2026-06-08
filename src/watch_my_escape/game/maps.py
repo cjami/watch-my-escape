@@ -10,16 +10,18 @@ from pydantic import Field, ValidationError, model_validator
 
 from watch_my_escape.game.models import (
     ActionName,
+    AddInventoryEffect,
     BehaviorContext,
     BehaviorEffect,
     BehaviorResult,
     Coordinate,
     Entity,
     EntityUpdate,
+    RemoveInventoryEffect,
+    SetEntityActiveEffect,
     SetEntityPassableEffect,
     SetEntityPropertyEffect,
     SetEntityStateEffect,
-    SetEntityVisibleEffect,
     StrictModel,
     evaluate_entity_behavior,
 )
@@ -41,7 +43,7 @@ class MoveBlockedError(ValueError):
 
 
 class PathNotFoundError(ValueError):
-    """Raised when no visible reachable path exists for a requested destination."""
+    """Raised when no active reachable path exists for a requested destination."""
 
 
 class PlacedEntity(StrictModel):
@@ -69,6 +71,11 @@ class GameMap(StrictModel):
             msg = "entity ids must be unique across the map"
             raise ValueError(msg)
 
+        positions = [placed.position for placed in self.entities]
+        if len(set(positions)) != len(positions):
+            msg = "only one entity may be placed on each map tile"
+            raise ValueError(msg)
+
         self._validate_behavior_references(self.entities_by_id())
         return self
 
@@ -80,19 +87,28 @@ class GameMap(StrictModel):
         """Return placed entities at one coordinate."""
         return tuple(placed for placed in self.entities if placed.position == position)
 
-    def visible_entities(self) -> tuple[PlacedEntity, ...]:
-        """Return all visible placed entities across the map."""
-        return tuple(placed for placed in self.entities if placed.entity.visible)
+    def active_entities(self) -> tuple[PlacedEntity, ...]:
+        """Return all active placed entities across the map."""
+        return tuple(placed for placed in self.entities if placed.entity.active)
 
     def _validate_behavior_references(self, entities: dict[str, Entity]) -> None:
         entity_ids = set(entities)
         for entity in entities.values():
             for behavior in entity.behaviors:
+                if behavior.trigger.item is not None and behavior.trigger.item not in entity_ids:
+                    msg = f"entity {entity.id!r} references unknown inventory entity {behavior.trigger.item!r}"
+                    raise ValueError(msg)
                 for condition in behavior.conditions:
                     if condition.entity_id is not None and condition.entity_id not in entity_ids:
                         msg = f"entity {entity.id!r} references unknown entity {condition.entity_id!r}"
                         raise ValueError(msg)
                 for effect in behavior.effects:
+                    if (
+                        isinstance(effect, AddInventoryEffect | RemoveInventoryEffect)
+                        and effect.entity_id not in entity_ids
+                    ):
+                        msg = f"entity {entity.id!r} references unknown inventory entity {effect.entity_id!r}"
+                        raise ValueError(msg)
                     effect_entity_id = _effect_target_id(effect)
                     if effect_entity_id is not None and effect_entity_id not in entity_ids:
                         msg = f"entity {entity.id!r} references unknown entity {effect_entity_id!r}"
@@ -148,7 +164,7 @@ class GameSessionState(StrictModel):
         """Return a new session state with behavior side effects applied."""
         updated_map = _apply_entity_updates(self.map, result.entity_updates)
         inventory = tuple(item for item in self.inventory if item not in set(result.remove_inventory))
-        inventory = (*inventory, *result.add_inventory)
+        inventory = tuple(dict.fromkeys((*inventory, *result.add_inventory)))
         return self.model_copy(
             update={
                 "map": updated_map,
@@ -172,7 +188,7 @@ class GameSessionState(StrictModel):
 
 
 def render_agent_view(session: GameSessionState) -> str:
-    """Render visible notable entities as compact Markdown for the agent."""
+    """Render active notable entities as compact Markdown for the agent."""
     visible_entities = visible_notable_entities(session)
     position = session.current_position
 
@@ -191,9 +207,9 @@ def render_agent_room_view(session: GameSessionState) -> str:
 
 
 def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001f642") -> tuple[tuple[str, ...], ...]:
-    """Render the full visible 16x16 map as emoji cells for the user."""
+    """Render the full active 16x16 map as emoji cells for the user."""
     cells = [["." for _ in range(session.map.width)] for _ in range(session.map.height)]
-    for placed in session.map.visible_entities():
+    for placed in session.map.active_entities():
         cells[placed.position.y][placed.position.x] = placed.entity.icon
 
     position = session.current_position
@@ -202,7 +218,7 @@ def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001
 
 
 def visible_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
-    """Return coordinates visible from the agent through passable cells."""
+    """Return coordinates active from the agent through passable cells."""
     reachable_tiles = reachable_coordinates(session)
     visible_tiles = set(reachable_tiles)
 
@@ -230,20 +246,20 @@ def reachable_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
 
 
 def visible_notable_entities(session: GameSessionState) -> tuple[PlacedEntity, ...]:
-    """Return visible notable entities not sealed away from the agent."""
+    """Return active notable entities not sealed away from the agent."""
     visible_tiles = visible_coordinates(session)
     return tuple(
         placed
         for placed in session.map.entities
-        if placed.entity.visible and placed.entity.notable and placed.position in visible_tiles
+        if placed.entity.active and placed.entity.notable and placed.position in visible_tiles
     )
 
 
 def path_to_visible_destination(session: GameSessionState, destination: Coordinate) -> tuple[Coordinate, ...]:
-    """Return the shortest step path to a visible notable destination or its edge."""
+    """Return the shortest step path to a active notable destination or its edge."""
     visible_targets = tuple(placed for placed in visible_notable_entities(session) if placed.position == destination)
     if not visible_targets:
-        msg = f"no visible notable entity at ({destination.x}, {destination.y})"
+        msg = f"no active notable entity at ({destination.x}, {destination.y})"
         raise PathNotFoundError(msg)
 
     if _is_passable(session.map.entities_at(destination)):
@@ -345,15 +361,15 @@ def _updated_entity(entity: Entity, update: EntityUpdate) -> Entity:
         data["state"] = update.state
     if update.passable is not None:
         data["passable"] = update.passable
-    if update.visible is not None:
-        data["visible"] = update.visible
+    if update.active is not None:
+        data["active"] = update.active
     return entity.model_copy(update=data)
 
 
 def _effect_target_id(effect: BehaviorEffect) -> str | None:
     if isinstance(
         effect,
-        SetEntityStateEffect | SetEntityPropertyEffect | SetEntityPassableEffect | SetEntityVisibleEffect,
+        SetEntityStateEffect | SetEntityPropertyEffect | SetEntityPassableEffect | SetEntityActiveEffect,
     ):
         return effect.entity_id
     return None

@@ -10,21 +10,22 @@ from watch_my_escape.llm.models import ChatMessage
 
 
 def build_deliberation_messages(
-    *, game_state: str, objective: str, action_model: type[BaseModel], history: tuple[str, ...] = ()
+    *, game_state: str, action_model: type[BaseModel], history: tuple[str, ...] = ()
 ) -> tuple[ChatMessage, ...]:
     """Build the unconstrained thinking prompt for one turn."""
     return (
         ChatMessage(
             role="system",
             content=(
-                "You are playing an escape room game. Consider what the next best action will be. "
-                "Choose only ONE action. Provide a plain-text description of what you want to do."
+                "You are playing an escape room game. Briefly outline your overall plan. "
+                "Choose the immediate next single action to perform. Choose a target for this action. "
+                "Provide a reason why you wish to perform this action."
             ),
         ),
         ChatMessage(
             role="user",
             content=(
-                f"{_turn_context(game_state=game_state, objective=objective, history=history)}\n\n"
+                f"{_turn_context(game_state=game_state, history=history)}\n\n"
                 f"Available actions:\n{format_action_options(action_model)}"
             ),
         ),
@@ -34,7 +35,6 @@ def build_deliberation_messages(
 def build_action_messages(
     *,
     game_state: str,
-    objective: str,
     deliberation: str,
     action_model: type[BaseModel],
     history: tuple[str, ...] = (),
@@ -51,7 +51,7 @@ def build_action_messages(
         ChatMessage(
             role="user",
             content=(
-                f"{_turn_context(game_state=game_state, objective=objective, history=history)}\n\n"
+                f"{_turn_context(game_state=game_state, history=history)}\n\n"
                 f"Prior deliberation:\n{deliberation.strip()}\n\n"
                 f"Available actions:\n{format_action_options(action_model)}"
             ),
@@ -59,9 +59,9 @@ def build_action_messages(
     )
 
 
-def _turn_context(*, game_state: str, objective: str, history: tuple[str, ...]) -> str:
+def _turn_context(*, game_state: str, history: tuple[str, ...]) -> str:
     history_text = "\n".join(f"- {entry}" for entry in history) if history else "- No previous turns."
-    return f"Objective:\n{objective.strip()}\n\nGame state:\n{game_state.strip()}\n\nHistory:\n{history_text}"
+    return f"Game state:\n{game_state.strip()}\n\nHistory:\n{history_text}"
 
 
 def format_action_options(action_model: type[BaseModel]) -> str:

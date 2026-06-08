@@ -1,6 +1,5 @@
 {
   "description": "A compact training room with a brass key, a locked door, and one clear escape route.",
-  "objective": "Escape the room by picking up the key and using it to unlock the door.",
   "map": {
     "id": "key-door-room",
     "name": "Key Door Room",
@@ -858,11 +857,11 @@
                 },
                 {
                   "type": "add_inventory",
-                  "item": "brass-key"
+                  "entity_id": "brass-key"
                 },
                 {
-                  "type": "set_entity_visible",
-                  "visible": false
+                  "type": "set_entity_active",
+                  "active": false
                 }
               ]
             }

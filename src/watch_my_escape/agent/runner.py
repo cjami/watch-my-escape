@@ -31,7 +31,6 @@ class ThinkActTurn:
     """Input for one think-then-act agent turn."""
 
     game_state: str
-    objective: str
     action_model: type[BaseModel]
     history: tuple[str, ...] = ()
     settings: ThinkActSettings = field(default_factory=ThinkActSettings)
@@ -61,7 +60,6 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
         InferenceRequest(
             messages=build_deliberation_messages(
                 game_state=turn.game_state,
-                objective=turn.objective,
                 action_model=turn.action_model,
                 history=turn.history,
             ),
@@ -75,7 +73,6 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
         InferenceRequest(
             messages=build_action_messages(
                 game_state=turn.game_state,
-                objective=turn.objective,
                 deliberation=action_deliberation,
                 action_model=turn.action_model,
                 history=turn.history,

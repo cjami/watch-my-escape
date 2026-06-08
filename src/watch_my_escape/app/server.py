@@ -12,9 +12,10 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from gradio import Server
+from pydantic import ValidationError
 
 from watch_my_escape.agent.escape_run import EscapeRunFrame, run_model_escape, run_model_escape_steps
-from watch_my_escape.game.premade_maps import PremadeMapError, get_premade_map, list_premade_maps
+from watch_my_escape.game.premade_maps import PremadeMapDocument, PremadeMapError, get_premade_map, list_premade_maps
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, ModelPresetError, config_for_model_preset
 
@@ -69,9 +70,17 @@ def create_app() -> Server:
         except (ModelPresetError, PremadeMapError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return StreamingResponse(
-            _escape_event_stream(provider=provider, game_map=premade_map.map, objective=premade_map.objective),
+            _escape_event_stream(provider=provider, game_map=premade_map.map),
             media_type="text/event-stream",
         )
+
+    @app.post("/maps/validate")
+    async def validate_map_document(payload: dict[str, object]) -> dict[str, object]:
+        try:
+            document = PremadeMapDocument.model_validate(payload)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()) from exc
+        return document.model_dump(mode="json")
 
     return app
 
@@ -141,10 +150,9 @@ def _escape_event_stream(
     *,
     provider: InferenceProvider | None = None,
     game_map: GameMap | None = None,
-    objective: str | None = None,
 ) -> Iterator[str]:
     try:
-        for frame in run_model_escape_steps(provider=provider, game_map=game_map, objective=objective):
+        for frame in run_model_escape_steps(provider=provider, game_map=game_map):
             yield f"data: {json.dumps(_frame_payload(frame))}\n\n"
             if frame.delay_ms:
                 time.sleep(frame.delay_ms / 1000)

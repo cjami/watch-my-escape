@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
     from watch_my_escape.game.maps import GameMap
 
-ESCAPE_OBJECTIVE = "Escape the room by picking up the key and using it to unlock the door."
 DEFAULT_MAP_ID = "key-door-room"
 
 
@@ -87,7 +86,6 @@ def run_model_escape(
     *,
     provider: InferenceProvider | None = None,
     game_map: GameMap | None = None,
-    objective: str | None = None,
     starting_sanity: int = STARTING_SANITY,
 ) -> EscapeRunResult:
     """Run the configured model through an escape-room map."""
@@ -95,7 +93,6 @@ def run_model_escape(
         run_model_escape_steps(
             provider=provider,
             game_map=game_map,
-            objective=objective,
             starting_sanity=starting_sanity,
         )
     )
@@ -116,7 +113,6 @@ def run_model_escape_steps(
     *,
     provider: InferenceProvider | None = None,
     game_map: GameMap | None = None,
-    objective: str | None = None,
     starting_sanity: int = STARTING_SANITY,
 ) -> Iterator[EscapeRunFrame]:
     """Yield visible state after each model turn in an escape-room map."""
@@ -126,7 +122,6 @@ def run_model_escape_steps(
     if selected_map is None:
         msg = "a game map is required"
         raise ValueError(msg)
-    selected_objective = objective or (premade_map.objective if premade_map else ESCAPE_OBJECTIVE)
     session = GameSessionState(map=selected_map)
     sanity = starting_sanity
     history: list[str] = []
@@ -142,7 +137,6 @@ def run_model_escape_steps(
                 provider=resolved_provider,
                 session=session,
                 game_state=game_state,
-                objective=selected_objective,
                 history=tuple(history),
             )
         except EscapeTurnActionError as exc:
@@ -266,7 +260,6 @@ def _run_escape_turn(
     provider: InferenceProvider,
     session: GameSessionState,
     game_state: str,
-    objective: str,
     history: tuple[str, ...],
 ) -> ThinkActResult:
     settings = ThinkActSettings()
@@ -275,7 +268,6 @@ def _run_escape_turn(
         InferenceRequest(
             messages=build_deliberation_messages(
                 game_state=game_state,
-                objective=objective,
                 action_model=action_model,
                 history=history,
             ),
@@ -288,7 +280,6 @@ def _run_escape_turn(
         InferenceRequest(
             messages=build_action_messages(
                 game_state=game_state,
-                objective=objective,
                 deliberation=action_deliberation,
                 action_model=action_model,
                 history=history,

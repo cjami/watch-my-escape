@@ -88,7 +88,10 @@ def _entity_action_models(session: GameSessionState, *, actions: ActionFilter) -
 
 def _use_item_models(session: GameSessionState) -> list[type[BaseModel]]:
     items = tuple(dict.fromkeys(session.inventory))
-    if not items or not visible_notable_entities(session):
+    if not items:
+        return []
+    targets = _use_item_targets(session, items=items)
+    if not targets:
         return []
 
     return [
@@ -98,9 +101,14 @@ def _use_item_models(session: GameSessionState) -> list[type[BaseModel]]:
             __doc__=ACTION_DESCRIPTIONS["use_item"],
             action=(Literal["use_item"], ...),
             item=(_literal(items), ...),
-            target=(VisibleTarget, ...),
+            target=(_literal(targets), ...),
         )
     ]
+
+
+def _use_item_targets(session: GameSessionState, *, items: tuple[str, ...]) -> tuple[str, ...]:
+    visible_targets = tuple(placed.entity.id for placed in visible_notable_entities(session))
+    return tuple(dict.fromkeys((*visible_targets, *items)))
 
 
 def _take_note_model() -> type[BaseModel]:

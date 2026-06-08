@@ -14,7 +14,7 @@ def test_entity_defaults_to_default_state_and_no_behaviors():
     )
 
     assert entity.id == "stone-wall"
-    assert entity.visible is True
+    assert entity.active is True
     assert entity.notable is True
     assert entity.state == "default"
     assert entity.properties == {}
@@ -112,8 +112,8 @@ def test_pick_up_behavior_adds_item_to_inventory():
                     "trigger": {"action": "pick_up"},
                     "effects": [
                         {"type": "message", "text": "You pick up the brass key."},
-                        {"type": "add_inventory", "item": "brass key"},
-                        {"type": "set_entity_visible", "visible": False},
+                        {"type": "add_inventory", "entity_id": "brass-key"},
+                        {"type": "set_entity_active", "active": False},
                     ],
                 }
             ],
@@ -127,8 +127,8 @@ def test_pick_up_behavior_adds_item_to_inventory():
     )
 
     assert result.messages == ("You pick up the brass key.",)
-    assert result.add_inventory == ("brass key",)
-    assert result.entity_updates["brass-key"].visible is False
+    assert result.add_inventory == ("brass-key",)
+    assert result.entity_updates["brass-key"].active is False
     assert result.entity_updates["brass-key"].state is None
 
 
@@ -214,7 +214,7 @@ def test_use_item_behavior_can_match_inventory_item():
             "passable": False,
             "behaviors": [
                 {
-                    "trigger": {"action": "use_item", "item": "brass key"},
+                    "trigger": {"action": "use_item", "item": "brass-key"},
                     "effects": [{"type": "set_entity_state", "state": "unlocked"}],
                 }
             ],
@@ -224,14 +224,14 @@ def test_use_item_behavior_can_match_inventory_item():
     wrong_item_result = evaluate_entity_behavior(
         entity,
         action="use_item",
-        item="silver key",
-        context=BehaviorContext(entities={entity.id: entity}, inventory=("silver key",)),
+        item="silver-key",
+        context=BehaviorContext(entities={entity.id: entity}, inventory=("silver-key",)),
     )
     matching_item_result = evaluate_entity_behavior(
         entity,
         action="use_item",
-        item="brass key",
-        context=BehaviorContext(entities={entity.id: entity}, inventory=("brass key",)),
+        item="brass-key",
+        context=BehaviorContext(entities={entity.id: entity}, inventory=("brass-key",)),
     )
 
     assert wrong_item_result == BehaviorResult()

@@ -54,14 +54,14 @@ class AddInventoryEffect(StrictModel):
     """Request that an item be added to the agent inventory."""
 
     type: Literal["add_inventory"]
-    item: Annotated[str, Field(min_length=1)]
+    entity_id: Annotated[str, Field(min_length=1)]
 
 
 class RemoveInventoryEffect(StrictModel):
     """Request that an item be removed from the agent inventory."""
 
     type: Literal["remove_inventory"]
-    item: Annotated[str, Field(min_length=1)]
+    entity_id: Annotated[str, Field(min_length=1)]
 
 
 class SetEntityStateEffect(StrictModel):
@@ -89,11 +89,11 @@ class SetEntityPassableEffect(StrictModel):
     entity_id: Annotated[str | None, Field(default=None, min_length=1)] = None
 
 
-class SetEntityVisibleEffect(StrictModel):
-    """Request that an entity visibility flag be changed."""
+class SetEntityActiveEffect(StrictModel):
+    """Request that an entity active flag be changed."""
 
-    type: Literal["set_entity_visible"]
-    visible: bool
+    type: Literal["set_entity_active"]
+    active: bool
     entity_id: Annotated[str | None, Field(default=None, min_length=1)] = None
 
 
@@ -110,7 +110,7 @@ type BehaviorEffect = Annotated[
     | SetEntityStateEffect
     | SetEntityPropertyEffect
     | SetEntityPassableEffect
-    | SetEntityVisibleEffect
+    | SetEntityActiveEffect
     | EscapeMapEffect,
     Field(discriminator="type"),
 ]
@@ -132,7 +132,7 @@ class Entity(StrictModel):
     icon: Annotated[str, Field(min_length=1)]
     description: Annotated[str, Field(min_length=1)]
     passable: bool
-    visible: bool = True
+    active: bool = True
     notable: bool = True
     state: Annotated[str, Field(min_length=1)] = "default"
     properties: dict[str, JsonScalar] = Field(default_factory=dict)
@@ -144,7 +144,7 @@ class EntityUpdate(StrictModel):
 
     state: str | None = None
     passable: bool | None = None
-    visible: bool | None = None
+    active: bool | None = None
     properties: EntityPropertyUpdates = Field(default_factory=dict)
 
 
@@ -264,10 +264,10 @@ def _apply_effect(
         accumulator.messages.append(effect.text)
         return
     if isinstance(effect, AddInventoryEffect):
-        accumulator.add_inventory.append(effect.item)
+        accumulator.add_inventory.append(effect.entity_id)
         return
     if isinstance(effect, RemoveInventoryEffect):
-        accumulator.remove_inventory.append(effect.item)
+        accumulator.remove_inventory.append(effect.entity_id)
         return
     if isinstance(effect, EscapeMapEffect):
         accumulator.escaped = True
@@ -280,12 +280,12 @@ def _apply_effect(
         update.properties[effect.property] = effect.value
     elif isinstance(effect, SetEntityPassableEffect):
         update.passable = effect.passable
-    elif isinstance(effect, SetEntityVisibleEffect):
-        update.visible = effect.visible
+    elif isinstance(effect, SetEntityActiveEffect):
+        update.active = effect.active
 
 
 def _effect_entity_id(
-    effect: SetEntityStateEffect | SetEntityPropertyEffect | SetEntityPassableEffect | SetEntityVisibleEffect,
+    effect: SetEntityStateEffect | SetEntityPropertyEffect | SetEntityPassableEffect | SetEntityActiveEffect,
     current_entity: Entity,
 ) -> str:
     return effect.entity_id or current_entity.id

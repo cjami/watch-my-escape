@@ -31,12 +31,33 @@ def test_map_rejects_duplicate_entity_ids():
         GameMap.model_validate(payload)
 
 
+def test_map_rejects_duplicate_entity_positions():
+    payload = _map_payload()
+    payload["entities"][1]["position"] = {"x": 1, "y": 2}
+
+    with pytest.raises(ValidationError, match="one entity"):
+        GameMap.model_validate(payload)
+
+
 def test_map_rejects_unknown_behavior_references():
     payload = _map_payload()
     payload["entities"][0]["entity"]["behaviors"] = [
         {
             "trigger": {"action": "pull"},
-            "effects": [{"type": "set_entity_visible", "entity_id": "missing-door", "visible": True}],
+            "effects": [{"type": "set_entity_active", "entity_id": "missing-door", "active": True}],
+        }
+    ]
+
+    with pytest.raises(ValidationError):
+        GameMap.model_validate(payload)
+
+
+def test_map_rejects_unknown_inventory_entity_references():
+    payload = _map_payload()
+    payload["entities"][0]["entity"]["behaviors"] = [
+        {
+            "trigger": {"action": "pick_up"},
+            "effects": [{"type": "add_inventory", "entity_id": "missing-key"}],
         }
     ]
 
@@ -159,14 +180,14 @@ def _map_payload():
                 for y in [0, *range(2, 16)]
             ],
             {
-                "position": {"x": 1, "y": 2},
+                "position": {"x": 1, "y": 3},
                 "entity": {
                     "id": "secret-note",
                     "name": "Secret note",
                     "icon": "📝",
                     "description": "A hidden note.",
                     "passable": True,
-                    "visible": False,
+                    "active": False,
                 },
             },
             {

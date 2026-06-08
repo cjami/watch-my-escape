@@ -87,6 +87,7 @@ def test_run_model_escape_shows_journal_to_later_turns():
     second_turn_prompt = provider.requests[2].messages[-1].content
     assert result.escaped is True
     assert result.journal == ("The key should open the door.",)
+    assert "Objective:" not in second_turn_prompt
     assert "Journal:\n- The key should open the door." in second_turn_prompt
 
 
@@ -109,7 +110,7 @@ def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_ite
     provider = PairedProvider(
         (
             (
-                "The objective is clear: escape by picking up the key and using it to unlock the door.",
+                "The next useful step is to pick up the key.",
                 f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             ),
         )

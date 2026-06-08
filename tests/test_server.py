@@ -38,6 +38,8 @@ def test_homepage_renders_without_request_query_parameter():
 
     assert response.status_code == 200
     assert "WATCH" in response.text
+    assert "Main Menu" in response.text
+    assert "Map Editor" in response.text
     assert "Select Model" in response.text
     assert "key-door-room" in response.text
     assert next(iter(MODEL_PRESETS)) in response.text
@@ -110,7 +112,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert response.status_code == 200
     assert seen["provider"] is provider
     assert seen["game_map"].id == "key-door-room"
-    assert "Escape the room" in seen["objective"]
+    assert "objective" not in seen
     assert "Still searching with 99 sanity remaining." in response.text
     assert "(8, 8)" in response.text
     assert "locked-door" in response.text
@@ -134,3 +136,51 @@ def test_escape_stream_rejects_unknown_map(monkeypatch):
 
     assert response.status_code == 400
     assert "Unknown map" in response.text
+
+
+def test_map_validation_accepts_export_document():
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/maps/validate",
+        json={
+            "description": "A small room.",
+            "map": {
+                "id": "small-room",
+                "name": "Small Room",
+                "agent_start": {"x": 1, "y": 1},
+                "entities": [
+                    {
+                        "position": {"x": 2, "y": 1},
+                        "entity": {
+                            "id": "exit",
+                            "name": "Exit",
+                            "icon": "\U0001f3c1",
+                            "description": "The way out.",
+                            "passable": True,
+                            "behaviors": [{"trigger": {"action": "use"}, "effects": [{"type": "escape_map"}]}],
+                        },
+                    }
+                ],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["map"]["id"] == "small-room"
+
+
+def test_map_validation_rejects_objective_field():
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/maps/validate",
+        json={
+            "description": "A small room.",
+            "objective": "Escape with coaching.",
+            "map": {"id": "small-room", "name": "Small Room", "agent_start": {"x": 1, "y": 1}, "entities": []},
+        },
+    )
+
+    assert response.status_code == 422
+    assert "objective" in response.text

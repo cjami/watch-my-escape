@@ -74,7 +74,6 @@ class EvaluationCase:
 
     name: str
     game_state: str
-    objective: str
     expected: ExpectedPydanticJson
     history: tuple[str, ...] = ()
 
@@ -146,8 +145,7 @@ Interactable objects:
 CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         name="action_examine",
-        game_state=EVAL_GAME_STATE,
-        objective="Look closely at the brass key.",
+        game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Look closely at the brass key.",
         expected=ExpectedPydanticJson(
             model=EvalExamineAction,
             value=EvalExamineAction(action="examine", target="brass key", emotion="🤔"),
@@ -155,8 +153,7 @@ CASES: tuple[EvaluationCase, ...] = (
     ),
     EvaluationCase(
         name="action_use_item",
-        game_state=EVAL_GAME_STATE,
-        objective="Try the silver key on the locked diary.",
+        game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Try the silver key on the locked diary.",
         expected=ExpectedPydanticJson(
             model=EvalUseItemAction,
             value=EvalUseItemAction(action="use_item", item="silver key", target="locked diary", emotion="🙂"),
@@ -164,8 +161,7 @@ CASES: tuple[EvaluationCase, ...] = (
     ),
     EvaluationCase(
         name="action_pick_up",
-        game_state=EVAL_GAME_STATE,
-        objective="Collect the brass key.",
+        game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Collect the brass key.",
         expected=ExpectedPydanticJson(
             model=EvalPickUpAction,
             value=EvalPickUpAction(action="pick_up", target="brass key", emotion="🤓"),
@@ -184,7 +180,6 @@ def evaluate_model(provider_complete: Callable[[InferenceRequest], InferenceResp
                 provider,
                 ThinkActTurn(
                     game_state=case.game_state,
-                    objective=case.objective,
                     history=case.history,
                     action_model=case.expected.model,
                 ),

@@ -24,7 +24,6 @@ class PremadeMap:
     id: str
     name: str
     description: str
-    objective: str
     map: GameMap
 
     def as_selection_option(self) -> dict[str, str]:
@@ -33,7 +32,6 @@ class PremadeMap:
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "objective": self.objective,
         }
 
 
@@ -43,7 +41,6 @@ class PremadeMapDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     description: str = Field(min_length=1)
-    objective: str = Field(min_length=1)
     map: GameMap
 
     def to_premade_map(self) -> PremadeMap:
@@ -52,7 +49,6 @@ class PremadeMapDocument(BaseModel):
             id=self.map.id,
             name=self.map.name,
             description=self.description,
-            objective=self.objective,
             map=self.map,
         )
 
