@@ -31,6 +31,7 @@ class BehaviorTrigger(StrictModel):
 
     action: ActionName
     item: Annotated[str | None, Field(default=None, min_length=1)] = None
+    phrase: Annotated[str | None, Field(default=None, min_length=1)] = None
 
 
 class BehaviorCondition(StrictModel):
@@ -207,12 +208,13 @@ def evaluate_entity_behavior(
     action: ActionName,
     context: BehaviorContext,
     item: str | None = None,
+    text: str | None = None,
 ) -> BehaviorResult:
     """Evaluate declarative behaviors for one entity and action."""
     accumulator = _BehaviorAccumulator()
 
     for behavior in entity.behaviors:
-        if not _trigger_matches(behavior.trigger, action=action, item=item):
+        if not _trigger_matches(behavior.trigger, action=action, item=item, text=text):
             continue
         if not all(
             _condition_matches(condition, current_entity=entity, entities=context.entities)
@@ -226,10 +228,16 @@ def evaluate_entity_behavior(
     return accumulator.to_result()
 
 
-def _trigger_matches(trigger: BehaviorTrigger, *, action: ActionName, item: str | None) -> bool:
+def _trigger_matches(trigger: BehaviorTrigger, *, action: ActionName, item: str | None, text: str | None) -> bool:
     if trigger.action != action:
         return False
-    return trigger.item is None or trigger.item == item
+    if trigger.item is not None and trigger.item != item:
+        return False
+    return trigger.phrase is None or _normalized_phrase(trigger.phrase) in _normalized_phrase(text or "")
+
+
+def _normalized_phrase(value: str) -> str:
+    return "".join(value.casefold().strip().split())
 
 
 def _condition_matches(

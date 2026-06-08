@@ -53,7 +53,8 @@ def test_run_model_escape_stops_when_the_model_escapes():
     assert result.status == "Escaped with 98 sanity remaining."
     assert "Turn 1 - sanity 100 -> 99" in result.transcript
     assert "Turn 2 - sanity 99 -> 98" in result.transcript
-    assert "Available actions:" in result.transcript
+    assert "Available actions:" not in result.transcript
+    assert "Deliberation: I will choose the next useful action." in result.transcript
     assert "direction: one of" not in result.transcript
     assert "Position: (14, 8)" in result.transcript
     assert len(result.frames) == 8
@@ -100,10 +101,11 @@ def test_run_model_escape_offers_use_item_on_visible_distant_door_after_key_pick
     run_model_escape(provider=provider)
 
     action_prompt = provider.requests[3].messages[-1].content
-    assert "- use_item: Use with item: one of brass-key; target: one of locked-door." in action_prompt
+    assert "- use_item: Use one inventory item on another item or entity." in action_prompt
+    assert "target: one of locked-door" not in action_prompt
 
 
-def test_run_model_escape_keeps_general_actions_after_picking_up_language():
+def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_item():
     provider = PairedProvider(
         (
             (
@@ -116,8 +118,10 @@ def test_run_model_escape_keeps_general_actions_after_picking_up_language():
     result = run_model_escape(provider=provider, starting_sanity=1)
 
     action_prompt = provider.requests[1].messages[-1].content
-    assert "- pick_up: Use with target: one of brass-key." in action_prompt
+    assert "- pick_up: Pick up an entity." in action_prompt
+    assert "- open: Open an entity." in action_prompt
     assert "- take_note:" in action_prompt
+    assert "target: one of brass-key" not in action_prompt
     assert result.frames[-1].position == "(8, 8)"
 
 
@@ -135,7 +139,26 @@ def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_ar
 
     assert result.sanity == 0
     assert result.frames[-1].position == "(7, 8)"
+    assert "Deliberation: I will pick up the brass key." in result.transcript
     assert "Model returned an action outside the current grammar" in result.transcript
+
+
+def test_run_model_escape_omits_thinking_sections_from_transcript():
+    provider = PairedProvider(
+        (
+            (
+                "<think>I should quietly reason through the password.</think>\nI will pick up the key.",
+                f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+            ),
+        )
+    )
+
+    result = run_model_escape(provider=provider, starting_sanity=1)
+
+    assert "<think>" not in result.transcript
+    assert "</think>" not in result.transcript
+    assert "quietly reason" not in result.transcript
+    assert "Deliberation: I will pick up the key." in result.transcript
 
 
 def test_run_model_escape_renders_action_emotion_as_agent_icon():

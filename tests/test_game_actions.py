@@ -27,7 +27,7 @@ from watch_my_escape.game.actions import (
         (ExamineAction, {"action": "examine", "target": "painting", "emotion": "\U0001f9d0"}),
         (PushAction, {"action": "push", "target": "red button", "emotion": "\U0001f62c"}),
         (PullAction, {"action": "pull", "target": "lever", "emotion": "\U0001f624"}),
-        (TalkToAction, {"action": "talk_to", "target": "guard", "emotion": "\U0001f60a"}),
+        (TalkToAction, {"action": "talk_to", "target": "guard", "text": "silver moon", "emotion": "\U0001f60a"}),
         (TakeNoteAction, {"action": "take_note", "text": "The dial stopped at 12.", "emotion": "\U0001f913"}),
     ],
 )
@@ -39,6 +39,11 @@ def test_allowed_actions_require_smiley_emoji_emotion(model, payload):
 def test_action_emotion_rejects_non_emoji_text():
     with pytest.raises(ValidationError):
         ExamineAction.model_validate({"action": "examine", "target": "painting", "emotion": "curious"})
+
+
+def test_talk_to_action_requires_spoken_text():
+    with pytest.raises(ValidationError, match="text"):
+        TalkToAction.model_validate({"action": "talk_to", "target": "guard", "emotion": "\U0001f60a"})
 
 
 def test_escape_room_action_rejects_removed_action_names():

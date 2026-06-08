@@ -157,7 +157,9 @@ class GameSessionState(StrictModel):
             }
         )
 
-    def evaluate_entity_action(self, entity_id: str, action: str, *, item: str | None = None) -> BehaviorResult:
+    def evaluate_entity_action(
+        self, entity_id: str, action: str, *, item: str | None = None, text: str | None = None
+    ) -> BehaviorResult:
         """Evaluate an action against any entity using global entity context."""
         entity = self.map.entities_by_id()[entity_id]
         return evaluate_entity_behavior(
@@ -165,6 +167,7 @@ class GameSessionState(StrictModel):
             action=cast("ActionName", action),
             context=BehaviorContext(entities=self.map.entities_by_id(), inventory=self.inventory),
             item=item,
+            text=text,
         )
 
 
@@ -311,7 +314,7 @@ def _render_visible_entity_lines(visible_entities: tuple[PlacedEntity, ...]) -> 
     if not notable_entities:
         return ["- None."]
     return [
-        f"- target {placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
+        f"- {placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
         for placed in sorted(notable_entities, key=lambda item: (item.position.y, item.position.x, item.entity.id))
     ]
 

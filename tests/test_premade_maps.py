@@ -21,7 +21,19 @@ def test_list_premade_maps_exposes_selection_metadata():
             "name": "Key Door Room",
             "description": "A compact training room with a brass key, a locked door, and one clear escape route.",
             "objective": "Escape the room by picking up the key and using it to unlock the door.",
-        }
+        },
+        {
+            "id": "library-password-room",
+            "name": "Library Password Room",
+            "description": (
+                "A library puzzle room with a hidden password clue, a goblin gatekeeper, "
+                "and a sealed exit beyond the stacks."
+            ),
+            "objective": (
+                "Escape the library by finding the hidden password, telling it to the goblin, "
+                "and opening the exit door."
+            ),
+        },
     ]
 
 
@@ -31,3 +43,15 @@ def test_key_door_room_helper_uses_bundled_json_map():
     assert game_map == get_premade_map("key-door-room").map
     assert game_map.entities_by_id()["brass-key"].icon == "\U0001f511"
     assert game_map.entities_by_id()["locked-door"].icon == "\U0001f6aa"
+
+
+def test_premade_map_registry_loads_library_password_room_json():
+    premade_map = get_premade_map("library-password-room")
+    entities = premade_map.map.entities_by_id()
+
+    assert premade_map.name == "Library Password Room"
+    assert "hidden password" in premade_map.objective
+    assert premade_map.map.agent_start == Coordinate(x=2, y=8)
+    assert entities["hidden-password-note"].visible is False
+    assert entities["goblin-gatekeeper"].passable is False
+    assert entities["library-exit"].state == "locked"

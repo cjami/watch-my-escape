@@ -64,7 +64,7 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
     class FakeResult:
         status = "Escaped with 98 sanity remaining."
         sanity = 98
-        visible_entities = ("target locked-door: Locked door. A locked door bars the exit.",)
+        visible_entities = ("locked-door: Locked door. A locked door bars the exit.",)
         inventory = ("brass-key",)
         journal = ("The key should open the door.",)
         map_view = ((".", "door"), ("key", "."))
@@ -76,7 +76,7 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
 
     assert response["status"] == "Escaped with 98 sanity remaining."
     assert response["sanity"] == "98"
-    assert response["visible_entities"] == "- target locked-door: Locked door. A locked door bars the exit."
+    assert response["visible_entities"] == "- locked-door: Locked door. A locked door bars the exit."
     assert response["inventory"] == "- brass-key"
     assert response["journal"] == "- The key should open the door."
     assert response["map"] == ". door\nkey ."
@@ -92,7 +92,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             escaped=False,
             sanity=99,
             position="(8, 8)",
-            visible_entities=("target locked-door: Locked door. A locked door bars the exit.",),
+            visible_entities=("locked-door: Locked door. A locked door bars the exit.",),
             inventory=("brass-key",),
             journal=("The key opens the door.",),
             map_view=((".", "\U0001f642"), ("\U0001f511", "\U0001f6aa")),

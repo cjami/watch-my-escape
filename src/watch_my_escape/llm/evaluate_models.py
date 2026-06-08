@@ -73,7 +73,7 @@ class EvaluationCase:
     """One deterministic think-then-act turn and its expected action."""
 
     name: str
-    room_state: str
+    game_state: str
     objective: str
     expected: ExpectedPydanticJson
     history: tuple[str, ...] = ()
@@ -123,7 +123,7 @@ class ModelResult:
         return self.passed / self.total
 
 
-EVAL_ROOM_STATE = """\
+EVAL_GAME_STATE = """\
 You are in a compact puzzle study.
 
 Inventory:
@@ -146,7 +146,7 @@ Interactable objects:
 CASES: tuple[EvaluationCase, ...] = (
     EvaluationCase(
         name="action_examine",
-        room_state=EVAL_ROOM_STATE,
+        game_state=EVAL_GAME_STATE,
         objective="Look closely at the brass key.",
         expected=ExpectedPydanticJson(
             model=EvalExamineAction,
@@ -155,7 +155,7 @@ CASES: tuple[EvaluationCase, ...] = (
     ),
     EvaluationCase(
         name="action_use_item",
-        room_state=EVAL_ROOM_STATE,
+        game_state=EVAL_GAME_STATE,
         objective="Try the silver key on the locked diary.",
         expected=ExpectedPydanticJson(
             model=EvalUseItemAction,
@@ -164,7 +164,7 @@ CASES: tuple[EvaluationCase, ...] = (
     ),
     EvaluationCase(
         name="action_pick_up",
-        room_state=EVAL_ROOM_STATE,
+        game_state=EVAL_GAME_STATE,
         objective="Collect the brass key.",
         expected=ExpectedPydanticJson(
             model=EvalPickUpAction,
@@ -183,7 +183,7 @@ def evaluate_model(provider_complete: Callable[[InferenceRequest], InferenceResp
             result = run_think_act_turn(
                 provider,
                 ThinkActTurn(
-                    room_state=case.room_state,
+                    game_state=case.game_state,
                     objective=case.objective,
                     history=case.history,
                     action_model=case.expected.model,

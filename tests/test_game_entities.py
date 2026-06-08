@@ -236,3 +236,37 @@ def test_use_item_behavior_can_match_inventory_item():
 
     assert wrong_item_result == BehaviorResult()
     assert matching_item_result.entity_updates["locked-door"].state == "unlocked"
+
+
+def test_talk_to_behavior_matches_normalized_phrase():
+    entity = Entity.model_validate(
+        {
+            "id": "gatekeeper",
+            "name": "Gatekeeper",
+            "icon": "guard",
+            "description": "A guard waits for the password.",
+            "passable": False,
+            "behaviors": [
+                {
+                    "trigger": {"action": "talk_to", "phrase": "silver moon"},
+                    "effects": [{"type": "message", "text": "The gatekeeper steps aside."}],
+                }
+            ],
+        }
+    )
+
+    wrong_phrase_result = evaluate_entity_behavior(
+        entity,
+        action="talk_to",
+        text="gold sun",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+    matching_phrase_result = evaluate_entity_behavior(
+        entity,
+        action="talk_to",
+        text="  I think the password is SILVER   MOON, please let me pass.  ",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+
+    assert wrong_phrase_result == BehaviorResult()
+    assert matching_phrase_result.messages == ("The gatekeeper steps aside.",)

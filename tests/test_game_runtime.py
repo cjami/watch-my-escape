@@ -5,8 +5,8 @@ from watch_my_escape.game.action_options import build_available_action_model
 from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import Direction, GameMap, GameSessionState, MoveBlockedError
 from watch_my_escape.game.models import Coordinate
-from watch_my_escape.game.premade_maps import create_key_door_map
-from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_room_state_for_agent
+from watch_my_escape.game.premade_maps import create_key_door_map, get_premade_map
+from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
 
 EMOTION = "\U0001f914"
 
@@ -103,13 +103,13 @@ def test_take_note_records_journal_and_renders_to_agent():
 
     assert result.sanity == 99
     assert result.session.notes == ("The key should open the door.",)
-    assert "Journal:\n- The key should open the door." in render_room_state_for_agent(result.session, result.sanity)
+    assert "Journal:\n- The key should open the door." in render_game_state_for_agent(result.session, result.sanity)
 
 
 def test_empty_journal_is_rendered_to_agent():
     session = GameSessionState(map=create_key_door_map())
 
-    assert "Journal:\n- No notes recorded." in render_room_state_for_agent(session, STARTING_SANITY)
+    assert "Journal:\n- No notes recorded." in render_game_state_for_agent(session, STARTING_SANITY)
 
 
 def test_key_door_map_has_edge_walls_and_emoji_icons():
@@ -124,11 +124,13 @@ def test_key_door_map_has_edge_walls_and_emoji_icons():
     assert game_map.entities_at(Coordinate(x=15, y=8))[0].entity.id == "locked-door"
 
 
-def test_available_action_model_constrains_targets_to_current_possibilities():
+def test_available_action_model_offers_general_actions_for_visible_entities():
     session = GameSessionState(map=create_key_door_map())
     action_model = build_available_action_model(session)
 
     assert action_model.model_validate({"action": "pick_up", "target": "brass-key", "emotion": EMOTION})
+    assert action_model.model_validate({"action": "open", "target": "locked-door", "emotion": EMOTION})
+    assert action_model.model_validate({"action": "push", "target": "brass-key", "emotion": EMOTION})
     assert action_model.model_validate({"action": "take_note", "text": "The key is on the floor.", "emotion": EMOTION})
     with pytest.raises(ValidationError, match="use_item"):
         action_model.model_validate(
@@ -141,8 +143,7 @@ def test_available_action_model_constrains_targets_to_current_possibilities():
     assert door_action_model.model_validate(
         {"action": "use_item", "item": "brass-key", "target": "locked-door", "emotion": EMOTION}
     )
-    with pytest.raises(ValidationError, match="pick_up"):
-        door_action_model.model_validate({"action": "pick_up", "target": "brass-key", "emotion": EMOTION})
+    assert door_action_model.model_validate({"action": "pick_up", "target": "locked-door", "emotion": EMOTION})
 
 
 def test_available_action_model_schema_requires_action_discriminator():
@@ -153,15 +154,70 @@ def test_available_action_model_schema_requires_action_discriminator():
     assert "action" in schema["$defs"]["AvailableTakeNoteAction"]["required"]
 
 
-def test_available_action_model_uses_entity_ids_for_duplicate_names():
+def test_available_action_model_accepts_target_text_for_runtime_resolution():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 
     action_model = build_available_action_model(session)
 
     assert action_model.model_validate({"action": "examine", "target": "left-statue", "emotion": EMOTION})
     assert action_model.model_validate({"action": "examine", "target": "right-statue", "emotion": EMOTION})
+    assert action_model.model_validate({"action": "examine", "target": "statue", "emotion": EMOTION})
     with pytest.raises(ValidationError, match="target"):
-        action_model.model_validate({"action": "examine", "target": "statue", "emotion": EMOTION})
+        action_model.model_validate({"action": "examine", "target": "", "emotion": EMOTION})
+
+
+def test_library_password_room_solve_path_reveals_clue_and_opens_exit():
+    session = GameSessionState(map=get_premade_map("library-password-room").map)
+
+    clue_result = apply_agent_action(session, STARTING_SANITY, _action("examine", target="suspicious-shelf"))
+    clue_entities = clue_result.session.map.entities_by_id()
+
+    assert clue_result.sanity == 99
+    assert "Password - silver moon" in clue_result.message
+    assert clue_entities["hidden-password-note"].visible is True
+    assert clue_entities["hidden-password-note"].state == "revealed"
+
+    wrong_phrase_result = apply_agent_action(
+        clue_result.session,
+        clue_result.sanity,
+        _action("talk_to", target="goblin-gatekeeper", text="gold sun"),
+    )
+
+    assert wrong_phrase_result.session.map.entities_by_id()["goblin-gatekeeper"].passable is False
+
+    gate_result = apply_agent_action(
+        clue_result.session,
+        clue_result.sanity,
+        _action("talk_to", target="goblin-gatekeeper", text="The password must be SILVER   MOON."),
+    )
+    gate_entities = gate_result.session.map.entities_by_id()
+
+    assert gate_result.sanity == 98
+    assert gate_entities["goblin-gatekeeper"].state == "friendly"
+    assert gate_entities["goblin-gatekeeper"].passable is True
+    assert gate_entities["library-exit"].state == "open"
+    assert gate_entities["library-exit"].passable is True
+
+    escape_result = apply_agent_action(gate_result.session, gate_result.sanity, _action("open", target="library-exit"))
+
+    assert escape_result.sanity == 97
+    assert escape_result.session.escaped is True
+    assert escape_result.message == "The library exit swings wide, and you escape."
+
+
+def test_available_action_model_requires_spoken_text_for_talk_to_targets():
+    session = apply_agent_action(
+        GameSessionState(map=get_premade_map("library-password-room").map),
+        STARTING_SANITY,
+        _action("examine", target="suspicious-shelf"),
+    ).session
+    action_model = build_available_action_model(session)
+
+    assert action_model.model_validate(
+        {"action": "talk_to", "target": "goblin-gatekeeper", "text": "silver moon", "emotion": EMOTION}
+    )
+    with pytest.raises(ValidationError, match="text"):
+        action_model.model_validate({"action": "talk_to", "target": "goblin-gatekeeper", "emotion": EMOTION})
 
 
 def _action(action: str, **values: object) -> EscapeRoomAction:

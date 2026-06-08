@@ -71,7 +71,7 @@ def test_evaluate_model_scores_think_then_act_turns():
 def test_evaluation_prompts_do_not_embed_json_or_specific_emotions():
     prompt_parts: list[str] = []
     for case in CASES:
-        prompt_parts.extend((case.room_state, case.objective, *case.history))
+        prompt_parts.extend((case.game_state, case.objective, *case.history))
     prompt_text = "\n".join(prompt_parts).lower()
 
     assert "{" not in prompt_text

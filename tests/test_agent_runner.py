@@ -27,7 +27,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     result = run_think_act_turn(
         provider,
         ThinkActTurn(
-            room_state="A brass key rests on a table beside a locked door.",
+            game_state="A brass key rests on a table beside a locked door.",
             objective="Escape the room.",
             action_model=EscapeRoomAction,
             history=("Looked around the room.",),
@@ -40,14 +40,17 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert result.action == EscapeRoomAction(root=ExamineAction(action="examine", target="brass key", emotion="🤔"))
     assert provider.requests[0].structured_output is None
     assert provider.requests[0].settings.temperature == 1.0
-    assert provider.requests[0].settings.max_tokens == 2048
+    assert provider.requests[0].settings.max_tokens == 4096
     deliberation_prompt = provider.requests[0].messages[-1].content
+    assert "Game state:" in deliberation_prompt
     assert "Available actions:" in deliberation_prompt
-    assert "- examine: Examine a visible entity. Use with target: a visible entity." in deliberation_prompt
-    assert "- use_item: Use one inventory item on another item or visible entity." in deliberation_prompt
-    assert "item: an item currently in the agent's inventory" in deliberation_prompt
+    assert "- examine: Examine an entity." in deliberation_prompt
+    assert "- use_item: Use one inventory item on another item or entity." in deliberation_prompt
+    assert "target: a visible entity" not in deliberation_prompt
+    assert "item: an item currently in the agent's inventory" not in deliberation_prompt
     assert provider.requests[1].structured_output is not None
     assert provider.requests[1].settings.temperature == 0.0
+    assert provider.requests[1].settings.max_tokens == 512
     action_prompt = provider.requests[1].messages[-1].content
     assert "Available actions:" in action_prompt
     assert "Inspect the key before trying the door." not in provider.requests[1].messages[-1].content
@@ -71,7 +74,7 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
     result = run_think_act_turn(
         ThinkingActionProvider(),
         ThinkActTurn(
-            room_state="A brass key rests on a table.",
+            game_state="A brass key rests on a table.",
             objective="Escape the room.",
             action_model=EscapeRoomAction,
         ),

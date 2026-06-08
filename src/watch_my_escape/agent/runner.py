@@ -21,16 +21,16 @@ class ThinkActSettings:
     """Generation settings for the two phases of an agent turn."""
 
     deliberation: InferenceSettings = field(
-        default_factory=lambda: InferenceSettings(max_tokens=2048, temperature=1.0, top_p=0.95)
+        default_factory=lambda: InferenceSettings(max_tokens=4096, temperature=1.0, top_p=0.95)
     )
-    action: InferenceSettings = field(default_factory=lambda: InferenceSettings(max_tokens=256, temperature=0.0))
+    action: InferenceSettings = field(default_factory=lambda: InferenceSettings(max_tokens=512, temperature=0.0))
 
 
 @dataclass(frozen=True, slots=True)
 class ThinkActTurn:
     """Input for one think-then-act agent turn."""
 
-    room_state: str
+    game_state: str
     objective: str
     action_model: type[BaseModel]
     history: tuple[str, ...] = ()
@@ -60,7 +60,7 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
     deliberation_response = provider.complete(
         InferenceRequest(
             messages=build_deliberation_messages(
-                room_state=turn.room_state,
+                game_state=turn.game_state,
                 objective=turn.objective,
                 action_model=turn.action_model,
                 history=turn.history,
@@ -74,7 +74,7 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
     action_response = provider.complete(
         InferenceRequest(
             messages=build_action_messages(
-                room_state=turn.room_state,
+                game_state=turn.game_state,
                 objective=turn.objective,
                 deliberation=action_deliberation,
                 action_model=turn.action_model,

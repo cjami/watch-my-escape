@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from watch_my_escape.agent.prompts import build_action_messages, build_deliberation_messages, format_action_options
+from watch_my_escape.agent.prompts import build_action_messages, build_deliberation_messages
 from watch_my_escape.agent.runner import ThinkActResult, ThinkActSettings
 from watch_my_escape.game.action_options import build_available_action_model
 from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import GameSessionState, PlacedEntity, render_user_map_view, visible_notable_entities
 from watch_my_escape.game.premade_maps import get_premade_map
-from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_room_state_for_agent
+from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
 from watch_my_escape.llm.client import InferenceProvider, create_provider
 from watch_my_escape.llm.models import InferenceRequest, StructuredOutputSpec
 from watch_my_escape.llm.structured import StructuredOutputError, strip_thinking_sections, validate_structured_output
@@ -78,9 +78,8 @@ DEFAULT_FRAME_PRESENTATION = FramePresentation()
 class EscapeTurnActionError(ValueError):
     """Raised when the action phase returns output outside the current schema."""
 
-    def __init__(self, message: str, *, available_actions: str, deliberation: str) -> None:
+    def __init__(self, message: str, *, deliberation: str) -> None:
         super().__init__(message)
-        self.available_actions = available_actions
         self.deliberation = deliberation
 
 
@@ -137,12 +136,12 @@ def run_model_escape_steps(
 
     while sanity > 0 and not session.escaped:
         turn_number = len(transcript) + 1
-        room_state = render_room_state_for_agent(session, sanity)
+        game_state = render_game_state_for_agent(session, sanity)
         try:
-            result, available_actions = _run_escape_turn(
+            result = _run_escape_turn(
                 provider=resolved_provider,
                 session=session,
-                room_state=room_state,
+                game_state=game_state,
                 objective=selected_objective,
                 history=tuple(history),
             )
@@ -153,8 +152,7 @@ def run_model_escape_steps(
                 "\n".join(
                     [
                         f"Turn {turn_number} - sanity {sanity} -> {next_sanity}",
-                        f"Available actions:\n{exc.available_actions}",
-                        f"Deliberation: {exc.deliberation}",
+                        *_deliberation_lines(exc.deliberation),
                         "Action: invalid",
                         f"Result: {message}",
                         _position_line(session),
@@ -173,8 +171,7 @@ def run_model_escape_steps(
             "\n".join(
                 [
                     f"Turn {turn_number} - sanity {sanity} -> {applied.sanity}",
-                    f"Available actions:\n{available_actions}",
-                    f"Deliberation: {result.deliberation}",
+                    *_deliberation_lines(result.deliberation),
                     f"Action: {action_text}",
                     f"Result: {applied.message}",
                     _position_line(applied.session),
@@ -244,6 +241,13 @@ def _position_line(session: GameSessionState) -> str:
     return f"Position: {_position_text(session)}"
 
 
+def _deliberation_lines(deliberation: str) -> tuple[str, ...]:
+    stripped = strip_thinking_sections(deliberation).strip()
+    if not stripped:
+        return ()
+    return (f"Deliberation: {stripped}",)
+
+
 def _position_text(session: GameSessionState) -> str:
     position = session.current_position
     return f"({position.x}, {position.y})"
@@ -254,23 +258,23 @@ def _visible_entity_text(session: GameSessionState) -> tuple[str, ...]:
 
 
 def _placed_entity_text(placed: PlacedEntity) -> str:
-    return f"target {placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
+    return f"{placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
 
 
 def _run_escape_turn(
     *,
     provider: InferenceProvider,
     session: GameSessionState,
-    room_state: str,
+    game_state: str,
     objective: str,
     history: tuple[str, ...],
-) -> tuple[ThinkActResult, str]:
+) -> ThinkActResult:
     settings = ThinkActSettings()
     action_model = build_available_action_model(session)
     deliberation_response = provider.complete(
         InferenceRequest(
             messages=build_deliberation_messages(
-                room_state=room_state,
+                game_state=game_state,
                 objective=objective,
                 action_model=action_model,
                 history=history,
@@ -280,11 +284,10 @@ def _run_escape_turn(
     )
     deliberation = deliberation_response.content.strip()
     action_deliberation = strip_thinking_sections(deliberation)
-    available_actions = format_action_options(action_model)
     action_response = provider.complete(
         InferenceRequest(
             messages=build_action_messages(
-                room_state=room_state,
+                game_state=game_state,
                 objective=objective,
                 deliberation=action_deliberation,
                 action_model=action_model,
@@ -299,7 +302,6 @@ def _run_escape_turn(
     except (StructuredOutputError, ValidationError) as exc:
         raise EscapeTurnActionError(
             str(exc),
-            available_actions=available_actions,
             deliberation=deliberation,
         ) from exc
-    return (ThinkActResult(deliberation=deliberation, action=action), available_actions)
+    return ThinkActResult(deliberation=deliberation, action=action)

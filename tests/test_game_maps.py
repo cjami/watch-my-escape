@@ -50,8 +50,9 @@ def test_agent_view_uses_visibility_from_passable_cells_and_blockers():
     view = render_agent_view(session)
 
     assert "Position: (1, 1)" in view
-    assert "target brass-key" in view
-    assert "target locked-door" in view
+    assert "- brass-key: Brass key." in view
+    assert "- locked-door: Locked door." in view
+    assert "target brass-key" not in view
     assert "secret-note" not in view
     assert "remote-hatch" not in view
     assert Coordinate(x=3, y=1) not in visible_coordinates(session)

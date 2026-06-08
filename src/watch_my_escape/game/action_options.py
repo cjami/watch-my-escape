@@ -8,13 +8,25 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, Field, RootModel, create_model
 
-from watch_my_escape.game.actions import ActionBase, NoteText
+from watch_my_escape.game.actions import ActionBase, NoteText, SpokenText, VisibleTarget
 from watch_my_escape.game.maps import visible_notable_entities
 
 if TYPE_CHECKING:
     from watch_my_escape.game.maps import GameSessionState
 
 ENTITY_ACTIONS = ("examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use")
+ACTION_DESCRIPTIONS = {
+    "close": "Close an entity.",
+    "examine": "Examine an entity.",
+    "open": "Open an entity.",
+    "pick_up": "Pick up an entity.",
+    "pull": "Pull an entity.",
+    "push": "Push an entity.",
+    "take_note": "Record a note.",
+    "talk_to": "Talk to an entity.",
+    "use": "Use an entity.",
+    "use_item": "Use one inventory item on another item or entity.",
+}
 type ActionFilter = frozenset[str] | None
 
 
@@ -43,37 +55,50 @@ def build_available_action_model(
 
 
 def _entity_action_models(session: GameSessionState, *, actions: ActionFilter) -> list[type[BaseModel]]:
+    if not visible_notable_entities(session):
+        return []
+
     models: list[type[BaseModel]] = []
     for action in ENTITY_ACTIONS:
         if not _allows(actions, action):
             continue
-        targets = _targets_for_action(session, action)
-        if targets:
+        if action == "talk_to":
             models.append(
                 create_model(
-                    f"Available{_model_name(action)}Action",
+                    "AvailableTalkToAction",
                     __base__=ActionBase,
+                    __doc__=ACTION_DESCRIPTIONS[action],
                     action=(_literal((action,)), ...),
-                    target=(_literal(targets), ...),
+                    target=(VisibleTarget, ...),
+                    text=(SpokenText, ...),
                 )
             )
+            continue
+        models.append(
+            create_model(
+                f"Available{_model_name(action)}Action",
+                __base__=ActionBase,
+                __doc__=ACTION_DESCRIPTIONS[action],
+                action=(_literal((action,)), ...),
+                target=(VisibleTarget, ...),
+            )
+        )
     return models
 
 
 def _use_item_models(session: GameSessionState) -> list[type[BaseModel]]:
-    options = _use_item_options(session)
-    if not options:
+    items = tuple(dict.fromkeys(session.inventory))
+    if not items or not visible_notable_entities(session):
         return []
 
-    items = tuple(dict.fromkeys(item for item, _target in options))
-    targets = tuple(dict.fromkeys(target for _item, target in options))
     return [
         create_model(
             "AvailableUseItemAction",
             __base__=ActionBase,
+            __doc__=ACTION_DESCRIPTIONS["use_item"],
             action=(Literal["use_item"], ...),
             item=(_literal(items), ...),
-            target=(_literal(targets), ...),
+            target=(VisibleTarget, ...),
         )
     ]
 
@@ -82,29 +107,10 @@ def _take_note_model() -> type[BaseModel]:
     return create_model(
         "AvailableTakeNoteAction",
         __base__=ActionBase,
+        __doc__=ACTION_DESCRIPTIONS["take_note"],
         action=(Literal["take_note"], ...),
         text=(NoteText, ...),
     )
-
-
-def _targets_for_action(session: GameSessionState, action: str) -> tuple[str, ...]:
-    return tuple(
-        placed.entity.id
-        for placed in visible_notable_entities(session)
-        if any(behavior.trigger.action == action for behavior in placed.entity.behaviors)
-    )
-
-
-def _use_item_options(session: GameSessionState) -> tuple[tuple[str, str], ...]:
-    options: list[tuple[str, str]] = []
-    inventory = set(session.inventory)
-    for placed in visible_notable_entities(session):
-        options.extend(
-            (behavior.trigger.item, placed.entity.id)
-            for behavior in placed.entity.behaviors
-            if behavior.trigger.action == "use_item" and behavior.trigger.item in inventory
-        )
-    return tuple(options)
 
 
 def _model_name(action: str) -> str:

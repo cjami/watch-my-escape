@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from watch_my_escape.game.actions import (
     EscapeRoomAction,
     TakeNoteAction,
+    TalkToAction,
     UseItemAction,
 )
 from watch_my_escape.game.maps import (
@@ -66,7 +67,8 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
         )
 
     item = root.item if isinstance(root, UseItemAction) else None
-    behavior_result = action_session.evaluate_entity_action(nearby_target.entity.id, root.action, item=item)
+    text = root.text if isinstance(root, TalkToAction) else None
+    behavior_result = action_session.evaluate_entity_action(nearby_target.entity.id, root.action, item=item, text=text)
     updated_session = action_session.apply_behavior_result(behavior_result)
     fallback_message = f"You {root.action.replace('_', ' ')} the {nearby_target.entity.name}. Nothing happens."
     return AppliedAction(
@@ -77,7 +79,7 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
     )
 
 
-def render_room_state_for_agent(session: GameSessionState, sanity: int) -> str:
+def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
     """Render the full state the model should see before choosing an action."""
     return "\n\n".join(
         [
