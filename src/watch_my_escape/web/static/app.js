@@ -1,6 +1,16 @@
 const appData = JSON.parse(document.querySelector("#app-data").textContent);
 const screens = new Map([...document.querySelectorAll("[data-screen]")].map((screen) => [screen.dataset.screen, screen]));
 const modelOptions = document.querySelector("#model-options");
+const previousModelButton = document.querySelector("#previous-model");
+const nextModelButton = document.querySelector("#next-model");
+const chooseModelButton = document.querySelector("#choose-model");
+const modelLineup = document.querySelector("#model-lineup");
+const modelAgentOrbit = document.querySelector("#model-agent-orbit");
+const modelAgentIcon = document.querySelector("#model-agent-icon");
+const modelCompany = document.querySelector("#model-company");
+const modelName = document.querySelector("#model-name");
+const modelStats = document.querySelector("#model-stats");
+const modelFile = document.querySelector("#model-file");
 const mapOptions = document.querySelector("#map-options");
 const selectedModelLabel = document.querySelector("#selected-model-label");
 const gameSelectionLabel = document.querySelector("#game-selection-label");
@@ -126,6 +136,7 @@ let selectedTool = "select";
 let selectedPreset = presets[0];
 let selectedEntityId = null;
 let editorState = starterEditorState();
+let selectedModelIndex = 0;
 let lastMapText = "";
 let lastAgentPosition = "";
 let gameIntroTimer = null;
@@ -148,7 +159,28 @@ window.addEventListener(
   { once: true },
 );
 
-playGameButton.addEventListener("click", () => showScreen("models"));
+playGameButton.addEventListener("click", () => {
+  renderModelOptions();
+  showScreen("models");
+  modelOptions.focus();
+});
+previousModelButton.addEventListener("click", () => changeModel(-1));
+nextModelButton.addEventListener("click", () => changeModel(1));
+chooseModelButton.addEventListener("click", chooseSelectedModel);
+modelOptions.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    changeModel(-1);
+  }
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    changeModel(1);
+  }
+  if ((event.key === "Enter" || event.key === " ") && event.target === modelOptions) {
+    event.preventDefault();
+    chooseSelectedModel();
+  }
+});
 openEditorButton.addEventListener("click", () => showScreen("editor"));
 editorBackButton.addEventListener("click", () => showScreen("menu"));
 importMapButton.addEventListener("click", () => importMapFile.click());
@@ -199,26 +231,84 @@ document.querySelectorAll("[data-editor-tool]").forEach((button) => {
 });
 
 function renderModelOptions() {
-  modelOptions.replaceChildren(
-    ...appData.models.map((model) => {
+  if (!appData.models.length) {
+    return;
+  }
+  selectedModelIndex = normalizeModelIndex(selectedModelIndex);
+  const model = appData.models[selectedModelIndex];
+  const maxParameters = Math.max(...appData.models.map((candidate) => candidate.parameter_size_b));
+  const sizeRatio = Math.sqrt(model.parameter_size_b / maxParameters);
+  modelOptions.style.setProperty("--model-color", model.brand_color);
+  modelAgentOrbit.style.setProperty("--model-color", model.brand_color);
+  modelAgentOrbit.style.setProperty("--model-scale", String(0.62 + sizeRatio * 0.48));
+  modelAgentIcon.replaceChildren(pixelSprite(model.agent_icon, model.display_name, model.brand_color, 128));
+  modelCompany.textContent = model.company;
+  modelName.textContent = model.display_name;
+  modelStats.replaceChildren(
+    modelStat("Params", formatParameters(model.parameter_size_b)),
+    modelStat("Class", modelClass(model.parameter_size_b)),
+    modelStat("Active", model.active_parameter_size_b ? formatParameters(model.active_parameter_size_b) : "Dense"),
+  );
+  modelFile.textContent = model.filename;
+  modelLineup.replaceChildren(
+    ...appData.models.map((candidate, index) => {
       const button = document.createElement("button");
+      const ratio = Math.sqrt(candidate.parameter_size_b / maxParameters);
       button.type = "button";
-      button.className = "selection-card";
-      button.innerHTML = `
-        <span class="selection-chip"></span>
-        <span class="selection-title">${escapeHtml(model.display_name)}</span>
-        <span class="selection-meta">${escapeHtml(model.company)}</span>
-        <span class="selection-detail">${escapeHtml(model.filename)}</span>
-      `;
+      button.className = "model-lineup-agent";
+      button.classList.toggle("is-selected", index === selectedModelIndex);
+      button.style.setProperty("--lineup-color", candidate.brand_color);
+      button.style.setProperty("--lineup-size", `${2.2 + ratio * 2.4}rem`);
+      button.setAttribute("aria-label", candidate.display_name);
+      button.append(pixelSprite(candidate.agent_icon, candidate.display_name, candidate.brand_color, 80));
       button.addEventListener("click", () => {
-        selectedModel = model;
-        selectedModelLabel.textContent = `${model.company} / ${model.display_name}`;
-        document.documentElement.style.setProperty("--agent-color", model.brand_color);
-        showScreen("maps");
+        selectedModelIndex = index;
+        renderModelOptions();
       });
       return button;
     }),
   );
+}
+
+function changeModel(direction) {
+  selectedModelIndex = normalizeModelIndex(selectedModelIndex + direction);
+  renderModelOptions();
+}
+
+function chooseSelectedModel() {
+  const model = appData.models[selectedModelIndex];
+  selectedModel = model;
+  selectedModelLabel.textContent = `${model.company} / ${model.display_name}`;
+  document.documentElement.style.setProperty("--agent-color", model.brand_color);
+  showScreen("maps");
+}
+
+function normalizeModelIndex(index) {
+  return (index + appData.models.length) % appData.models.length;
+}
+
+function modelStat(label, value) {
+  const stat = document.createElement("span");
+  stat.className = "model-stat";
+  stat.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>`;
+  return stat;
+}
+
+function formatParameters(value) {
+  return `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}B`;
+}
+
+function modelClass(parameterSizeB) {
+  if (parameterSizeB >= 10) {
+    return "Heavy";
+  }
+  if (parameterSizeB >= 4) {
+    return "Medium";
+  }
+  if (parameterSizeB >= 2) {
+    return "Light";
+  }
+  return "Feather";
 }
 
 function renderMapOptions() {

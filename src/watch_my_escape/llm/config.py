@@ -32,8 +32,11 @@ class ModelPreset:
     display_name: str
     company: str
     brand_color: str
+    agent_icon: str
+    parameter_size_b: float
     repo_id: str
     filename: str
+    active_parameter_size_b: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +52,8 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             display_name="Gemma 4 12B IT",
             company="Google",
             brand_color="#4285F4",
+            agent_icon="🤓",
+            parameter_size_b=12,
             repo_id="ggml-org/gemma-4-12B-it-GGUF",
             filename="gemma-4-12B-it-Q4_K_M.gguf",
         ),
@@ -56,6 +61,8 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             display_name="Nemotron 3 Nano 4B",
             company="NVIDIA",
             brand_color="#76B900",
+            agent_icon="🤠",
+            parameter_size_b=4,
             repo_id="nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF",
             filename="NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
         ),
@@ -63,13 +70,17 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             display_name="MiniCPM5 1B",
             company="OpenBMB",
             brand_color="#2563EB",
+            agent_icon="🫡",
+            parameter_size_b=1,
             repo_id="openbmb/MiniCPM5-1B-GGUF",
             filename="MiniCPM5-1B-Q4_K_M.gguf",
         ),
         "tiny-aya-global": ModelPreset(
             display_name="Tiny Aya Global",
             company="Cohere",
-            brand_color="#39594D",
+            brand_color="#639C87",
+            agent_icon="🥰",
+            parameter_size_b=3.35,
             repo_id="CohereLabs/tiny-aya-global-GGUF",
             filename="tiny-aya-global-q4_k_m.gguf",
         ),
@@ -77,8 +88,11 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             display_name="Mellum2 12B Thinking",
             company="JetBrains",
             brand_color="#A855F7",
+            agent_icon="🤔",
+            parameter_size_b=12,
             repo_id="JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M",
             filename="Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf",
+            active_parameter_size_b=2.5,
         ),
     }
 )

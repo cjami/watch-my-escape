@@ -9,6 +9,7 @@ from watch_my_escape.app.server import (
     TEMPLATES_DIR,
     build_escape_run_response,
     create_app,
+    model_preset_options,
 )
 from watch_my_escape.llm.client import LlmConfigurationError
 from watch_my_escape.llm.config import MODEL_PRESETS
@@ -43,6 +44,15 @@ def test_homepage_renders_without_request_query_parameter():
     assert "Select Model" in response.text
     assert "key-door-room" in response.text
     assert next(iter(MODEL_PRESETS)) in response.text
+
+
+def test_model_preset_options_include_selector_metadata():
+    options = model_preset_options()
+
+    assert options
+    assert {option["id"] for option in options} == set(MODEL_PRESETS)
+    assert all(option["agent_icon"] for option in options)
+    assert all(isinstance(option["parameter_size_b"], int | float) for option in options)
 
 
 def test_escape_run_response_reports_model_configuration_error(monkeypatch):

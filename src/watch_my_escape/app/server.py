@@ -116,7 +116,7 @@ def build_escape_run_response() -> dict[str, str]:
     }
 
 
-def model_preset_options() -> tuple[dict[str, str], ...]:
+def model_preset_options() -> tuple[dict[str, object], ...]:
     """Return JSON-safe preset selector metadata."""
     return tuple(
         {
@@ -124,6 +124,9 @@ def model_preset_options() -> tuple[dict[str, str], ...]:
             "display_name": preset.display_name,
             "company": preset.company,
             "brand_color": preset.brand_color,
+            "agent_icon": preset.agent_icon,
+            "parameter_size_b": preset.parameter_size_b,
+            "active_parameter_size_b": preset.active_parameter_size_b,
             "repo_id": preset.repo_id,
             "filename": preset.filename,
         }
