@@ -10,6 +10,7 @@ const statusOutput = document.querySelector("#status");
 const sanityOutput = document.querySelector("#sanity");
 const positionOutput = document.querySelector("#position");
 const mapOutput = document.querySelector("#map-view");
+const escapeBanner = document.querySelector("#escape-banner");
 const visibleEntitiesOutput = document.querySelector("#visible-entities");
 const inventoryOutput = document.querySelector("#inventory");
 const journalOutput = document.querySelector("#journal");
@@ -32,6 +33,7 @@ const editorMapId = document.querySelector("#editor-map-id");
 const editorDescription = document.querySelector("#editor-description");
 
 const mapSize = 16;
+const spriteCache = new Map();
 const actionOptions = ["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"];
 const effectOptions = [
   "message",
@@ -122,11 +124,14 @@ let selectedTool = "select";
 let selectedPreset = presets[0];
 let selectedEntityId = null;
 let editorState = starterEditorState();
+let lastMapText = "";
+let lastAgentPosition = "";
 
 renderModelOptions();
 renderMapOptions();
 renderPresets();
 renderEditor();
+refreshSpritesWhenFontsLoad();
 
 screens.get("splash").addEventListener("click", () => showScreen("menu"), { once: true });
 window.addEventListener(
@@ -194,7 +199,6 @@ function renderModelOptions() {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "selection-card";
-      button.style.setProperty("--accent", model.brand_color);
       button.innerHTML = `
         <span class="selection-chip"></span>
         <span class="selection-title">${escapeHtml(model.display_name)}</span>
@@ -259,6 +263,7 @@ async function runEscape() {
     inventoryOutput.textContent = frame.inventory;
     journalOutput.textContent = frame.journal;
     transcriptOutput.textContent = frame.transcript;
+    escapeBanner.hidden = !frame.escaped;
     if (frame.escaped || frame.sanity === "0" || frame.status === "Model is not configured.") {
       stopStream();
       runButton.disabled = false;
@@ -293,11 +298,14 @@ function resetGame() {
   inventoryOutput.textContent = "- Empty.";
   journalOutput.textContent = "- No notes recorded.";
   transcriptOutput.textContent = "The model has not tried the room yet.";
+  escapeBanner.hidden = true;
   renderMap("", "");
   runButton.disabled = false;
 }
 
 function renderMap(mapText, agentPosition) {
+  lastMapText = mapText;
+  lastAgentPosition = agentPosition;
   mapOutput.replaceChildren();
   const rows = mapText.trim() ? mapText.trim().split("\n") : [];
   if (!rows.length) {
@@ -316,7 +324,10 @@ function renderMap(mapText, agentPosition) {
       if (agentCoordinate?.x === x && agentCoordinate.y === y) {
         tile.classList.add("agent-tile");
       }
-      tile.textContent = cell === "." ? "" : toTextEmoji(cell);
+      if (cell !== ".") {
+        const tint = agentCoordinate?.x === x && agentCoordinate.y === y ? selectedModel?.brand_color : null;
+        tile.append(pixelSprite(cell, cell, tint));
+      }
       mapOutput.append(tile);
     });
   });
@@ -326,12 +337,15 @@ function renderPresets() {
   entityPresets.replaceChildren(
     ...presets.map((preset) => {
       const button = document.createElement("button");
+      const icon = document.createElement("span");
+      const name = document.createElement("span");
+
       button.type = "button";
       button.className = "preset-button";
-      button.innerHTML = `
-        <span class="preset-icon">${escapeHtml(toTextEmoji(preset.icon))}</span>
-        <span>${escapeHtml(preset.name)}</span>
-      `;
+      icon.className = "preset-icon";
+      icon.append(pixelSprite(preset.icon, preset.name));
+      name.textContent = preset.name;
+      button.append(icon, name);
       button.classList.toggle("is-selected", preset === selectedPreset);
       button.addEventListener("click", () => {
         selectedPreset = preset;
@@ -358,7 +372,9 @@ function renderEditorGrid() {
       cell.className = "editor-cell";
       cell.classList.toggle("is-start", editorState.agentStart.x === x && editorState.agentStart.y === y);
       cell.classList.toggle("is-selected", entity?.entity.id === selectedEntityId);
-      cell.textContent = entity ? toTextEmoji(entity.entity.icon) : "";
+      if (entity) {
+        cell.append(pixelSprite(entity.entity.icon, entity.entity.name));
+      }
       cell.title = entity ? entity.entity.name : `(${x}, ${y})`;
       cell.addEventListener("click", () => handleEditorCellClick(x, y, entity));
       editorGrid.append(cell);
@@ -439,6 +455,8 @@ function renderEntityForm() {
     input.addEventListener("input", () => updateEntityField(input, placed));
   });
   entityForm.querySelectorAll("[data-icon]").forEach((button) => {
+    button.replaceChildren(pixelSprite(button.dataset.icon, "Icon option"));
+    button.setAttribute("aria-label", `Choose ${button.dataset.icon}`);
     button.addEventListener("click", () => {
       placed.entity.icon = button.dataset.icon;
       renderEditor();
@@ -1033,6 +1051,74 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
   return escapeHtml(value);
+}
+
+function refreshSpritesWhenFontsLoad() {
+  if (!document.fonts) {
+    return;
+  }
+
+  Promise.all([document.fonts.load('19px "Noto Emoji Local"', "\u{1F9F1}"), document.fonts.ready])
+    .then(() => {
+      spriteCache.clear();
+      renderPresets();
+      renderEditor();
+      renderMap(lastMapText, lastAgentPosition);
+    })
+    .catch(() => undefined);
+}
+
+function pixelSprite(value, label, tint = null) {
+  const textIcon = toTextEmoji(value);
+  const source = spriteSource(textIcon, tint);
+  if (!source) {
+    const fallback = document.createElement("span");
+    fallback.className = "pixel-sprite-fallback";
+    fallback.textContent = textIcon;
+    return fallback;
+  }
+
+  const image = new Image();
+  image.className = "pixel-sprite";
+  image.alt = label;
+  image.draggable = false;
+  image.src = source;
+  return image;
+}
+
+function spriteSource(icon, tint = null) {
+  const cacheKey = tint ? `${icon}:${tint}` : icon;
+  if (spriteCache.has(cacheKey)) {
+    return spriteCache.get(cacheKey);
+  }
+
+  const canvas = document.createElement("canvas");
+  const size = 24;
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    spriteCache.set(icon, null);
+    return null;
+  }
+
+  context.imageSmoothingEnabled = false;
+  context.clearRect(0, 0, size, size);
+  context.font = '19px "Noto Emoji Local", "Noto Emoji", "Segoe UI Symbol", sans-serif';
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = "#f8ffe8";
+  context.fillText(icon, size / 2, size / 2 + 1);
+  if (tint) {
+    context.globalCompositeOperation = "source-in";
+    context.fillStyle = tint;
+    context.fillRect(0, 0, size, size);
+    context.globalCompositeOperation = "source-over";
+  }
+
+  const source = canvas.toDataURL("image/png");
+  spriteCache.set(cacheKey, source);
+  return source;
 }
 
 function toTextEmoji(value) {

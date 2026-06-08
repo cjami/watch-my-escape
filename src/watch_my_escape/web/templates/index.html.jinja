@@ -76,8 +76,13 @@
                 <output id="sanity">Sanity: 100</output>
               </div>
             </div>
-            <div id="map-view" class="map-view rounded-md border border-white/10 bg-black/25 p-3" aria-live="polite">
-              <span class="map-empty">.</span>
+            <div class="crt-frame" aria-label="CRT display">
+              <div id="map-view" class="map-view" aria-live="polite">
+                <span class="map-empty">.</span>
+              </div>
+              <div id="escape-banner" class="escape-banner" hidden>
+                <span>I DID IT</span>
+              </div>
             </div>
           </section>
 
