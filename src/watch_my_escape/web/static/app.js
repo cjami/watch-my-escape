@@ -11,10 +11,12 @@ const sanityOutput = document.querySelector("#sanity");
 const positionOutput = document.querySelector("#position");
 const mapOutput = document.querySelector("#map-view");
 const escapeBanner = document.querySelector("#escape-banner");
+const escapeAgentIcon = document.querySelector("#escape-agent-icon");
 const visibleEntitiesOutput = document.querySelector("#visible-entities");
 const inventoryOutput = document.querySelector("#inventory");
 const journalOutput = document.querySelector("#journal");
 const transcriptOutput = document.querySelector("#transcript");
+const gameIntro = document.querySelector("#game-intro");
 const playGameButton = document.querySelector("#play-game");
 const openEditorButton = document.querySelector("#open-editor");
 const editorBackButton = document.querySelector("#editor-back");
@@ -126,6 +128,8 @@ let selectedEntityId = null;
 let editorState = starterEditorState();
 let lastMapText = "";
 let lastAgentPosition = "";
+let gameIntroTimer = null;
+let runEpoch = 0;
 
 renderModelOptions();
 renderMapOptions();
@@ -171,6 +175,7 @@ addBehaviorButton.addEventListener("click", () => {
   renderEditor();
 });
 restartButton.addEventListener("click", () => {
+  runEpoch += 1;
   stopStream();
   resetGame();
   showScreen("models");
@@ -244,9 +249,12 @@ async function runEscape() {
 
   stopStream();
   resetGame();
+  const currentRunEpoch = (runEpoch += 1);
   runButton.disabled = true;
-  statusOutput.textContent = "The model is trying to escape...";
+  statusOutput.textContent = "The CRT is warming up...";
   transcriptOutput.textContent = "Waiting for the first turn...";
+  const introComplete = playGameIntro();
+  statusOutput.textContent = "The model is trying to escape...";
 
   const params = new URLSearchParams({
     model_preset: selectedModel.id,
@@ -254,6 +262,9 @@ async function runEscape() {
   });
   activeStream = new EventSource(`/escape-stream?${params}`);
   activeStream.onmessage = (event) => {
+    if (currentRunEpoch !== runEpoch) {
+      return;
+    }
     const frame = JSON.parse(event.data);
     statusOutput.textContent = frame.status;
     sanityOutput.textContent = `Sanity: ${frame.sanity}`;
@@ -263,6 +274,9 @@ async function runEscape() {
     inventoryOutput.textContent = frame.inventory;
     journalOutput.textContent = frame.journal;
     transcriptOutput.textContent = frame.transcript;
+    if (frame.escaped) {
+      renderEscapeCelebration();
+    }
     escapeBanner.hidden = !frame.escaped;
     if (frame.escaped || frame.sanity === "0" || frame.status === "Model is not configured.") {
       stopStream();
@@ -270,16 +284,40 @@ async function runEscape() {
     }
   };
   activeStream.onerror = () => {
+    if (currentRunEpoch !== runEpoch) {
+      return;
+    }
     statusOutput.textContent = "The room stream closed.";
     stopStream();
     runButton.disabled = false;
   };
+  await introComplete;
 }
 
 function showScreen(name) {
   for (const screen of screens.values()) {
     screen.classList.toggle("is-active", screen.dataset.screen === name);
   }
+}
+
+function playGameIntro() {
+  if (!gameIntro) {
+    return Promise.resolve();
+  }
+
+  window.clearTimeout(gameIntroTimer);
+  gameIntro.hidden = false;
+  gameIntro.classList.remove("is-playing");
+  void gameIntro.offsetWidth;
+  gameIntro.classList.add("is-playing");
+  return new Promise((resolve) => {
+    const introDuration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 900 : 4300;
+    gameIntroTimer = window.setTimeout(() => {
+      gameIntro.hidden = true;
+      gameIntro.classList.remove("is-playing");
+      resolve();
+    }, introDuration);
+  });
 }
 
 function stopStream() {
@@ -299,11 +337,13 @@ function resetGame() {
   journalOutput.textContent = "- No notes recorded.";
   transcriptOutput.textContent = "The model has not tried the room yet.";
   escapeBanner.hidden = true;
+  escapeAgentIcon.replaceChildren();
   renderMap("", "");
   runButton.disabled = false;
 }
 
 function renderMap(mapText, agentPosition) {
+  const previousAgentPosition = lastAgentPosition;
   lastMapText = mapText;
   lastAgentPosition = agentPosition;
   mapOutput.replaceChildren();
@@ -317,12 +357,14 @@ function renderMap(mapText, agentPosition) {
   }
 
   const agentCoordinate = parsePosition(agentPosition);
+  const agentMoved = Boolean(previousAgentPosition && agentPosition && previousAgentPosition !== agentPosition);
   rows.forEach((row, y) => {
     row.split(" ").forEach((cell, x) => {
       const tile = document.createElement("span");
       tile.className = "map-tile";
       if (agentCoordinate?.x === x && agentCoordinate.y === y) {
         tile.classList.add("agent-tile");
+        tile.classList.toggle("agent-just-moved", agentMoved);
       }
       if (cell !== ".") {
         const tint = agentCoordinate?.x === x && agentCoordinate.y === y ? selectedModel?.brand_color : null;
@@ -331,6 +373,10 @@ function renderMap(mapText, agentPosition) {
       mapOutput.append(tile);
     });
   });
+}
+
+function renderEscapeCelebration() {
+  escapeAgentIcon.replaceChildren(pixelSprite("\u{1F973}", "Escaped agent", selectedModel?.brand_color, 96));
 }
 
 function renderPresets() {
@@ -1068,9 +1114,9 @@ function refreshSpritesWhenFontsLoad() {
     .catch(() => undefined);
 }
 
-function pixelSprite(value, label, tint = null) {
+function pixelSprite(value, label, tint = null, size = 24) {
   const textIcon = toTextEmoji(value);
-  const source = spriteSource(textIcon, tint);
+  const source = spriteSource(textIcon, tint, size);
   if (!source) {
     const fallback = document.createElement("span");
     fallback.className = "pixel-sprite-fallback";
@@ -1086,29 +1132,28 @@ function pixelSprite(value, label, tint = null) {
   return image;
 }
 
-function spriteSource(icon, tint = null) {
-  const cacheKey = tint ? `${icon}:${tint}` : icon;
+function spriteSource(icon, tint = null, size = 24) {
+  const cacheKey = tint ? `${icon}:${tint}:${size}` : `${icon}:${size}`;
   if (spriteCache.has(cacheKey)) {
     return spriteCache.get(cacheKey);
   }
 
   const canvas = document.createElement("canvas");
-  const size = 24;
   canvas.width = size;
   canvas.height = size;
   const context = canvas.getContext("2d");
   if (!context) {
-    spriteCache.set(icon, null);
+    spriteCache.set(cacheKey, null);
     return null;
   }
 
   context.imageSmoothingEnabled = false;
   context.clearRect(0, 0, size, size);
-  context.font = '19px "Noto Emoji Local", "Noto Emoji", "Segoe UI Symbol", sans-serif';
+  context.font = `${Math.round(size * 0.8)}px "Noto Emoji Local", "Noto Emoji", "Segoe UI Symbol", sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#f8ffe8";
-  context.fillText(icon, size / 2, size / 2 + 1);
+  context.fillText(icon, size / 2, size / 2 + size * 0.04);
   if (tint) {
     context.globalCompositeOperation = "source-in";
     context.fillStyle = tint;

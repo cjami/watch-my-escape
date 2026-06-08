@@ -295,7 +295,108 @@
   }
 
   .game-screen {
+    position: relative;
     padding: clamp(0.75rem, 2.6vw, 2rem);
+  }
+
+  .game-intro {
+    position: absolute;
+    inset: clamp(0.5rem, 1.3vw, 0.95rem);
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #020204;
+  }
+
+  .game-intro[hidden] {
+    display: none;
+  }
+
+  .game-intro::before {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgb(255 255 255 / 10%) 50%, rgb(0 0 0 / 28%) 50%),
+      radial-gradient(ellipse at center, rgb(248 255 232 / 16%), transparent 38%, rgb(0 0 0 / 82%) 72%),
+      #020204;
+    background-size:
+      100% 4px,
+      auto,
+      auto;
+    content: "";
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .game-intro::after {
+    position: absolute;
+    right: 0;
+    left: 0;
+    top: 50%;
+    height: 4px;
+    background: #fff7c2;
+    box-shadow:
+      0 0 22px rgb(248 255 232 / 90%),
+      0 0 80px rgb(89 228 255 / 58%);
+    content: "";
+    pointer-events: none;
+    transform: translateY(-50%) scaleX(0);
+  }
+
+  .game-intro.is-playing::before {
+    animation: game-crt-glow 4.3s steps(2, end) forwards;
+  }
+
+  .game-intro.is-playing {
+    animation: game-intro-fade 4.3s linear forwards;
+  }
+
+  .game-intro.is-playing::after {
+    animation: game-crt-line 1.05s steps(10, end) forwards;
+  }
+
+  .game-intro-screen {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: clamp(0.2rem, 1vw, 0.65rem);
+    max-width: 86%;
+    color: #fff7c2;
+    font-size: clamp(1.6rem, 7vw, 4.8rem);
+    font-weight: 1000;
+    line-height: 0.78;
+    text-align: center;
+    text-shadow:
+      4px 0 0 rgb(255 212 71 / 42%),
+      -4px 0 0 rgb(89 228 255 / 38%),
+      0 0 26px rgb(255 212 71 / 48%),
+      0 20px 60px rgb(0 0 0 / 78%);
+    text-transform: uppercase;
+    transform: scaleY(0.02);
+    transform-origin: center;
+  }
+
+  .game-intro.is-playing .game-intro-screen {
+    animation: game-crt-open 4.3s steps(12, end) forwards;
+  }
+
+  .game-intro-screen span {
+    opacity: 0;
+    transform: translateY(0.25em) scale(0.96);
+  }
+
+  .game-intro.is-playing .game-intro-screen span:nth-child(1) {
+    animation: game-title-flash 760ms steps(2, end) 1.2s both;
+  }
+
+  .game-intro.is-playing .game-intro-screen span:nth-child(2) {
+    animation: game-title-flash 760ms steps(2, end) 1.85s both;
+  }
+
+  .game-intro.is-playing .game-intro-screen span:nth-child(3) {
+    animation: game-title-flash 900ms steps(2, end) 2.5s both;
   }
 
   .game-layout {
@@ -415,13 +516,77 @@
     display: none;
   }
 
-  .escape-banner span {
-    display: block;
-    max-width: min(92%, 12ch);
-    font-size: clamp(2.5rem, 11vw, 7rem);
+  .escape-victory {
+    display: grid;
+    width: min(92%, 30rem);
+    gap: clamp(1rem, 3vw, 1.8rem);
+    justify-items: center;
+    transform: translateY(clamp(-2.3rem, -5vw, -0.8rem));
+  }
+
+  .escape-agent {
+    position: relative;
+    display: grid;
+    width: clamp(5.2rem, 13vw, 7.2rem);
+    aspect-ratio: 1;
+    place-items: center;
+    border: 2px solid rgb(255 212 71 / 46%);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 42%, rgb(255 212 71 / 18%), transparent 58%),
+      rgb(2 2 4 / 66%);
+    box-shadow:
+      inset 0 0 24px rgb(255 212 71 / 14%),
+      0 0 28px rgb(255 212 71 / 20%);
+  }
+
+  .escape-agent-icon {
+    display: grid;
+    place-items: center;
+    width: 72%;
+    height: 72%;
+    transform-origin: 50% 86%;
+    animation: agent-bounce 760ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+  }
+
+  .escape-agent .pixel-sprite {
+    width: 100%;
+    height: 100%;
+    image-rendering: auto;
+  }
+
+  .escape-message {
+    display: flex;
+    max-width: min(92%, 13ch);
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 0.34em;
+    font-size: clamp(2.1rem, 8.8vw, 5.7rem);
     font-weight: 700;
     line-height: 0.92;
     text-transform: uppercase;
+  }
+
+  .escape-banner:not([hidden]) .escape-message {
+    animation: escape-reveal 2.15s steps(24, end) both;
+  }
+
+  .escape-word {
+    display: inline-block;
+    transform-origin: 50% 75%;
+  }
+
+  .escape-banner:not([hidden]) .escape-word {
+    animation: escape-proud-wave 1.35s ease-in-out infinite;
+  }
+
+  .escape-banner:not([hidden]) .escape-word:nth-child(2) {
+    animation-delay: 120ms;
+  }
+
+  .escape-banner:not([hidden]) .escape-word:nth-child(3) {
+    animation-delay: 240ms;
   }
 
   .map-view {
@@ -496,6 +661,12 @@
 
   .agent-tile .pixel-sprite {
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--agent-color), transparent 28%)) !important;
+    transform-origin: 50% 86%;
+    animation: agent-bounce 760ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+  }
+
+  .agent-just-moved .pixel-sprite {
+    animation-delay: 420ms;
   }
 
   .preset-icon .pixel-sprite,
@@ -912,6 +1083,141 @@
     }
   }
 
+  @keyframes game-crt-line {
+    0% {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(0);
+    }
+
+    25% {
+      opacity: 1;
+      transform: translateY(-50%) scaleX(0.92);
+    }
+
+    62% {
+      opacity: 1;
+      transform: translateY(-50%) scaleX(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(1);
+    }
+  }
+
+  @keyframes game-intro-fade {
+    0%,
+    70% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes game-crt-glow {
+    0%,
+    16% {
+      opacity: 0;
+    }
+
+    24%,
+    82% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes game-crt-open {
+    0%,
+    18% {
+      opacity: 0;
+      transform: scaleY(0.02) scaleX(0.88);
+    }
+
+    26% {
+      opacity: 1;
+      transform: scaleY(1) scaleX(1);
+    }
+
+    88% {
+      opacity: 1;
+      transform: scaleY(1) scaleX(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scaleY(1.08) scaleX(1.02);
+    }
+  }
+
+  @keyframes game-title-flash {
+    0%,
+    18% {
+      opacity: 0;
+      transform: translateY(0.25em) scale(0.96);
+    }
+
+    28%,
+    78% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-0.16em) scale(1.02);
+    }
+  }
+
+  @keyframes escape-reveal {
+    0% {
+      clip-path: inset(0 100% 0 0);
+    }
+
+    100% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes escape-proud-wave {
+    0%,
+    100% {
+      transform: translateY(0) scaleY(1);
+    }
+
+    32% {
+      transform: translateY(-0.16em) scaleY(1.04);
+    }
+
+    64% {
+      transform: translateY(0.08em) scaleY(0.98);
+    }
+  }
+
+  @keyframes agent-bounce {
+    0%,
+    100% {
+      transform: translateY(0) scaleY(1) scaleX(1);
+    }
+
+    32% {
+      transform: translateY(-8%) scaleY(1.06) scaleX(0.96);
+    }
+
+    52% {
+      transform: translateY(0) scaleY(0.94) scaleX(1.05);
+    }
+
+    70% {
+      transform: translateY(-2%) scaleY(1.02) scaleX(0.99);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -925,6 +1231,25 @@
     .crt-frame::before {
       animation: none;
       opacity: 0.38;
+    }
+
+    .game-intro.is-playing::before,
+    .game-intro.is-playing,
+    .game-intro.is-playing::after,
+    .game-intro.is-playing .game-intro-screen,
+    .game-intro.is-playing .game-intro-screen span,
+    .escape-banner:not([hidden]) .escape-message,
+    .escape-banner:not([hidden]) .escape-word,
+    .escape-agent-icon,
+    .agent-tile .pixel-sprite {
+      animation: none;
+    }
+
+    .game-intro.is-playing::before,
+    .game-intro.is-playing .game-intro-screen,
+    .game-intro.is-playing .game-intro-screen span {
+      opacity: 1;
+      transform: none;
     }
   }
 }
