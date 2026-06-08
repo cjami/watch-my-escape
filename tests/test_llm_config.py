@@ -143,3 +143,10 @@ def test_config_for_model_preset_resolves_preset_to_hub_source():
     assert config.model_path is None
     assert config.model_repo_id == preset.repo_id
     assert config.model_filename == preset.filename
+
+
+def test_minicpm5_preset_uses_q4_k_m_gguf():
+    preset = MODEL_PRESETS["minicpm5-1b"]
+
+    assert preset.repo_id == "openbmb/MiniCPM5-1B-GGUF"
+    assert preset.filename == "MiniCPM5-1B-Q4_K_M.gguf"

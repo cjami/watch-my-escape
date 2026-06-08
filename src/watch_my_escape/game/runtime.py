@@ -8,9 +8,9 @@ from pydantic import ValidationError
 
 from watch_my_escape.game.actions import (
     EscapeRoomAction,
-    TakeNoteAction,
     TalkToAction,
     UseItemAction,
+    WriteNoteAction,
 )
 from watch_my_escape.game.maps import (
     GameSessionState,
@@ -23,6 +23,7 @@ from watch_my_escape.game.maps import (
 from watch_my_escape.game.models import Coordinate, Entity
 
 STARTING_SANITY = 100
+DEFAULT_NO_EFFECT_MESSAGE = "Nothing happens."
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,7 +41,7 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
     next_sanity = max(0, sanity - 1)
     root = action.root
 
-    if isinstance(root, TakeNoteAction):
+    if isinstance(root, WriteNoteAction):
         updated_session = session.model_copy(update={"notes": (*session.notes, root.text)})
         return AppliedAction(session=updated_session, sanity=next_sanity, message=f"Journal updated: {root.text}")
 
@@ -72,11 +73,10 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
     text = root.text if isinstance(root, TalkToAction) else None
     behavior_result = action_session.evaluate_entity_action(nearby_target.entity.id, root.action, text=text)
     updated_session = action_session.apply_behavior_result(behavior_result)
-    fallback_message = f"You {root.action.replace('_', ' ')} the {nearby_target.entity.name}. Nothing happens."
     return AppliedAction(
         session=updated_session,
         sanity=next_sanity,
-        message=behavior_result.text or fallback_message,
+        message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
         movement_path=movement_path,
     )
 
@@ -133,8 +133,11 @@ def _apply_use_item_action(session: GameSessionState, sanity: int, action: UseIt
     if inventory_target is not None:
         behavior_result = session.evaluate_entity_action(inventory_target.id, action.action, item=action.item)
         updated_session = session.apply_behavior_result(behavior_result)
-        fallback_message = f"You use the {action.item} on the {inventory_target.name}. Nothing happens."
-        return AppliedAction(session=updated_session, sanity=sanity, message=behavior_result.text or fallback_message)
+        return AppliedAction(
+            session=updated_session,
+            sanity=sanity,
+            message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
+        )
 
     target = _resolve_visible_target(session, action.target)
     if target is None:
@@ -160,11 +163,10 @@ def _apply_use_item_action(session: GameSessionState, sanity: int, action: UseIt
 
     behavior_result = action_session.evaluate_entity_action(nearby_target.entity.id, action.action, item=action.item)
     updated_session = action_session.apply_behavior_result(behavior_result)
-    fallback_message = f"You use the {action.item} on the {nearby_target.entity.name}. Nothing happens."
     return AppliedAction(
         session=updated_session,
         sanity=sanity,
-        message=behavior_result.text or fallback_message,
+        message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
         movement_path=movement_path,
     )
 

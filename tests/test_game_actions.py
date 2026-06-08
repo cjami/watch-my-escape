@@ -9,10 +9,10 @@ from watch_my_escape.game.actions import (
     PickUpAction,
     PullAction,
     PushAction,
-    TakeNoteAction,
     TalkToAction,
     UseAction,
     UseItemAction,
+    WriteNoteAction,
 )
 
 
@@ -28,7 +28,7 @@ from watch_my_escape.game.actions import (
         (PushAction, {"action": "push", "target": "red button", "emotion": "\U0001f62c"}),
         (PullAction, {"action": "pull", "target": "lever", "emotion": "\U0001f624"}),
         (TalkToAction, {"action": "talk_to", "target": "guard", "text": "silver moon", "emotion": "\U0001f60a"}),
-        (TakeNoteAction, {"action": "take_note", "text": "The dial stopped at 12.", "emotion": "\U0001f913"}),
+        (WriteNoteAction, {"action": "write_note", "text": "The dial stopped at 12.", "emotion": "\U0001f913"}),
     ],
 )
 def test_allowed_actions_require_smiley_emoji_emotion(model, payload):

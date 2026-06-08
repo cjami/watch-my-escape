@@ -30,10 +30,10 @@ def test_failed_action_still_reduces_sanity():
     assert "no active target matches" in result.message
 
 
-def test_take_note_records_journal_and_renders_to_agent():
+def test_write_note_records_journal_and_renders_to_agent():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 
-    result = apply_agent_action(session, STARTING_SANITY, _action("take_note", text="The key should open the door."))
+    result = apply_agent_action(session, STARTING_SANITY, _action("write_note", text="The key should open the door."))
 
     assert result.sanity == 99
     assert result.session.notes == ("The key should open the door.",)
@@ -104,12 +104,70 @@ def test_inventory_entities_can_be_used_with_each_other():
     assert result.session.map.entities_by_id()["locked-box"].state == "open"
 
 
+def test_action_without_matching_behavior_reports_only_no_effect():
+    session = GameSessionState(
+        map=GameMap.model_validate(
+            {
+                "id": "default-message-map",
+                "name": "Default Message Map",
+                "agent_start": {"x": 1, "y": 1},
+                "entities": [
+                    {
+                        "position": {"x": 1, "y": 1},
+                        "entity": {
+                            "id": "locked-door",
+                            "name": "Locked door",
+                            "icon": "\U0001f6aa",
+                            "description": "A locked door.",
+                            "passable": False,
+                        },
+                    }
+                ],
+            }
+        )
+    )
+
+    result = apply_agent_action(session, STARTING_SANITY, _action("open", target="locked-door"))
+
+    assert result.message == "Nothing happens."
+
+
+def test_use_item_without_matching_behavior_reports_only_no_effect():
+    session = GameSessionState(
+        map=GameMap.model_validate(
+            {
+                "id": "default-use-item-message-map",
+                "name": "Default Use Item Message Map",
+                "agent_start": {"x": 1, "y": 1},
+                "entities": [
+                    {
+                        "position": {"x": 1, "y": 1},
+                        "entity": {
+                            "id": "locked-box",
+                            "name": "Locked box",
+                            "icon": "\U0001f4e6",
+                            "description": "A locked box.",
+                            "passable": True,
+                            "active": False,
+                        },
+                    }
+                ],
+            }
+        ),
+        inventory=("small-key", "locked-box"),
+    )
+
+    result = apply_agent_action(session, STARTING_SANITY, _action("use_item", item="small-key", target="locked-box"))
+
+    assert result.message == "Nothing happens."
+
+
 def test_available_action_model_schema_requires_action_discriminator():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
     schema = build_available_action_model(session).model_json_schema()
 
     assert "action" in schema["$defs"]["AvailablePickUpAction"]["required"]
-    assert "action" in schema["$defs"]["AvailableTakeNoteAction"]["required"]
+    assert "action" in schema["$defs"]["AvailableWriteNoteAction"]["required"]
 
 
 def test_available_action_model_is_reused_for_matching_action_contexts():

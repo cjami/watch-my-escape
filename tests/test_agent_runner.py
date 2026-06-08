@@ -41,10 +41,10 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert provider.requests[0].settings.temperature == 1.0
     assert provider.requests[0].settings.max_tokens == 2048
     deliberation_system_prompt = provider.requests[0].messages[0].content
-    assert "Briefly outline your overall plan." in deliberation_system_prompt
-    assert "Choose the immediate next single action to perform." in deliberation_system_prompt
-    assert "Choose a target for this action." in deliberation_system_prompt
-    assert "Provide a reason why you wish to perform this action." in deliberation_system_prompt
+    assert "Assess your surroundings" in deliberation_system_prompt
+    assert "consider your next action" in deliberation_system_prompt
+    assert "one concise sentence" in deliberation_system_prompt
+    assert "action, target, and reason" in deliberation_system_prompt
     deliberation_prompt = provider.requests[0].messages[-1].content
     assert "Game state:" in deliberation_prompt
     assert "Objective:" not in deliberation_prompt

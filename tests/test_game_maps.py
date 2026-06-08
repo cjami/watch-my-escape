@@ -84,7 +84,7 @@ def test_agent_view_excludes_non_notable_entities_from_visible_entity_list():
     session = GameSessionState(map=GameMap.model_validate(_map_payload()))
 
     view = render_agent_view(session)
-    visible_entity_list = view.split("Visible objects:", maxsplit=1)[1]
+    visible_entity_list = view.split("Surrounding objects:", maxsplit=1)[1]
 
     assert "y\\x" not in view
     assert "locked-door" in visible_entity_list

@@ -76,7 +76,7 @@ def test_run_model_escape_stops_when_sanity_reaches_zero():
 def test_run_model_escape_shows_journal_to_later_turns():
     provider = ScriptedProvider(
         (
-            f'{{"action":"take_note","text":"The key should open the door.","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"write_note","text":"The key should open the door.","emotion":"{EMOTION_JSON}"}}',
             f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             f'{{"action":"use_item","item":"brass-key","target":"locked-door","emotion":"{EMOTION_JSON}"}}',
         )
@@ -124,7 +124,7 @@ def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_ite
     action_prompt = provider.requests[1].messages[-1].content
     assert "- pick_up(target)" in action_prompt
     assert "- open(target)" in action_prompt
-    assert "- take_note(text)" in action_prompt
+    assert "- write_note(text)" in action_prompt
     assert "target: one of brass-key" not in action_prompt
     assert result.frames[-1].position == "(8, 8)"
 

@@ -22,10 +22,10 @@ ACTION_DESCRIPTIONS = {
     "pick_up": "Pick up an object and add it to inventory.",
     "pull": "Pull an object.",
     "push": "Push an object.",
-    "take_note": "Record a note for yourself.",
     "talk_to": "Say something to an object or character.",
     "use": "Use an object directly.",
     "use_item": "Use an inventory item on a target.",
+    "write_note": "Write a note for yourself.",
 }
 type ActionFilter = frozenset[str] | None
 type CachedActionFilter = tuple[str, ...] | None
@@ -60,11 +60,11 @@ def _build_available_action_model(
     models.extend(_entity_action_models(has_visible_targets=has_visible_targets, actions=actions))
     if _allows(actions, "use_item"):
         models.extend(_use_item_models(items=items, visible_targets=visible_targets))
-    if _allows(actions, "take_note"):
-        models.append(_take_note_model())
+    if _allows(actions, "write_note"):
+        models.append(_write_note_model())
 
     if not models:
-        models.append(_take_note_model())
+        models.append(_write_note_model())
 
     if len(models) == 1:
         return models[0]
@@ -133,12 +133,12 @@ def _use_item_targets(*, visible_targets: tuple[str, ...], items: tuple[str, ...
     return tuple(dict.fromkeys((*visible_targets, *items)))
 
 
-def _take_note_model() -> type[BaseModel]:
+def _write_note_model() -> type[BaseModel]:
     return create_model(
-        "AvailableTakeNoteAction",
+        "AvailableWriteNoteAction",
         __base__=ActionBase,
-        __doc__=ACTION_DESCRIPTIONS["take_note"],
-        action=(Literal["take_note"], ...),
+        __doc__=ACTION_DESCRIPTIONS["write_note"],
+        action=(Literal["write_note"], ...),
         text=(NoteText, ...),
     )
 

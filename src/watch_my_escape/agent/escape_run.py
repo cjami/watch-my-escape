@@ -257,8 +257,8 @@ def _placed_entity_text(placed: PlacedEntity) -> str:
 
 def _history_action_text(action: EscapeRoomAction) -> str:
     root = action.root
-    if root.action == "take_note":
-        return f"take_note: {root.text}"
+    if root.action == "write_note":
+        return f"write_note: {root.text}"
     if root.action == "talk_to":
         return f"talk_to {root.target}: {root.text}"
     if root.action == "use_item":

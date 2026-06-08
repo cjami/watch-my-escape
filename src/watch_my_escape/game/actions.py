@@ -191,10 +191,10 @@ class TalkToAction(ActionBase):
     text: SpokenText
 
 
-class TakeNoteAction(ActionBase):
+class WriteNoteAction(ActionBase):
     """Record a note for yourself."""
 
-    action: Literal["take_note"]
+    action: Literal["write_note"]
     text: NoteText
 
 
@@ -210,7 +210,7 @@ class EscapeRoomAction(
             | PushAction
             | PullAction
             | TalkToAction
-            | TakeNoteAction,
+            | WriteNoteAction,
             Field(discriminator="action"),
         ]
     ]

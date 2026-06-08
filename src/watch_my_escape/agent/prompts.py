@@ -17,9 +17,9 @@ def build_deliberation_messages(
         ChatMessage(
             role="system",
             content=(
-                "You are playing an escape room game. Briefly outline your overall plan. "
-                "Choose the immediate next single action to perform. Choose a target for this action. "
-                "Provide a reason why you wish to perform this action."
+                "You are playing an escape room game. "
+                "Assess your surroundings, then consider your next action. "
+                "Reply with one concise sentence naming the action, target, and reason. "
             ),
         ),
         ChatMessage(
