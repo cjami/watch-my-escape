@@ -108,12 +108,11 @@ type Emotion = Literal[
     "😠",
     "🤬",
 ]
-type Direction = Literal["North", "East", "South", "West"]
 type InventoryItem = Annotated[str, Field(min_length=1, description="An item currently in the agent's inventory.")]
-type AdjacentTarget = Annotated[str, Field(min_length=1, description="An entity adjacent to the agent.")]
+type VisibleTarget = Annotated[str, Field(min_length=1, description="A visible entity.")]
 type Target = Annotated[
     str,
-    Field(min_length=1, description="Another inventory item or an entity adjacent to the agent."),
+    Field(min_length=1, description="Another inventory item or a visible entity."),
 ]
 type NoteText = Annotated[str, Field(min_length=1, description="Text to record for later use.")]
 
@@ -127,7 +126,7 @@ class ActionBase(BaseModel):
 
 
 class UseItemAction(ActionBase):
-    """Use one inventory item on another item or adjacent entity."""
+    """Use one inventory item on another item or visible entity."""
 
     action: Literal["use_item"]
     item: InventoryItem
@@ -135,59 +134,59 @@ class UseItemAction(ActionBase):
 
 
 class UseAction(ActionBase):
-    """Use an adjacent entity."""
+    """Use a visible entity."""
 
     action: Literal["use"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class PickUpAction(ActionBase):
-    """Pick up an adjacent entity."""
+    """Pick up a visible entity."""
 
     action: Literal["pick_up"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class OpenAction(ActionBase):
-    """Open an adjacent entity."""
+    """Open a visible entity."""
 
     action: Literal["open"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class CloseAction(ActionBase):
-    """Close an adjacent entity."""
+    """Close a visible entity."""
 
     action: Literal["close"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class ExamineAction(ActionBase):
-    """Examine an adjacent entity."""
+    """Examine a visible entity."""
 
     action: Literal["examine"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class PushAction(ActionBase):
-    """Push an adjacent entity."""
+    """Push a visible entity."""
 
     action: Literal["push"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class PullAction(ActionBase):
-    """Pull an adjacent entity."""
+    """Pull a visible entity."""
 
     action: Literal["pull"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class TalkToAction(ActionBase):
-    """Talk to an adjacent entity."""
+    """Talk to a visible entity."""
 
     action: Literal["talk_to"]
-    target: AdjacentTarget
+    target: VisibleTarget
 
 
 class TakeNoteAction(ActionBase):
@@ -195,13 +194,6 @@ class TakeNoteAction(ActionBase):
 
     action: Literal["take_note"]
     text: NoteText
-
-
-class MoveAction(ActionBase):
-    """Move in one cardinal direction."""
-
-    action: Literal["move"]
-    direction: Direction
 
 
 class EscapeRoomAction(
@@ -216,8 +208,7 @@ class EscapeRoomAction(
             | PushAction
             | PullAction
             | TalkToAction
-            | TakeNoteAction
-            | MoveAction,
+            | TakeNoteAction,
             Field(discriminator="action"),
         ]
     ]

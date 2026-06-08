@@ -43,4 +43,31 @@
     background: linear-gradient(90deg, #263230, #38413c 50%, #232b2d);
     box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
   }
+
+  .map-view {
+    display: grid;
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    width: min(100%, 680px);
+    aspect-ratio: 1;
+    align-self: start;
+    place-self: center;
+    gap: 2px;
+  }
+
+  .map-empty {
+    grid-column: 1 / -1;
+    place-self: center;
+    color: #c4cbc1;
+  }
+
+  .map-tile {
+    display: grid;
+    min-width: 0;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid rgb(255 255 255 / 8%);
+    background: rgb(255 255 255 / 5%);
+    font-size: clamp(0.75rem, 2.8vw, 1.35rem);
+    line-height: 1;
+  }
 }

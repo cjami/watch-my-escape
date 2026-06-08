@@ -69,6 +69,11 @@ Check the current setup:
 uv run python -m watch_my_escape.doctor
 ```
 
+If local server logs show `Failed to export span batch code: 400`, Langfuse tracing
+is enabled but the configured Langfuse endpoint or keys are rejecting exports. Set
+`LANGFUSE_TRACING_ENABLED=false` while testing locally, or update the Langfuse
+environment variables.
+
 Compare model reliability for Pydantic-constrained action JSON and structured JSON output:
 
 ```shell

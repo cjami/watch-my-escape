@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import BaseModel, Field, ValidationError
 
 from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
-from watch_my_escape.game.actions import ExamineAction, MoveAction, PickUpAction, UseItemAction
+from watch_my_escape.game.actions import ExamineAction, PickUpAction, UseItemAction
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, LlamaCppConfig, load_config
 from watch_my_escape.llm.structured import StructuredOutputError, parse_json_object, strip_thinking_sections
@@ -38,28 +38,22 @@ type EvalUseItemTarget = EvalInventoryItem | EvalInteractableTarget
 
 
 class EvalExamineAction(ExamineAction):
-    """Examine an adjacent entity."""
+    """Examine a visible entity."""
 
     emotion: EvalText
     target: EvalInteractableTarget
 
 
 class EvalUseItemAction(UseItemAction):
-    """Use one inventory item on another item or adjacent entity."""
+    """Use one inventory item on another item or visible entity."""
 
     emotion: EvalText
     item: EvalInventoryItem
     target: EvalUseItemTarget
 
 
-class EvalMoveAction(MoveAction):
-    """Move in one cardinal direction."""
-
-    emotion: EvalText
-
-
 class EvalPickUpAction(PickUpAction):
-    """Pick up an adjacent entity."""
+    """Pick up a visible entity."""
 
     emotion: EvalText
     target: EvalInteractableTarget
@@ -146,8 +140,6 @@ Interactable objects:
 - wall clock
 - iron door
 
-Exits:
-- East through a narrow archway
 """
 
 
@@ -168,15 +160,6 @@ CASES: tuple[EvaluationCase, ...] = (
         expected=ExpectedPydanticJson(
             model=EvalUseItemAction,
             value=EvalUseItemAction(action="use_item", item="silver key", target="locked diary", emotion="🙂"),
-        ),
-    ),
-    EvaluationCase(
-        name="action_move",
-        room_state=EVAL_ROOM_STATE,
-        objective="Head east.",
-        expected=ExpectedPydanticJson(
-            model=EvalMoveAction,
-            value=EvalMoveAction(action="move", direction="East", emotion="🙂"),
         ),
     ),
     EvaluationCase(

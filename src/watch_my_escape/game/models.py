@@ -132,6 +132,7 @@ class Entity(StrictModel):
     description: Annotated[str, Field(min_length=1)]
     passable: bool
     visible: bool = True
+    notable: bool = True
     state: Annotated[str, Field(min_length=1)] = "default"
     properties: dict[str, JsonScalar] = Field(default_factory=dict)
     behaviors: tuple[EntityBehavior, ...] = ()

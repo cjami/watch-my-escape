@@ -8,23 +8,44 @@
     <script type="module" src="/static/app.js"></script>
   </head>
   <body>
-    <main class="grid min-h-screen w-[min(1120px,calc(100%-2rem))] grid-cols-1 items-center gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(320px,460px)] lg:gap-12 mx-auto">
-      <section class="room-stage grid min-h-90 place-items-center border border-white/10 lg:min-h-140" aria-label="Puzzle room">
-        <div class="escape-door relative aspect-[.68] w-[min(320px,72%)] border border-white/20">
-          <span class="absolute inset-[12%] border border-white/15" aria-hidden="true"></span>
-          <span class="absolute right-[16%] top-[48%] aspect-square w-6 rounded-full bg-mechanism shadow-[0_0_28px_rgb(215_184_102_/_42%)]" aria-hidden="true"></span>
+    <main class="grid min-h-screen w-[min(1180px,calc(100%-2rem))] grid-cols-1 gap-6 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:gap-8 mx-auto">
+      <section class="room-stage grid min-h-90 content-start gap-4 border border-white/10 p-4 lg:min-h-140" aria-label="Puzzle room">
+        <div class="flex items-center justify-between gap-3">
+          <p class="m-0 text-xs font-bold uppercase tracking-[.12em] text-mechanism">{{ app_name }}</p>
+          <div class="flex gap-3 font-mono text-sm text-[#e8ece4]">
+            <output id="position">Position: --</output>
+            <output id="sanity">Sanity: 100</output>
+          </div>
+        </div>
+        <div id="map-view" class="map-view rounded-md border border-white/10 bg-black/25 p-3" aria-live="polite">
+          <span class="map-empty">Run the model to reveal the room map.</span>
         </div>
       </section>
 
-      <section class="grid gap-5" aria-labelledby="console-title">
-        <p class="m-0 text-xs font-bold uppercase tracking-[.12em] text-mechanism">{{ app_name }}</p>
-        <h1 id="console-title" class="m-0 text-[clamp(2rem,4vw,4rem)] leading-none tracking-normal">{{ project_description }}</h1>
-        <form id="escape-form" class="grid gap-3">
-          <label for="action" class="font-bold text-[#c4cbc1]">Next move</label>
-          <textarea id="action" name="action" rows="5" class="w-full resize-y rounded-md border border-white/15 bg-white/10 p-3.5 text-room-light" placeholder="Inspect the keypad by the locked door."></textarea>
-          <button type="submit" class="justify-self-start rounded-md bg-mechanism px-4 py-3 font-extrabold text-[#171812]">Attempt escape</button>
-        </form>
-        <output id="room-response" class="min-h-20 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">The room is quiet. The first move is yours.</output>
+      <section class="grid content-start gap-4" aria-labelledby="console-title">
+        <h1 id="console-title" class="m-0 text-4xl leading-none tracking-normal">{{ project_description }}</h1>
+        <button id="run-escape" type="button" class="justify-self-start rounded-md bg-mechanism px-4 py-3 font-extrabold text-[#171812]">Run model escape</button>
+        <output id="status" class="min-h-14 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">Waiting for a configured model.</output>
+
+        <section class="grid gap-2" aria-labelledby="visible-entities-title">
+          <h2 id="visible-entities-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Visible Entities</h2>
+          <pre id="visible-entities" class="min-h-20 rounded-md border border-white/10 bg-white/10 p-3 text-sm">- None.</pre>
+        </section>
+
+        <section class="grid gap-2" aria-labelledby="inventory-title">
+          <h2 id="inventory-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Inventory</h2>
+          <pre id="inventory" class="min-h-16 rounded-md border border-white/10 bg-white/10 p-3 text-sm">- Empty.</pre>
+        </section>
+
+        <section class="grid gap-2" aria-labelledby="journal-title">
+          <h2 id="journal-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Journal</h2>
+          <pre id="journal" class="min-h-20 rounded-md border border-white/10 bg-white/10 p-3 text-sm">- No notes recorded.</pre>
+        </section>
+
+        <section class="grid gap-2" aria-labelledby="transcript-title">
+          <h2 id="transcript-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Transcript</h2>
+          <pre id="transcript" class="max-h-96 overflow-auto rounded-md border border-white/10 bg-black/25 p-3 text-sm whitespace-pre-wrap">The model has not tried the room yet.</pre>
+        </section>
       </section>
     </main>
   </body>

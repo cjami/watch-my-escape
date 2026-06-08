@@ -166,7 +166,7 @@ def test_embedded_provider_parses_tool_call(monkeypatch, tmp_path):
                             "tool_calls": [
                                 {
                                     "function": {
-                                        "name": "move_north",
+                                        "name": "inspect_panel",
                                         "arguments": '{"emotion":"neutral"}',
                                     }
                                 }
@@ -183,11 +183,11 @@ def test_embedded_provider_parses_tool_call(monkeypatch, tmp_path):
     provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
     response = provider.complete(
         InferenceRequest(
-            messages=(ChatMessage(role="user", content="Move."),),
+            messages=(ChatMessage(role="user", content="Inspect."),),
             tools=(
                 ToolSpec(
-                    name="move_north",
-                    description="Move north.",
+                    name="inspect_panel",
+                    description="Inspect a panel.",
                     parameters={"type": "object", "properties": {"emotion": {"type": "string"}}},
                 ),
             ),
@@ -195,7 +195,7 @@ def test_embedded_provider_parses_tool_call(monkeypatch, tmp_path):
     )
 
     assert response.tool_call is not None
-    assert response.tool_call.name == "move_north"
+    assert response.tool_call.name == "inspect_panel"
     assert response.tool_call.arguments == {"emotion": "neutral"}
 
 

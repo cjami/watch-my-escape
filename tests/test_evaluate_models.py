@@ -45,15 +45,15 @@ def test_evaluate_model_scores_think_then_act_turns():
         user_content = request.messages[-1].content
         normalized_prompt = user_content.lower()
         if "collect the brass key" in normalized_prompt:
-            return InferenceResponse(content='Here is JSON: {"action":"pick_up","target":"brass key","emotion":"🤓"}')
+            return InferenceResponse(
+                content='Here is JSON: {"action":"pick_up","target":"brass key","emotion":"\U0001f913"}'
+            )
         if "try the silver key" in normalized_prompt:
             return InferenceResponse(
-                content='{"action":"use_item","item":"silver key","target":"locked diary","emotion":"🙂"}'
+                content='{"action":"use_item","item":"silver key","target":"locked diary","emotion":"\U0001f642"}'
             )
-        if "head east" in normalized_prompt:
-            return InferenceResponse(content='```json\n{"action":"move","direction":"East","emotion":"🙂"}\n```')
         if "look closely at the brass key" in normalized_prompt:
-            return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"🤔"}')
+            return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"\U0001f914"}')
         raise AssertionError
 
     results = evaluate_model(complete)
@@ -64,8 +64,8 @@ def test_evaluate_model_scores_think_then_act_turns():
     assert all(request.structured_output is not None for request in requests[1::2])
     deliberation_prompts = "\n".join(request.messages[-1].content for request in requests[::2])
     assert "Evaluation-specific constraints" not in deliberation_prompts
-    assert "Pick up an adjacent entity." in deliberation_prompts
-    assert "Use one inventory item on another item or adjacent entity." in deliberation_prompts
+    assert "Pick up a visible entity." in deliberation_prompts
+    assert "Use one inventory item on another item or visible entity." in deliberation_prompts
 
 
 def test_evaluation_prompts_do_not_embed_json_or_specific_emotions():
@@ -116,7 +116,9 @@ def test_score_case_rejects_item_outside_inventory_vocabulary():
 
     result = score_case(
         action_case,
-        InferenceResponse(content='{"action":"use_item","item":"rusty coin","target":"locked diary","emotion":"🙂"}'),
+        InferenceResponse(
+            content='{"action":"use_item","item":"rusty coin","target":"locked diary","emotion":"\U0001f642"}'
+        ),
     )
 
     assert not result.passed
@@ -130,8 +132,8 @@ def test_score_case_strips_thinking_sections_before_parsing_json():
         json_case,
         InferenceResponse(
             content=(
-                '<think>\nThe answer is {"action":"pick_up","target":"brass key","emotion":"🤓"}.\n</think>\n'
-                '{"action":"pick_up","target":"brass key","emotion":"🤓"}'
+                '<think>\nThe answer is {"action":"pick_up","target":"brass key","emotion":"\U0001f913"}.\n</think>\n'
+                '{"action":"pick_up","target":"brass key","emotion":"\U0001f913"}'
             )
         ),
     )
@@ -140,14 +142,14 @@ def test_score_case_strips_thinking_sections_before_parsing_json():
 
 
 def test_score_case_strips_dangling_thinking_close_before_parsing_json():
-    json_case = next(case for case in CASES if case.name == "action_move")
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
-                'We need to output {"action":"move","direction":"East","emotion":"🙂"}.\n'
-                '</think>\n{"action":"move","direction":"East","emotion":"🙂"}'
+                'We need to output {"action":"pick_up","target":"brass key","emotion":"\U0001f913"}.\n'
+                '</think>\n{"action":"pick_up","target":"brass key","emotion":"\U0001f913"}'
             )
         ),
     )
@@ -163,7 +165,7 @@ def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failu
         InferenceResponse(
             content=(
                 '<think>\nFirst, the user says: "Return this object exactly: '
-                '{"action":"pick_up","target":"brass key","emotion":"🤓"}"\n\n'
+                '{"action":"pick_up","target":"brass key","emotion":"\U0001f913"}"\n\n'
                 "So, I need to return this object exactly as it is."
             )
         ),

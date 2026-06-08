@@ -5,7 +5,6 @@ from watch_my_escape.game.actions import (
     CloseAction,
     EscapeRoomAction,
     ExamineAction,
-    MoveAction,
     OpenAction,
     PickUpAction,
     PullAction,
@@ -20,17 +19,16 @@ from watch_my_escape.game.actions import (
 @pytest.mark.parametrize(
     ("model", "payload"),
     [
-        (UseItemAction, {"action": "use_item", "item": "brass key", "target": "locked door", "emotion": "🤔"}),
-        (UseAction, {"action": "use", "target": "keypad", "emotion": "🤔"}),
-        (PickUpAction, {"action": "pick_up", "target": "brass key", "emotion": "🙂"}),
-        (OpenAction, {"action": "open", "target": "locked door", "emotion": "😀"}),
-        (CloseAction, {"action": "close", "target": "cabinet", "emotion": "😌"}),
-        (ExamineAction, {"action": "examine", "target": "painting", "emotion": "🧐"}),
-        (PushAction, {"action": "push", "target": "red button", "emotion": "😬"}),
-        (PullAction, {"action": "pull", "target": "lever", "emotion": "😤"}),
-        (TalkToAction, {"action": "talk_to", "target": "guard", "emotion": "😊"}),
-        (TakeNoteAction, {"action": "take_note", "text": "The dial stopped at 12.", "emotion": "🤓"}),
-        (MoveAction, {"action": "move", "direction": "North", "emotion": "😎"}),
+        (UseItemAction, {"action": "use_item", "item": "brass key", "target": "locked door", "emotion": "\U0001f914"}),
+        (UseAction, {"action": "use", "target": "keypad", "emotion": "\U0001f914"}),
+        (PickUpAction, {"action": "pick_up", "target": "brass key", "emotion": "\U0001f642"}),
+        (OpenAction, {"action": "open", "target": "locked door", "emotion": "\U0001f600"}),
+        (CloseAction, {"action": "close", "target": "cabinet", "emotion": "\U0001f60c"}),
+        (ExamineAction, {"action": "examine", "target": "painting", "emotion": "\U0001f9d0"}),
+        (PushAction, {"action": "push", "target": "red button", "emotion": "\U0001f62c"}),
+        (PullAction, {"action": "pull", "target": "lever", "emotion": "\U0001f624"}),
+        (TalkToAction, {"action": "talk_to", "target": "guard", "emotion": "\U0001f60a"}),
+        (TakeNoteAction, {"action": "take_note", "text": "The dial stopped at 12.", "emotion": "\U0001f913"}),
     ],
 )
 def test_allowed_actions_require_smiley_emoji_emotion(model, payload):
@@ -45,4 +43,4 @@ def test_action_emotion_rejects_non_emoji_text():
 
 def test_escape_room_action_rejects_removed_action_names():
     with pytest.raises(ValidationError):
-        EscapeRoomAction.model_validate({"action": "inspect_object", "target": "painting", "emotion": "🤔"})
+        EscapeRoomAction.model_validate({"action": "inspect_object", "target": "painting", "emotion": "\U0001f914"})

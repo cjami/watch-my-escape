@@ -40,6 +40,10 @@ class MoveBlockedError(ValueError):
     """Raised when movement cannot enter the requested grid cell."""
 
 
+class PathNotFoundError(ValueError):
+    """Raised when no visible reachable path exists for a requested destination."""
+
+
 class PlacedEntity(StrictModel):
     """An entity placed at one coordinate on the map."""
 
@@ -165,21 +169,12 @@ class GameSessionState(StrictModel):
 
 
 def render_agent_view(session: GameSessionState) -> str:
-    """Render visible map cells as compact Markdown for the agent."""
-    visible_tiles = visible_coordinates(session)
-    visible_entities = _visible_entities_for_tiles(session, visible_tiles)
-    min_x, max_x, min_y, max_y = _bounds_for(visible_tiles)
+    """Render visible notable entities as compact Markdown for the agent."""
+    visible_entities = visible_notable_entities(session)
     position = session.current_position
 
     lines = [
         f"Position: ({position.x}, {position.y})",
-        "",
-        _render_visible_grid(
-            session,
-            visible_tiles,
-            visible_entities,
-            bounds=(min_x, max_x, min_y, max_y),
-        ),
         "",
         "Visible entities:",
     ]
@@ -192,19 +187,30 @@ def render_agent_room_view(session: GameSessionState) -> str:
     return render_agent_view(session)
 
 
-def render_user_map_view(session: GameSessionState) -> tuple[tuple[str, ...], ...]:
+def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001f642") -> tuple[tuple[str, ...], ...]:
     """Render the full visible 16x16 map as emoji cells for the user."""
     cells = [["." for _ in range(session.map.width)] for _ in range(session.map.height)]
     for placed in session.map.visible_entities():
         cells[placed.position.y][placed.position.x] = placed.entity.icon
 
     position = session.current_position
-    cells[position.y][position.x] = "🙂"
+    cells[position.y][position.x] = agent_icon
     return tuple(tuple(row) for row in cells)
 
 
 def visible_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
     """Return coordinates visible from the agent through passable cells."""
+    reachable_tiles = reachable_coordinates(session)
+    visible_tiles = set(reachable_tiles)
+
+    for position in reachable_tiles:
+        visible_tiles.update(_neighbor_coordinates(position))
+
+    return frozenset(visible_tiles)
+
+
+def reachable_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
+    """Return passable coordinates reachable from the agent."""
     seen: set[Coordinate] = {session.current_position}
     queue: deque[Coordinate] = deque([session.current_position])
 
@@ -213,11 +219,44 @@ def visible_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
         for neighbor in _neighbor_coordinates(position):
             if neighbor in seen:
                 continue
-            seen.add(neighbor)
-            if _can_see_through(session.map.entities_at(neighbor)):
+            if _is_passable(session.map.entities_at(neighbor)):
+                seen.add(neighbor)
                 queue.append(neighbor)
 
     return frozenset(seen)
+
+
+def visible_notable_entities(session: GameSessionState) -> tuple[PlacedEntity, ...]:
+    """Return visible notable entities not sealed away from the agent."""
+    visible_tiles = visible_coordinates(session)
+    return tuple(
+        placed
+        for placed in session.map.entities
+        if placed.entity.visible and placed.entity.notable and placed.position in visible_tiles
+    )
+
+
+def path_to_visible_destination(session: GameSessionState, destination: Coordinate) -> tuple[Coordinate, ...]:
+    """Return the shortest step path to a visible notable destination or its edge."""
+    visible_targets = tuple(placed for placed in visible_notable_entities(session) if placed.position == destination)
+    if not visible_targets:
+        msg = f"no visible notable entity at ({destination.x}, {destination.y})"
+        raise PathNotFoundError(msg)
+
+    if _is_passable(session.map.entities_at(destination)):
+        goals = (destination,)
+    else:
+        goals = tuple(
+            neighbor
+            for neighbor in _neighbor_coordinates(destination)
+            if _is_passable(session.map.entities_at(neighbor))
+        )
+
+    path = _shortest_path(session, goals)
+    if path is None:
+        msg = f"no reachable path to ({destination.x}, {destination.y})"
+        raise PathNotFoundError(msg)
+    return path
 
 
 def _move_coordinate(position: Coordinate, direction: Direction) -> Coordinate:
@@ -241,73 +280,40 @@ def _neighbor_coordinates(position: Coordinate) -> tuple[Coordinate, ...]:
     return tuple(neighbors)
 
 
-def _can_see_through(placed_entities: tuple[PlacedEntity, ...]) -> bool:
-    return all(not placed.entity.visible or placed.entity.passable for placed in placed_entities)
+def _is_passable(placed_entities: tuple[PlacedEntity, ...]) -> bool:
+    return all(placed.entity.passable for placed in placed_entities)
 
 
-def _visible_entities_for_tiles(
-    session: GameSessionState,
-    visible_tiles: frozenset[Coordinate],
-) -> tuple[PlacedEntity, ...]:
-    return tuple(
-        placed for placed in session.map.entities if placed.entity.visible and placed.position in visible_tiles
-    )
+def _shortest_path(session: GameSessionState, goals: tuple[Coordinate, ...]) -> tuple[Coordinate, ...] | None:
+    goal_set = set(goals)
+    if session.current_position in goal_set:
+        return ()
 
+    seen: set[Coordinate] = {session.current_position}
+    queue: deque[tuple[Coordinate, tuple[Coordinate, ...]]] = deque([(session.current_position, ())])
 
-def _bounds_for(tiles: frozenset[Coordinate]) -> tuple[int, int, int, int]:
-    return (
-        min(tile.x for tile in tiles),
-        max(tile.x for tile in tiles),
-        min(tile.y for tile in tiles),
-        max(tile.y for tile in tiles),
-    )
+    while queue:
+        position, path = queue.popleft()
+        for neighbor in _neighbor_coordinates(position):
+            if neighbor in seen or not _is_passable(session.map.entities_at(neighbor)):
+                continue
+            next_path = (*path, neighbor)
+            if neighbor in goal_set:
+                return next_path
+            seen.add(neighbor)
+            queue.append((neighbor, next_path))
 
-
-def _render_visible_grid(
-    session: GameSessionState,
-    visible_tiles: frozenset[Coordinate],
-    visible_entities: tuple[PlacedEntity, ...],
-    *,
-    bounds: tuple[int, int, int, int],
-) -> str:
-    min_x, max_x, min_y, max_y = bounds
-    headers = [str(x) for x in range(min_x, max_x + 1)]
-    lines = [f"| y\\x | {' | '.join(headers)} |", f"| --- | {' | '.join('---' for _ in headers)} |"]
-    for y in range(min_y, max_y + 1):
-        row = [
-            _agent_grid_cell(session, visible_tiles, visible_entities, Coordinate(x=x, y=y))
-            for x in range(min_x, max_x + 1)
-        ]
-        lines.append(f"| {y} | {' | '.join(row)} |")
-    return "\n".join(lines)
-
-
-def _agent_grid_cell(
-    session: GameSessionState,
-    visible_tiles: frozenset[Coordinate],
-    visible_entities: tuple[PlacedEntity, ...],
-    position: Coordinate,
-) -> str:
-    if position == session.current_position:
-        return "you"
-    if position not in visible_tiles:
-        return "?"
-
-    placed_entities = [placed for placed in visible_entities if placed.position == position]
-    if not placed_entities:
-        return "."
-    if len(placed_entities) == 1:
-        return placed_entities[0].entity.id
-    return f"{len(placed_entities)} items"
+    return None
 
 
 def _render_visible_entity_lines(visible_entities: tuple[PlacedEntity, ...]) -> list[str]:
-    if not visible_entities:
+    notable_entities = tuple(placed for placed in visible_entities if placed.entity.notable)
+    if not notable_entities:
         return ["- None."]
     return [
         f"- ({placed.position.x}, {placed.position.y}) {placed.entity.id}: "
         f"{placed.entity.name}. {placed.entity.description}"
-        for placed in sorted(visible_entities, key=lambda item: (item.position.y, item.position.x, item.entity.id))
+        for placed in sorted(notable_entities, key=lambda item: (item.position.y, item.position.x, item.entity.id))
     ]
 
 

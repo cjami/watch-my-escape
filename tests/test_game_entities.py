@@ -15,6 +15,7 @@ def test_entity_defaults_to_default_state_and_no_behaviors():
 
     assert entity.id == "stone-wall"
     assert entity.visible is True
+    assert entity.notable is True
     assert entity.state == "default"
     assert entity.properties == {}
     assert entity.behaviors == ()

@@ -10,4 +10,4 @@ def test_describe_escape_attempt_uses_submitted_action():
 def test_describe_escape_attempt_handles_blank_action():
     result = describe_escape_attempt("   ")
 
-    assert result == "The room waits. Every puzzle needs an opening move."
+    assert result == "The room waits. Every puzzle needs an opening attempt."

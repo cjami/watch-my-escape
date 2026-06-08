@@ -57,6 +57,19 @@ def test_agent_view_uses_visibility_from_passable_cells_and_blockers():
     assert Coordinate(x=3, y=1) not in visible_coordinates(session)
 
 
+def test_agent_view_excludes_non_notable_entities_from_visible_entity_list():
+    session = GameSessionState(map=GameMap.model_validate(_map_payload()))
+
+    view = render_agent_view(session)
+    visible_entity_list = view.split("Visible entities:", maxsplit=1)[1]
+
+    assert "y\\x" not in view
+    assert "locked-door" in visible_entity_list
+    assert "brass-key" in visible_entity_list
+    assert "wall-0" not in visible_entity_list
+    assert "wall-2" not in visible_entity_list
+
+
 def test_user_map_view_shows_full_grid_with_visible_icons():
     session = GameSessionState(map=GameMap.model_validate(_map_payload()))
 
@@ -68,6 +81,14 @@ def test_user_map_view_shows_full_grid_with_visible_icons():
     assert view[1][2] == "🚪"
     assert view[2][1] == "🔑"
     assert "📝" not in {cell for row in view for cell in row}
+
+
+def test_user_map_view_uses_agent_icon():
+    session = GameSessionState(map=GameMap.model_validate(_map_payload()))
+
+    view = render_user_map_view(session, agent_icon="\U0001f914")
+
+    assert view[1][1] == "\U0001f914"
 
 
 def test_movement_is_blocked_by_closed_door_until_cross_map_effect_opens_it():
@@ -131,6 +152,7 @@ def _map_payload():
                         "icon": "🧱",
                         "description": "A solid wall.",
                         "passable": False,
+                        "notable": False,
                     },
                 }
                 for y in [0, *range(2, 16)]

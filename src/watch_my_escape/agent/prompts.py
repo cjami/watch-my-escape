@@ -25,7 +25,7 @@ def build_deliberation_messages(
             role="user",
             content=(
                 f"{_turn_context(room_state=room_state, objective=objective, history=history)}\n\n"
-                f"Available actions:\n{_format_action_options(action_model)}"
+                f"Available actions:\n{format_action_options(action_model)}"
             ),
         ),
     )
@@ -53,7 +53,7 @@ def build_action_messages(
             content=(
                 f"{_turn_context(room_state=room_state, objective=objective, history=history)}\n\n"
                 f"Prior deliberation:\n{deliberation.strip()}\n\n"
-                f"Action schema name: {action_model.__name__}"
+                f"Available actions:\n{format_action_options(action_model)}"
             ),
         ),
     )
@@ -64,7 +64,8 @@ def _turn_context(*, room_state: str, objective: str, history: tuple[str, ...]) 
     return f"Objective:\n{objective.strip()}\n\nRoom state:\n{room_state.strip()}\n\nHistory:\n{history_text}"
 
 
-def _format_action_options(action_model: type[BaseModel]) -> str:
+def format_action_options(action_model: type[BaseModel]) -> str:
+    """Format action choices and field constraints for prompts and transcripts."""
     schema = action_model.model_json_schema()
     actions = sorted(_collect_action_schemas(schema), key=_action_name)
     if not actions:

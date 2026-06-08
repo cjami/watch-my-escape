@@ -43,14 +43,13 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert provider.requests[0].settings.max_tokens == 2048
     deliberation_prompt = provider.requests[0].messages[-1].content
     assert "Available actions:" in deliberation_prompt
-    assert "- examine: Examine an adjacent entity. Use with target: an entity adjacent to the agent." in (
-        deliberation_prompt
-    )
-    assert "- use_item: Use one inventory item on another item or adjacent entity." in deliberation_prompt
+    assert "- examine: Examine a visible entity. Use with target: a visible entity." in deliberation_prompt
+    assert "- use_item: Use one inventory item on another item or visible entity." in deliberation_prompt
     assert "item: an item currently in the agent's inventory" in deliberation_prompt
-    assert "direction: one of North, East, South, West" in deliberation_prompt
     assert provider.requests[1].structured_output is not None
     assert provider.requests[1].settings.temperature == 0.0
+    action_prompt = provider.requests[1].messages[-1].content
+    assert "Available actions:" in action_prompt
     assert "Inspect the key before trying the door." not in provider.requests[1].messages[-1].content
     assert "<think>" not in provider.requests[1].messages[-1].content
     assert "Intended action: examine the brass key." in provider.requests[1].messages[-1].content

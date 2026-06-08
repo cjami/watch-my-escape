@@ -1,0 +1,286 @@
+"""Run a model through the simple key-door escape demo."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from pydantic import ValidationError
+
+from watch_my_escape.agent.prompts import build_action_messages, build_deliberation_messages, format_action_options
+from watch_my_escape.agent.runner import ThinkActResult, ThinkActSettings
+from watch_my_escape.game.action_options import build_available_action_model
+from watch_my_escape.game.actions import EscapeRoomAction
+from watch_my_escape.game.maps import GameSessionState, PlacedEntity, render_user_map_view, visible_notable_entities
+from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_room_state_for_agent
+from watch_my_escape.game.simple_maps import create_key_door_map
+from watch_my_escape.llm.client import InferenceProvider, create_provider
+from watch_my_escape.llm.models import InferenceRequest, StructuredOutputSpec
+from watch_my_escape.llm.structured import StructuredOutputError, strip_thinking_sections, validate_structured_output
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+ESCAPE_OBJECTIVE = "Escape the room by picking up the key and using it to unlock the door."
+
+
+@dataclass(frozen=True, slots=True)
+class EscapeDemoFrame:
+    """Visible state after one moment in the model escape attempt."""
+
+    escaped: bool
+    sanity: int
+    position: str
+    visible_entities: tuple[str, ...]
+    inventory: tuple[str, ...]
+    journal: tuple[str, ...]
+    map_view: tuple[tuple[str, ...], ...]
+    transcript: str
+    status: str
+    delay_ms: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class EscapeDemoResult:
+    """Complete result for one model escape attempt."""
+
+    escaped: bool
+    sanity: int
+    visible_entities: tuple[str, ...]
+    inventory: tuple[str, ...]
+    journal: tuple[str, ...]
+    map_view: tuple[tuple[str, ...], ...]
+    transcript: str
+    frames: tuple[EscapeDemoFrame, ...] = ()
+
+    @property
+    def status(self) -> str:
+        """Return a concise user-facing final status."""
+        if self.escaped:
+            return f"Escaped with {self.sanity} sanity remaining."
+        return "Sanity reached 0 before the model escaped."
+
+
+@dataclass(frozen=True, slots=True)
+class FramePresentation:
+    """Visual presentation options for one emitted frame."""
+
+    delay_ms: int = 0
+    agent_icon: str = "\U0001f642"
+
+
+DEFAULT_FRAME_PRESENTATION = FramePresentation()
+
+
+class EscapeTurnActionError(ValueError):
+    """Raised when the action phase returns output outside the current schema."""
+
+    def __init__(self, message: str, *, available_actions: str, deliberation: str) -> None:
+        super().__init__(message)
+        self.available_actions = available_actions
+        self.deliberation = deliberation
+
+
+def run_model_escape(
+    *,
+    provider: InferenceProvider | None = None,
+    starting_sanity: int = STARTING_SANITY,
+) -> EscapeDemoResult:
+    """Run the configured model through the key-door room."""
+    frames = tuple(run_model_escape_steps(provider=provider, starting_sanity=starting_sanity))
+    final_frame = frames[-1]
+    return EscapeDemoResult(
+        escaped=final_frame.escaped,
+        sanity=final_frame.sanity,
+        visible_entities=final_frame.visible_entities,
+        inventory=final_frame.inventory,
+        journal=final_frame.journal,
+        map_view=final_frame.map_view,
+        transcript=final_frame.transcript,
+        frames=frames,
+    )
+
+
+def run_model_escape_steps(
+    *,
+    provider: InferenceProvider | None = None,
+    starting_sanity: int = STARTING_SANITY,
+) -> Iterator[EscapeDemoFrame]:
+    """Yield visible state after each model turn in the key-door room."""
+    resolved_provider = create_provider() if provider is None else provider
+    session = GameSessionState(map=create_key_door_map())
+    sanity = starting_sanity
+    history: list[str] = []
+    transcript: list[str] = []
+
+    yield _frame(session, sanity, transcript, "Model run started.")
+
+    while sanity > 0 and not session.escaped:
+        turn_number = len(transcript) + 1
+        room_state = render_room_state_for_agent(session, sanity)
+        try:
+            result, available_actions = _run_escape_turn(
+                provider=resolved_provider,
+                session=session,
+                room_state=room_state,
+                history=tuple(history),
+            )
+        except EscapeTurnActionError as exc:
+            next_sanity = max(0, sanity - 1)
+            message = f"Model returned an action outside the current grammar: {exc}"
+            transcript.append(
+                "\n".join(
+                    [
+                        f"Turn {turn_number} - sanity {sanity} -> {next_sanity}",
+                        f"Available actions:\n{exc.available_actions}",
+                        f"Deliberation: {exc.deliberation}",
+                        "Action: invalid",
+                        f"Result: {message}",
+                        _position_line(session),
+                    ]
+                )
+            )
+            history.append(f"invalid -> {message}")
+            sanity = next_sanity
+            yield _frame(session, sanity, transcript, _status(escaped=session.escaped, sanity=sanity))
+            continue
+        action = EscapeRoomAction.model_validate(result.action.model_dump(mode="json"))
+        applied = apply_agent_action(session, sanity, action)
+        action_emotion = action.root.emotion
+        action_text = action.model_dump_json()
+        transcript.append(
+            "\n".join(
+                [
+                    f"Turn {turn_number} - sanity {sanity} -> {applied.sanity}",
+                    f"Available actions:\n{available_actions}",
+                    f"Deliberation: {result.deliberation}",
+                    f"Action: {action_text}",
+                    f"Result: {applied.message}",
+                    _position_line(applied.session),
+                ]
+            )
+        )
+        history.append(f"{action_text} -> {applied.message}")
+        sanity = applied.sanity
+        if applied.movement_path:
+            for index, step in enumerate(applied.movement_path):
+                is_final_step = index == len(applied.movement_path) - 1
+                session = applied.session if is_final_step else session.model_copy(update={"agent_position": step})
+                yield _frame(
+                    session,
+                    sanity,
+                    transcript,
+                    _status(escaped=applied.session.escaped, sanity=sanity),
+                    presentation=FramePresentation(delay_ms=150, agent_icon=action_emotion),
+                )
+            session = applied.session
+            continue
+
+        session = applied.session
+        yield _frame(
+            session,
+            sanity,
+            transcript,
+            _status(escaped=session.escaped, sanity=sanity),
+            presentation=FramePresentation(agent_icon=action_emotion),
+        )
+
+    if not transcript:
+        yield _frame(session, sanity, transcript, _status(escaped=session.escaped, sanity=sanity))
+
+
+def _frame(
+    session: GameSessionState,
+    sanity: int,
+    transcript: list[str],
+    status: str,
+    *,
+    presentation: FramePresentation = DEFAULT_FRAME_PRESENTATION,
+) -> EscapeDemoFrame:
+    return EscapeDemoFrame(
+        escaped=session.escaped,
+        sanity=sanity,
+        position=_position_text(session),
+        visible_entities=_visible_entity_text(session),
+        inventory=session.inventory,
+        journal=session.notes,
+        map_view=render_user_map_view(session, agent_icon=presentation.agent_icon),
+        transcript="\n\n".join(transcript),
+        status=status,
+        delay_ms=presentation.delay_ms,
+    )
+
+
+def _status(*, escaped: bool, sanity: int) -> str:
+    if escaped:
+        return f"Escaped with {sanity} sanity remaining."
+    if sanity == 0:
+        return "Sanity reached 0 before the model escaped."
+    return f"Still searching with {sanity} sanity remaining."
+
+
+def _position_line(session: GameSessionState) -> str:
+    return f"Position: {_position_text(session)}"
+
+
+def _position_text(session: GameSessionState) -> str:
+    position = session.current_position
+    return f"({position.x}, {position.y})"
+
+
+def _visible_entity_text(session: GameSessionState) -> tuple[str, ...]:
+    return tuple(_placed_entity_text(placed) for placed in visible_notable_entities(session))
+
+
+def _placed_entity_text(placed: PlacedEntity) -> str:
+    return (
+        f"({placed.position.x}, {placed.position.y}) {placed.entity.id}: "
+        f"{placed.entity.name}. {placed.entity.description}"
+    )
+
+
+def _run_escape_turn(
+    *,
+    provider: InferenceProvider,
+    session: GameSessionState,
+    room_state: str,
+    history: tuple[str, ...],
+) -> tuple[ThinkActResult, str]:
+    settings = ThinkActSettings()
+    action_model = build_available_action_model(session)
+    deliberation_response = provider.complete(
+        InferenceRequest(
+            messages=build_deliberation_messages(
+                room_state=room_state,
+                objective=ESCAPE_OBJECTIVE,
+                action_model=action_model,
+                history=history,
+            ),
+            settings=settings.deliberation,
+        )
+    )
+    deliberation = deliberation_response.content.strip()
+    action_deliberation = strip_thinking_sections(deliberation)
+    available_actions = format_action_options(action_model)
+    action_response = provider.complete(
+        InferenceRequest(
+            messages=build_action_messages(
+                room_state=room_state,
+                objective=ESCAPE_OBJECTIVE,
+                deliberation=action_deliberation,
+                action_model=action_model,
+                history=history,
+            ),
+            structured_output=StructuredOutputSpec.from_pydantic_model(action_model),
+            settings=settings.action,
+        )
+    )
+    try:
+        action = validate_structured_output(action_model, action_response.content)
+    except (StructuredOutputError, ValidationError) as exc:
+        raise EscapeTurnActionError(
+            str(exc),
+            available_actions=available_actions,
+            deliberation=deliberation,
+        ) from exc
+    return (ThinkActResult(deliberation=deliberation, action=action), available_actions)

@@ -1,0 +1,145 @@
+from watch_my_escape.agent.escape_demo import run_model_escape
+from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
+
+EMOTION_JSON = "\\ud83e\\udd14"
+
+
+class ScriptedProvider:
+    """Provider fake that records requests and returns scripted actions."""
+
+    def __init__(self, actions: tuple[str, ...]) -> None:
+        self.actions = actions
+        self.requests: list[InferenceRequest] = []
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Return deliberation text followed by the next scripted action JSON."""
+        self.requests.append(request)
+        if len(self.requests) % 2 == 1:
+            return InferenceResponse(content="I will choose the next useful action.")
+        action_index = (len(self.requests) // 2) - 1
+        return InferenceResponse(content=self.actions[action_index])
+
+
+class PairedProvider:
+    """Provider fake that returns explicit deliberation/action pairs."""
+
+    def __init__(self, pairs: tuple[tuple[str, str], ...]) -> None:
+        self.pairs = pairs
+        self.requests: list[InferenceRequest] = []
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Return the next deliberation or action for a pair."""
+        self.requests.append(request)
+        pair_index = (len(self.requests) - 1) // 2
+        if len(self.requests) % 2 == 1:
+            return InferenceResponse(content=self.pairs[pair_index][0])
+        return InferenceResponse(content=self.pairs[pair_index][1])
+
+
+def test_run_model_escape_stops_when_the_model_escapes():
+    provider = ScriptedProvider(
+        (
+            f'{{"action":"pick_up","target":"brass key","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"use_item","item":"brass key","target":"locked door","emotion":"{EMOTION_JSON}"}}',
+        )
+    )
+
+    result = run_model_escape(provider=provider)
+
+    assert result.escaped is True
+    assert result.sanity == 98
+    assert result.inventory == ("brass key",)
+    assert result.status == "Escaped with 98 sanity remaining."
+    assert "Turn 1 - sanity 100 -> 99" in result.transcript
+    assert "Turn 2 - sanity 99 -> 98" in result.transcript
+    assert "Available actions:" in result.transcript
+    assert "direction: one of" not in result.transcript
+    assert "Position: (14, 8)" in result.transcript
+    assert len(result.frames) == 8
+    assert [frame.position for frame in result.frames[:4]] == ["(7, 8)", "(8, 8)", "(9, 8)", "(10, 8)"]
+    assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 7
+
+
+def test_run_model_escape_stops_when_sanity_reaches_zero():
+    provider = ScriptedProvider((f'{{"action":"open","target":"missing door","emotion":"{EMOTION_JSON}"}}',))
+
+    result = run_model_escape(provider=provider, starting_sanity=1)
+
+    assert result.escaped is False
+    assert result.sanity == 0
+    assert result.status == "Sanity reached 0 before the model escaped."
+    assert len(provider.requests) == 2
+
+
+def test_run_model_escape_shows_journal_to_later_turns():
+    provider = ScriptedProvider(
+        (
+            f'{{"action":"take_note","text":"The key should open the door.","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"pick_up","target":"brass key","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"use_item","item":"brass key","target":"locked door","emotion":"{EMOTION_JSON}"}}',
+        )
+    )
+
+    result = run_model_escape(provider=provider)
+
+    second_turn_prompt = provider.requests[2].messages[-1].content
+    assert result.escaped is True
+    assert result.journal == ("The key should open the door.",)
+    assert "Journal:\n- The key should open the door." in second_turn_prompt
+
+
+def test_run_model_escape_offers_use_item_on_visible_distant_door_after_key_pickup():
+    provider = ScriptedProvider(
+        (
+            f'{{"action":"pick_up","target":"brass key","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"use_item","item":"brass key","target":"locked door","emotion":"{EMOTION_JSON}"}}',
+        )
+    )
+
+    run_model_escape(provider=provider)
+
+    action_prompt = provider.requests[3].messages[-1].content
+    assert "- use_item: Use with item: one of brass key; target: one of locked door." in action_prompt
+
+
+def test_run_model_escape_keeps_general_actions_after_picking_up_language():
+    provider = PairedProvider(
+        (
+            (
+                "The objective is clear: escape by picking up the key and using it to unlock the door.",
+                f'{{"action":"pick_up","target":"brass key","emotion":"{EMOTION_JSON}"}}',
+            ),
+        )
+    )
+
+    result = run_model_escape(provider=provider, starting_sanity=1)
+
+    action_prompt = provider.requests[1].messages[-1].content
+    assert "- pick_up: Use with target: one of brass key." in action_prompt
+    assert "- take_note:" in action_prompt
+    assert result.frames[-1].position == "(8, 8)"
+
+
+def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_are_available():
+    provider = PairedProvider(
+        (
+            (
+                "I will pick up the brass key.",
+                f'{{"target":"brass key","emotion":"{EMOTION_JSON}"}}',
+            ),
+        )
+    )
+
+    result = run_model_escape(provider=provider, starting_sanity=1)
+
+    assert result.sanity == 0
+    assert result.frames[-1].position == "(7, 8)"
+    assert "Model returned an action outside the current grammar" in result.transcript
+
+
+def test_run_model_escape_renders_action_emotion_as_agent_icon():
+    provider = ScriptedProvider((f'{{"action":"pick_up","target":"brass key","emotion":"{EMOTION_JSON}"}}',))
+
+    result = run_model_escape(provider=provider, starting_sanity=1)
+
+    assert result.frames[-1].map_view[8][8] == "\U0001f914"
