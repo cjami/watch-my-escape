@@ -53,7 +53,7 @@ def _entity_action_models(session: GameSessionState, *, actions: ActionFilter) -
                 create_model(
                     f"Available{_model_name(action)}Action",
                     __base__=ActionBase,
-                    action=(_literal((action,)), action),
+                    action=(_literal((action,)), ...),
                     target=(_literal(targets), ...),
                 )
             )
@@ -71,7 +71,7 @@ def _use_item_models(session: GameSessionState) -> list[type[BaseModel]]:
         create_model(
             "AvailableUseItemAction",
             __base__=ActionBase,
-            action=(Literal["use_item"], "use_item"),
+            action=(Literal["use_item"], ...),
             item=(_literal(items), ...),
             target=(_literal(targets), ...),
         )
@@ -82,7 +82,7 @@ def _take_note_model() -> type[BaseModel]:
     return create_model(
         "AvailableTakeNoteAction",
         __base__=ActionBase,
-        action=(Literal["take_note"], "take_note"),
+        action=(Literal["take_note"], ...),
         text=(NoteText, ...),
     )
 

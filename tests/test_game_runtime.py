@@ -129,6 +129,7 @@ def test_available_action_model_constrains_targets_to_current_possibilities():
     action_model = build_available_action_model(session)
 
     assert action_model.model_validate({"action": "pick_up", "target": "brass-key", "emotion": EMOTION})
+    assert action_model.model_validate({"action": "take_note", "text": "The key is on the floor.", "emotion": EMOTION})
     with pytest.raises(ValidationError, match="use_item"):
         action_model.model_validate(
             {"action": "use_item", "item": "brass-key", "target": "locked-door", "emotion": EMOTION}
@@ -142,6 +143,14 @@ def test_available_action_model_constrains_targets_to_current_possibilities():
     )
     with pytest.raises(ValidationError, match="pick_up"):
         door_action_model.model_validate({"action": "pick_up", "target": "brass-key", "emotion": EMOTION})
+
+
+def test_available_action_model_schema_requires_action_discriminator():
+    session = GameSessionState(map=create_key_door_map())
+    schema = build_available_action_model(session).model_json_schema()
+
+    assert "action" in schema["$defs"]["AvailablePickUpAction"]["required"]
+    assert "action" in schema["$defs"]["AvailableTakeNoteAction"]["required"]
 
 
 def test_available_action_model_uses_entity_ids_for_duplicate_names():

@@ -7,12 +7,12 @@ import json
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
-from watch_my_escape.game.actions import ExamineAction, PickUpAction, UseItemAction
+from watch_my_escape.game.actions import Emotion, ExamineAction, PickUpAction, UseItemAction
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, LlamaCppConfig, load_config
 from watch_my_escape.llm.structured import StructuredOutputError, parse_json_object, strip_thinking_sections
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
     from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
 
-type EvalText = Annotated[str, Field(min_length=1)]
 type EvalInventoryItem = Literal["silver key", "brass key", "small mirror", "torn note"]
+type EvalEmotion = Emotion | Literal[""]
 type EvalInteractableTarget = Literal[
     "brass key",
     "locked diary",
@@ -40,14 +40,14 @@ type EvalUseItemTarget = EvalInventoryItem | EvalInteractableTarget
 class EvalExamineAction(ExamineAction):
     """Examine a visible entity."""
 
-    emotion: EvalText
+    emotion: EvalEmotion
     target: EvalInteractableTarget
 
 
 class EvalUseItemAction(UseItemAction):
     """Use one inventory item on another item or visible entity."""
 
-    emotion: EvalText
+    emotion: EvalEmotion
     item: EvalInventoryItem
     target: EvalUseItemTarget
 
@@ -55,7 +55,7 @@ class EvalUseItemAction(UseItemAction):
 class EvalPickUpAction(PickUpAction):
     """Pick up a visible entity."""
 
-    emotion: EvalText
+    emotion: EvalEmotion
     target: EvalInteractableTarget
 
 

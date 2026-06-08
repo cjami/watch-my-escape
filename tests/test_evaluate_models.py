@@ -93,7 +93,7 @@ def test_score_case_ignores_emotion_value():
 
     result = score_case(
         action_case,
-        InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"curious"}'),
+        InferenceResponse(content='{"action":"examine","target":"brass key","emotion":""}'),
     )
 
     assert result.passed

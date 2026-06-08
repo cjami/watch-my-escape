@@ -2,7 +2,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 from types import ModuleType
-from typing import Any, ClassVar, cast
+from typing import ClassVar
 
 import pytest
 from pydantic import BaseModel
@@ -199,9 +199,17 @@ def test_embedded_provider_parses_tool_call(monkeypatch, tmp_path):
     assert response.tool_call.arguments == {"emotion": "neutral"}
 
 
-def test_embedded_provider_passes_structured_output_response_format(monkeypatch, tmp_path):
+def test_embedded_provider_passes_structured_output_grammar(monkeypatch, tmp_path):
     model_path = tmp_path / "model.gguf"
     model_path.write_text("stub", encoding="utf-8")
+
+    class FakeGrammar:
+        schema: ClassVar[str] = ""
+
+        @classmethod
+        def from_json_schema(cls, schema: str) -> str:
+            cls.schema = schema
+            return "json-grammar"
 
     class FakeLlama:
         completion_kwargs: ClassVar[dict[str, object]] = {}
@@ -215,6 +223,7 @@ def test_embedded_provider_passes_structured_output_response_format(monkeypatch,
 
     fake_module = ModuleType("llama_cpp")
     fake_module.__dict__["Llama"] = FakeLlama
+    fake_module.__dict__["LlamaGrammar"] = FakeGrammar
     monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
 
     provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
@@ -225,10 +234,32 @@ def test_embedded_provider_passes_structured_output_response_format(monkeypatch,
         )
     )
 
-    response_format = cast("dict[str, Any]", FakeLlama.completion_kwargs["response_format"])
-    assert response_format["type"] == "json_object"
-    schema = cast("dict[str, Any]", response_format["schema"])
-    assert schema["title"] == "StructuredProbe"
+    assert FakeLlama.completion_kwargs["grammar"] == "json-grammar"
+    assert "response_format" not in FakeLlama.completion_kwargs
+    assert '"title": "StructuredProbe"' in FakeGrammar.schema
+
+
+def test_embedded_provider_reports_missing_structured_output_grammar(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+
+    with pytest.raises(LlmConfigurationError, match=r"LlamaGrammar\.from_json_schema"):
+        provider.complete(
+            InferenceRequest(
+                messages=(ChatMessage(role="user", content="Return JSON."),),
+                structured_output=StructuredOutputSpec.from_pydantic_model(StructuredProbe),
+            )
+        )
 
 
 def test_embedded_provider_uses_reasoning_fallback_sampling(monkeypatch, tmp_path):
@@ -252,6 +283,7 @@ def test_embedded_provider_uses_reasoning_fallback_sampling(monkeypatch, tmp_pat
     provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
     provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
 
+    assert "grammar" not in FakeLlama.completion_kwargs
     assert FakeLlama.completion_kwargs["temperature"] == 1.0
     assert FakeLlama.completion_kwargs["top_p"] == 0.95
     assert FakeLlama.completion_kwargs["top_k"] == 64

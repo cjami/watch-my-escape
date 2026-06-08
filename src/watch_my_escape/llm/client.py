@@ -72,7 +72,12 @@ class EmbeddedLlamaCppProvider:
             payload["tools"] = [tool.as_llama_tool() for tool in request.tools]
             payload["tool_choice"] = "auto"
         if request.structured_output is not None:
-            payload["response_format"] = request.structured_output.as_llama_response_format()
+            try:
+                llama_module = import_module("llama_cpp")
+                payload["grammar"] = request.structured_output.as_llama_grammar(llama_module)
+            except (ImportError, TypeError) as exc:
+                msg = "Structured output requires llama-cpp-python with LlamaGrammar.from_json_schema."
+                raise LlmConfigurationError(msg) from exc
 
         raw_response = self._llama.create_chat_completion(**payload)
         choice_message = raw_response["choices"][0]["message"]

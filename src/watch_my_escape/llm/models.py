@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -57,6 +58,15 @@ class StructuredOutputSpec:
     def as_llama_response_format(self) -> dict[str, Any]:
         """Return the response format expected by llama-cpp-python."""
         return {"type": "json_object", "schema": self.schema}
+
+    def as_llama_grammar(self, llama_module: Any) -> Any:
+        """Return a llama.cpp grammar generated from this JSON schema."""
+        llama_grammar = getattr(llama_module, "LlamaGrammar", None)
+        from_json_schema = getattr(llama_grammar, "from_json_schema", None)
+        if not callable(from_json_schema):
+            msg = "llama-cpp-python does not expose LlamaGrammar.from_json_schema."
+            raise TypeError(msg)
+        return from_json_schema(json.dumps(self.schema))
 
 
 @dataclass(frozen=True, slots=True)
