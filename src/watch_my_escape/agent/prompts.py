@@ -99,7 +99,11 @@ def _collect_action_schemas(schema_node: Any) -> list[dict[str, Any]]:
 
 def _format_action_schema(action_schema: dict[str, Any]) -> str:
     action = _action_name(action_schema)
-    return f"- {_action_signature(action, action_schema)}"
+    signature = _action_signature(action, action_schema)
+    description = action_schema.get("description")
+    if not isinstance(description, str) or not description:
+        return f"- {signature}"
+    return f"- {signature}: {description}"
 
 
 def _action_signature(action: str, action_schema: dict[str, Any]) -> str:
