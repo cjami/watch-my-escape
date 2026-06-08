@@ -112,6 +112,22 @@ def test_available_action_model_schema_requires_action_discriminator():
     assert "action" in schema["$defs"]["AvailableTakeNoteAction"]["required"]
 
 
+def test_available_action_model_is_reused_for_matching_action_contexts():
+    session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
+
+    assert build_available_action_model(session) is build_available_action_model(session)
+
+
+def test_available_action_model_cache_respects_inventory_context():
+    session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
+
+    base_model = build_available_action_model(session)
+    inventory_model = build_available_action_model(session.model_copy(update={"inventory": ("small-key",)}))
+
+    assert inventory_model is not base_model
+    assert "AvailableUseItemAction" in inventory_model.model_json_schema()["$defs"]
+
+
 def test_available_action_model_accepts_target_text_for_runtime_resolution():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 

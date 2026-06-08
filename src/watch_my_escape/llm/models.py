@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from functools import cache
 from typing import Any, Literal
 
 from pydantic import BaseModel
@@ -53,7 +54,7 @@ class StructuredOutputSpec:
     @classmethod
     def from_pydantic_model(cls, model: type[BaseModel]) -> StructuredOutputSpec:
         """Build a structured output spec from a Pydantic model."""
-        return cls(name=model.__name__, schema=model.model_json_schema())
+        return _structured_output_spec_from_model(model)
 
     def as_llama_response_format(self) -> dict[str, Any]:
         """Return the response format expected by llama-cpp-python."""
@@ -104,3 +105,8 @@ class InferenceResponse:
     content: str
     tool_call: ToolCall | None = None
     raw: dict[str, Any] | None = None
+
+
+@cache
+def _structured_output_spec_from_model(model: type[BaseModel]) -> StructuredOutputSpec:
+    return StructuredOutputSpec(name=model.__name__, schema=model.model_json_schema())

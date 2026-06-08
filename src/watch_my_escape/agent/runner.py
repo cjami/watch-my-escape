@@ -21,9 +21,9 @@ class ThinkActSettings:
     """Generation settings for the two phases of an agent turn."""
 
     deliberation: InferenceSettings = field(
-        default_factory=lambda: InferenceSettings(max_tokens=4096, temperature=1.0, top_p=0.95)
+        default_factory=lambda: InferenceSettings(max_tokens=2048, temperature=1.0, top_p=0.95)
     )
-    action: InferenceSettings = field(default_factory=lambda: InferenceSettings(max_tokens=512, temperature=0.0))
+    action: InferenceSettings = field(default_factory=lambda: InferenceSettings(max_tokens=256, temperature=0.0))
 
 
 @dataclass(frozen=True, slots=True)

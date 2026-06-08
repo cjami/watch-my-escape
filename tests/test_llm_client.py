@@ -239,6 +239,12 @@ def test_embedded_provider_passes_structured_output_grammar(monkeypatch, tmp_pat
     assert '"title": "StructuredProbe"' in FakeGrammar.schema
 
 
+def test_structured_output_spec_is_reused_for_matching_pydantic_model():
+    assert StructuredOutputSpec.from_pydantic_model(StructuredProbe) is StructuredOutputSpec.from_pydantic_model(
+        StructuredProbe
+    )
+
+
 def test_embedded_provider_reports_missing_structured_output_grammar(monkeypatch, tmp_path):
     model_path = tmp_path / "model.gguf"
     model_path.write_text("stub", encoding="utf-8")

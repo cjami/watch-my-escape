@@ -39,7 +39,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert result.action == EscapeRoomAction(root=ExamineAction(action="examine", target="brass key", emotion="🤔"))
     assert provider.requests[0].structured_output is None
     assert provider.requests[0].settings.temperature == 1.0
-    assert provider.requests[0].settings.max_tokens == 4096
+    assert provider.requests[0].settings.max_tokens == 2048
     deliberation_system_prompt = provider.requests[0].messages[0].content
     assert "Briefly outline your overall plan." in deliberation_system_prompt
     assert "Choose the immediate next single action to perform." in deliberation_system_prompt
@@ -58,7 +58,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "item: an item currently in inventory" not in deliberation_prompt
     assert provider.requests[1].structured_output is not None
     assert provider.requests[1].settings.temperature == 0.0
-    assert provider.requests[1].settings.max_tokens == 512
+    assert provider.requests[1].settings.max_tokens == 256
     action_prompt = provider.requests[1].messages[-1].content
     assert "Available actions:" in action_prompt
     assert "Inspect the key before trying the door." not in provider.requests[1].messages[-1].content

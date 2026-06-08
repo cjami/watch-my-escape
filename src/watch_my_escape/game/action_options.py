@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from functools import reduce
+from functools import cache, reduce
 from operator import or_
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
@@ -28,6 +28,7 @@ ACTION_DESCRIPTIONS = {
     "use_item": "Use an inventory item on a target.",
 }
 type ActionFilter = frozenset[str] | None
+type CachedActionFilter = tuple[str, ...] | None
 
 
 def build_available_action_model(
@@ -36,10 +37,29 @@ def build_available_action_model(
     actions: ActionFilter = None,
 ) -> type[BaseModel]:
     """Return an action model constrained to currently possible actions."""
+    visible_targets = tuple(placed.entity.id for placed in visible_notable_entities(session))
+    items = tuple(dict.fromkeys(session.inventory))
+    action_key = tuple(sorted(actions)) if actions is not None else None
+    return _build_available_action_model(
+        has_visible_targets=bool(visible_targets),
+        items=items,
+        visible_targets=visible_targets,
+        actions=action_key,
+    )
+
+
+@cache
+def _build_available_action_model(
+    *,
+    has_visible_targets: bool,
+    items: tuple[str, ...],
+    visible_targets: tuple[str, ...],
+    actions: CachedActionFilter,
+) -> type[BaseModel]:
     models: list[type[BaseModel]] = []
-    models.extend(_entity_action_models(session, actions=actions))
+    models.extend(_entity_action_models(has_visible_targets=has_visible_targets, actions=actions))
     if _allows(actions, "use_item"):
-        models.extend(_use_item_models(session))
+        models.extend(_use_item_models(items=items, visible_targets=visible_targets))
     if _allows(actions, "take_note"):
         models.append(_take_note_model())
 
@@ -54,8 +74,12 @@ def build_available_action_model(
     return cast("type[BaseModel]", RootModel[annotated_union])
 
 
-def _entity_action_models(session: GameSessionState, *, actions: ActionFilter) -> list[type[BaseModel]]:
-    if not visible_notable_entities(session):
+def _entity_action_models(
+    *,
+    has_visible_targets: bool,
+    actions: CachedActionFilter,
+) -> list[type[BaseModel]]:
+    if not has_visible_targets:
         return []
 
     models: list[type[BaseModel]] = []
@@ -86,11 +110,10 @@ def _entity_action_models(session: GameSessionState, *, actions: ActionFilter) -
     return models
 
 
-def _use_item_models(session: GameSessionState) -> list[type[BaseModel]]:
-    items = tuple(dict.fromkeys(session.inventory))
+def _use_item_models(*, items: tuple[str, ...], visible_targets: tuple[str, ...]) -> list[type[BaseModel]]:
     if not items:
         return []
-    targets = _use_item_targets(session, items=items)
+    targets = _use_item_targets(visible_targets=visible_targets, items=items)
     if not targets:
         return []
 
@@ -106,8 +129,7 @@ def _use_item_models(session: GameSessionState) -> list[type[BaseModel]]:
     ]
 
 
-def _use_item_targets(session: GameSessionState, *, items: tuple[str, ...]) -> tuple[str, ...]:
-    visible_targets = tuple(placed.entity.id for placed in visible_notable_entities(session))
+def _use_item_targets(*, visible_targets: tuple[str, ...], items: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(dict.fromkeys((*visible_targets, *items)))
 
 
@@ -125,7 +147,7 @@ def _model_name(action: str) -> str:
     return "".join(part.title() for part in action.split("_"))
 
 
-def _allows(values: frozenset[str] | None, value: str) -> bool:
+def _allows(values: ActionFilter | CachedActionFilter, value: str) -> bool:
     return values is None or value in values
 
 
