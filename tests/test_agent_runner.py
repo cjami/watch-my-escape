@@ -42,7 +42,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert provider.requests[0].settings.max_tokens == 2048
     deliberation_system_prompt = provider.requests[0].messages[0].content
     assert "Assess your surroundings" in deliberation_system_prompt
-    assert "consider your next action" in deliberation_system_prompt
+    assert "consider all possible actions and targets" in deliberation_system_prompt
     assert "one concise sentence" in deliberation_system_prompt
     assert "action, target, and reason" in deliberation_system_prompt
     deliberation_prompt = provider.requests[0].messages[-1].content

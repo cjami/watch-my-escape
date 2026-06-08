@@ -2,31 +2,32 @@
 
 from __future__ import annotations
 
+from importlib import resources
 from typing import Any
 
 from pydantic import BaseModel
 
 from watch_my_escape.llm.models import ChatMessage
 
+PROMPT_TEMPLATE_PACKAGE = "watch_my_escape.agent.prompt_templates"
+
 
 def build_deliberation_messages(
     *, game_state: str, action_model: type[BaseModel], history: tuple[str, ...] = ()
 ) -> tuple[ChatMessage, ...]:
     """Build the unconstrained thinking prompt for one turn."""
+    turn_context = _turn_context(game_state=game_state, history=history)
+    action_options = format_action_options(action_model)
     return (
         ChatMessage(
             role="system",
-            content=(
-                "You are playing an escape room game. "
-                "Assess your surroundings, then consider your next action. "
-                "Reply with one concise sentence naming the action, target, and reason. "
-            ),
+            content=_load_prompt_template("deliberation-system.md"),
         ),
         ChatMessage(
             role="user",
-            content=(
-                f"{_turn_context(game_state=game_state, history=history)}\n\n"
-                f"Available actions:\n{format_action_options(action_model)}"
+            content=_load_prompt_template("deliberation-user.md").format(
+                turn_context=turn_context,
+                action_options=action_options,
             ),
         ),
     )
@@ -40,23 +41,26 @@ def build_action_messages(
     history: tuple[str, ...] = (),
 ) -> tuple[ChatMessage, ...]:
     """Build the constrained action prompt for one turn."""
+    turn_context = _turn_context(game_state=game_state, history=history)
+    action_options = format_action_options(action_model)
     return (
         ChatMessage(
             role="system",
-            content=(
-                "You are choosing the next escape-room action. Use the prior deliberation, but do not continue "
-                "reasoning. Return only one JSON object matching the provided schema."
-            ),
+            content=_load_prompt_template("action-system.md"),
         ),
         ChatMessage(
             role="user",
-            content=(
-                f"{_turn_context(game_state=game_state, history=history)}\n\n"
-                f"Prior deliberation:\n{deliberation.strip()}\n\n"
-                f"Available actions:\n{format_action_options(action_model)}"
+            content=_load_prompt_template("action-user.md").format(
+                turn_context=turn_context,
+                deliberation=deliberation.strip(),
+                action_options=action_options,
             ),
         ),
     )
+
+
+def _load_prompt_template(file_name: str) -> str:
+    return resources.files(PROMPT_TEMPLATE_PACKAGE).joinpath(file_name).read_text(encoding="utf-8").strip()
 
 
 def _turn_context(*, game_state: str, history: tuple[str, ...]) -> str:

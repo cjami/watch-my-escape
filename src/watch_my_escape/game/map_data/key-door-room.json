@@ -848,6 +848,17 @@
           "behaviors": [
             {
               "trigger": {
+                "action": "examine"
+              },
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A small brass key on the floor. Looks like it can be picked up and used on the door."
+                }
+              ]
+            },
+            {
+              "trigger": {
                 "action": "pick_up"
               },
               "effects": [

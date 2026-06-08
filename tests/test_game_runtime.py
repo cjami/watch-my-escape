@@ -170,13 +170,13 @@ def test_available_action_model_schema_requires_action_discriminator():
     assert "action" in schema["$defs"]["AvailableWriteNoteAction"]["required"]
 
 
-def test_available_action_model_is_reused_for_matching_action_contexts():
+def test_available_action_model_builds_fresh_schema_for_matching_action_contexts():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 
-    assert build_available_action_model(session) is build_available_action_model(session)
+    assert build_available_action_model(session) is not build_available_action_model(session)
 
 
-def test_available_action_model_cache_respects_inventory_context():
+def test_available_action_model_respects_inventory_context():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 
     base_model = build_available_action_model(session)
@@ -186,16 +186,17 @@ def test_available_action_model_cache_respects_inventory_context():
     assert "AvailableUseItemAction" in inventory_model.model_json_schema()["$defs"]
 
 
-def test_available_action_model_accepts_target_text_for_runtime_resolution():
+def test_available_action_model_constrains_targets_to_visible_entity_ids():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 
     action_model = build_available_action_model(session)
 
     assert action_model.model_validate({"action": "examine", "target": "left-statue", "emotion": EMOTION})
     assert action_model.model_validate({"action": "examine", "target": "right-statue", "emotion": EMOTION})
-    assert action_model.model_validate({"action": "examine", "target": "statue", "emotion": EMOTION})
     with pytest.raises(ValidationError, match="target"):
-        action_model.model_validate({"action": "examine", "target": "", "emotion": EMOTION})
+        action_model.model_validate({"action": "examine", "target": "statue", "emotion": EMOTION})
+    with pytest.raises(ValidationError, match="target"):
+        action_model.model_validate({"action": "examine", "target": "blocked-door", "emotion": EMOTION})
 
 
 def test_available_action_model_requires_spoken_text_for_talk_to_targets():

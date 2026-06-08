@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from functools import cache, reduce
+from functools import reduce
 from operator import or_
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, Field, RootModel, create_model
 
-from watch_my_escape.game.actions import ActionBase, NoteText, SpokenText, VisibleTarget
+from watch_my_escape.game.actions import ActionBase, NoteText, SpokenText
 from watch_my_escape.game.maps import visible_notable_entities
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ ACTION_DESCRIPTIONS = {
     "write_note": "Write a note for yourself.",
 }
 type ActionFilter = frozenset[str] | None
-type CachedActionFilter = tuple[str, ...] | None
+type ActionFilterKey = tuple[str, ...] | None
 
 
 def build_available_action_model(
@@ -41,23 +41,20 @@ def build_available_action_model(
     items = tuple(dict.fromkeys(session.inventory))
     action_key = tuple(sorted(actions)) if actions is not None else None
     return _build_available_action_model(
-        has_visible_targets=bool(visible_targets),
         items=items,
         visible_targets=visible_targets,
         actions=action_key,
     )
 
 
-@cache
 def _build_available_action_model(
     *,
-    has_visible_targets: bool,
     items: tuple[str, ...],
     visible_targets: tuple[str, ...],
-    actions: CachedActionFilter,
+    actions: ActionFilterKey,
 ) -> type[BaseModel]:
     models: list[type[BaseModel]] = []
-    models.extend(_entity_action_models(has_visible_targets=has_visible_targets, actions=actions))
+    models.extend(_entity_action_models(visible_targets=visible_targets, actions=actions))
     if _allows(actions, "use_item"):
         models.extend(_use_item_models(items=items, visible_targets=visible_targets))
     if _allows(actions, "write_note"):
@@ -76,12 +73,13 @@ def _build_available_action_model(
 
 def _entity_action_models(
     *,
-    has_visible_targets: bool,
-    actions: CachedActionFilter,
+    visible_targets: tuple[str, ...],
+    actions: ActionFilterKey,
 ) -> list[type[BaseModel]]:
-    if not has_visible_targets:
+    if not visible_targets:
         return []
 
+    target_type = _literal(visible_targets)
     models: list[type[BaseModel]] = []
     for action in ENTITY_ACTIONS:
         if not _allows(actions, action):
@@ -93,7 +91,7 @@ def _entity_action_models(
                     __base__=ActionBase,
                     __doc__=ACTION_DESCRIPTIONS[action],
                     action=(_literal((action,)), ...),
-                    target=(VisibleTarget, ...),
+                    target=(target_type, ...),
                     text=(SpokenText, ...),
                 )
             )
@@ -104,7 +102,7 @@ def _entity_action_models(
                 __base__=ActionBase,
                 __doc__=ACTION_DESCRIPTIONS[action],
                 action=(_literal((action,)), ...),
-                target=(VisibleTarget, ...),
+                target=(target_type, ...),
             )
         )
     return models
@@ -147,7 +145,7 @@ def _model_name(action: str) -> str:
     return "".join(part.title() for part in action.split("_"))
 
 
-def _allows(values: ActionFilter | CachedActionFilter, value: str) -> bool:
+def _allows(values: ActionFilter | ActionFilterKey, value: str) -> bool:
     return values is None or value in values
 
 
