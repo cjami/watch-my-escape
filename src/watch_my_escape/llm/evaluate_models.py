@@ -38,14 +38,14 @@ type EvalUseItemTarget = EvalInventoryItem | EvalInteractableTarget
 
 
 class EvalExamineAction(ExamineAction):
-    """Examine a visible entity."""
+    """Look closely at a visible object."""
 
     emotion: EvalEmotion
     target: EvalInteractableTarget
 
 
 class EvalUseItemAction(UseItemAction):
-    """Use one inventory item on another item or visible entity."""
+    """Use an inventory item on a target."""
 
     emotion: EvalEmotion
     item: EvalInventoryItem
@@ -53,7 +53,7 @@ class EvalUseItemAction(UseItemAction):
 
 
 class EvalPickUpAction(PickUpAction):
-    """Pick up a visible entity."""
+    """Pick up a visible object and add it to inventory."""
 
     emotion: EvalEmotion
     target: EvalInteractableTarget

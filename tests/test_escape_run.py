@@ -88,7 +88,8 @@ def test_run_model_escape_shows_journal_to_later_turns():
     assert result.escaped is True
     assert result.journal == ("The key should open the door.",)
     assert "Objective:" not in second_turn_prompt
-    assert "Journal:\n- The key should open the door." in second_turn_prompt
+    assert "Your notes:\n- The key should open the door." in second_turn_prompt
+    assert "Journal:" not in second_turn_prompt
 
 
 def test_run_model_escape_offers_use_item_on_visible_distant_door_after_key_pickup():
@@ -102,8 +103,10 @@ def test_run_model_escape_offers_use_item_on_visible_distant_door_after_key_pick
     run_model_escape(provider=provider)
 
     action_prompt = provider.requests[3].messages[-1].content
-    assert "- use_item: Use one inventory item on another item or entity." in action_prompt
+    assert "- use_item(item, target)" in action_prompt
     assert "target: one of locked-door" not in action_prompt
+    assert '"action":"pick_up"' not in action_prompt
+    assert "pick_up brass-key -> You pick up the brass key." in action_prompt
 
 
 def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_item():
@@ -119,9 +122,9 @@ def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_ite
     result = run_model_escape(provider=provider, starting_sanity=1)
 
     action_prompt = provider.requests[1].messages[-1].content
-    assert "- pick_up: Pick up an entity." in action_prompt
-    assert "- open: Open an entity." in action_prompt
-    assert "- take_note:" in action_prompt
+    assert "- pick_up(target)" in action_prompt
+    assert "- open(target)" in action_prompt
+    assert "- take_note(text)" in action_prompt
     assert "target: one of brass-key" not in action_prompt
     assert result.frames[-1].position == "(8, 8)"
 

@@ -49,10 +49,13 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "Game state:" in deliberation_prompt
     assert "Objective:" not in deliberation_prompt
     assert "Available actions:" in deliberation_prompt
-    assert "- examine: Examine an entity." in deliberation_prompt
-    assert "- use_item: Use one inventory item on another item or entity." in deliberation_prompt
-    assert "target: a visible entity" not in deliberation_prompt
-    assert "item: an item currently in the agent's inventory" not in deliberation_prompt
+    assert "Recent actions:" in deliberation_prompt
+    assert "History:" not in deliberation_prompt
+    assert "- examine(target)" in deliberation_prompt
+    assert "- use_item(item, target)" in deliberation_prompt
+    assert "entity" not in deliberation_prompt.casefold()
+    assert "target: a visible object" not in deliberation_prompt
+    assert "item: an item currently in inventory" not in deliberation_prompt
     assert provider.requests[1].structured_output is not None
     assert provider.requests[1].settings.temperature == 0.0
     assert provider.requests[1].settings.max_tokens == 512

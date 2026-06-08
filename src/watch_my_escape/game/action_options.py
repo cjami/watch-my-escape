@@ -16,16 +16,16 @@ if TYPE_CHECKING:
 
 ENTITY_ACTIONS = ("examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use")
 ACTION_DESCRIPTIONS = {
-    "close": "Close an entity.",
-    "examine": "Examine an entity.",
-    "open": "Open an entity.",
-    "pick_up": "Pick up an entity.",
-    "pull": "Pull an entity.",
-    "push": "Push an entity.",
-    "take_note": "Record a note.",
-    "talk_to": "Talk to an entity.",
-    "use": "Use an entity.",
-    "use_item": "Use one inventory item on another item or entity.",
+    "close": "Close an object.",
+    "examine": "Look closely at an object.",
+    "open": "Open an object.",
+    "pick_up": "Pick up an object and add it to inventory.",
+    "pull": "Pull an object.",
+    "push": "Push an object.",
+    "take_note": "Record a note for yourself.",
+    "talk_to": "Say something to an object or character.",
+    "use": "Use an object directly.",
+    "use_item": "Use an inventory item on a target.",
 }
 type ActionFilter = frozenset[str] | None
 

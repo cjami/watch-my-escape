@@ -108,12 +108,12 @@ type Emotion = Literal[
     "😠",
     "🤬",
 ]
-type InventoryItem = Annotated[str, Field(min_length=1, description="An item currently in the agent's inventory.")]
-type SpokenText = Annotated[str, Field(min_length=1, description="Words to say to the visible entity.")]
-type VisibleTarget = Annotated[str, Field(min_length=1, description="A visible entity.")]
+type InventoryItem = Annotated[str, Field(min_length=1, description="An item currently in inventory.")]
+type SpokenText = Annotated[str, Field(min_length=1, description="Words to say to the target.")]
+type VisibleTarget = Annotated[str, Field(min_length=1, description="A visible object.")]
 type Target = Annotated[
     str,
-    Field(min_length=1, description="Another inventory item or a visible entity."),
+    Field(min_length=1, description="Another inventory item or a visible object."),
 ]
 type NoteText = Annotated[str, Field(min_length=1, description="Text to record for later use.")]
 
@@ -127,7 +127,7 @@ class ActionBase(BaseModel):
 
 
 class UseItemAction(ActionBase):
-    """Use one inventory item on another item or entity."""
+    """Use an inventory item on a target."""
 
     action: Literal["use_item"]
     item: InventoryItem
@@ -135,56 +135,56 @@ class UseItemAction(ActionBase):
 
 
 class UseAction(ActionBase):
-    """Use an entity."""
+    """Use an object directly."""
 
     action: Literal["use"]
     target: VisibleTarget
 
 
 class PickUpAction(ActionBase):
-    """Pick up an entity."""
+    """Pick up an object and add it to inventory."""
 
     action: Literal["pick_up"]
     target: VisibleTarget
 
 
 class OpenAction(ActionBase):
-    """Open an entity."""
+    """Open an object."""
 
     action: Literal["open"]
     target: VisibleTarget
 
 
 class CloseAction(ActionBase):
-    """Close an entity."""
+    """Close an object."""
 
     action: Literal["close"]
     target: VisibleTarget
 
 
 class ExamineAction(ActionBase):
-    """Examine an entity."""
+    """Look closely at an object."""
 
     action: Literal["examine"]
     target: VisibleTarget
 
 
 class PushAction(ActionBase):
-    """Push an entity."""
+    """Push an object."""
 
     action: Literal["push"]
     target: VisibleTarget
 
 
 class PullAction(ActionBase):
-    """Pull an entity."""
+    """Pull an object."""
 
     action: Literal["pull"]
     target: VisibleTarget
 
 
 class TalkToAction(ActionBase):
-    """Talk to an entity."""
+    """Say something to an object or character."""
 
     action: Literal["talk_to"]
     target: VisibleTarget
@@ -192,7 +192,7 @@ class TalkToAction(ActionBase):
 
 
 class TakeNoteAction(ActionBase):
-    """Record a note."""
+    """Record a note for yourself."""
 
     action: Literal["take_note"]
     text: NoteText

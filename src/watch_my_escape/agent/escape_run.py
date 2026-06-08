@@ -153,7 +153,7 @@ def run_model_escape_steps(
                     ]
                 )
             )
-            history.append(f"invalid -> {message}")
+            history.append(f"Invalid action -> {message}")
             sanity = next_sanity
             yield _frame(session, sanity, transcript, _status(escaped=session.escaped, sanity=sanity))
             continue
@@ -172,7 +172,7 @@ def run_model_escape_steps(
                 ]
             )
         )
-        history.append(f"{action_text} -> {applied.message}")
+        history.append(f"{_history_action_text(action)} -> {applied.message}")
         sanity = applied.sanity
         if applied.movement_path:
             for index, step in enumerate(applied.movement_path):
@@ -253,6 +253,17 @@ def _visible_entity_text(session: GameSessionState) -> tuple[str, ...]:
 
 def _placed_entity_text(placed: PlacedEntity) -> str:
     return f"{placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
+
+
+def _history_action_text(action: EscapeRoomAction) -> str:
+    root = action.root
+    if root.action == "take_note":
+        return f"take_note: {root.text}"
+    if root.action == "talk_to":
+        return f"talk_to {root.target}: {root.text}"
+    if root.action == "use_item":
+        return f"use_item {root.item} on {root.target}"
+    return f"{root.action} {root.target}"
 
 
 def _run_escape_turn(

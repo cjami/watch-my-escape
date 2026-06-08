@@ -190,12 +190,9 @@ class GameSessionState(StrictModel):
 def render_agent_view(session: GameSessionState) -> str:
     """Render active notable entities as compact Markdown for the agent."""
     visible_entities = visible_notable_entities(session)
-    position = session.current_position
 
     lines = [
-        f"Position: ({position.x}, {position.y})",
-        "",
-        "Visible entities:",
+        "Visible objects:",
     ]
     lines.extend(_render_visible_entity_lines(visible_entities))
     return "\n".join(lines)

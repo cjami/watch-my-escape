@@ -64,8 +64,8 @@ def test_evaluate_model_scores_think_then_act_turns():
     assert all(request.structured_output is not None for request in requests[1::2])
     deliberation_prompts = "\n".join(request.messages[-1].content for request in requests[::2])
     assert "Evaluation-specific constraints" not in deliberation_prompts
-    assert "Pick up a visible entity." in deliberation_prompts
-    assert "Use one inventory item on another item or visible entity." in deliberation_prompts
+    assert "- pick_up(target)" in deliberation_prompts
+    assert "- use_item(item, target)" in deliberation_prompts
 
 
 def test_evaluation_prompts_do_not_embed_json_or_specific_emotions():

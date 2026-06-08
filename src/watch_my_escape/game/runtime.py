@@ -95,9 +95,11 @@ def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
 
 def _render_inventory(session: GameSessionState) -> str:
     if not session.inventory:
-        return "Inventory:\n- Empty."
+        return "Inventory (items you are carrying):\n- Empty."
     entities = session.map.entities_by_id()
-    return "Inventory:\n" + "\n".join(f"- {_inventory_item_text(item, entities)}" for item in session.inventory)
+    return "Inventory (items you are carrying):\n" + "\n".join(
+        f"- {_inventory_item_text(item, entities)}" for item in session.inventory
+    )
 
 
 def _inventory_item_text(item: str, entities: dict[str, Entity]) -> str:
@@ -109,8 +111,8 @@ def _inventory_item_text(item: str, entities: dict[str, Entity]) -> str:
 
 def _render_journal(session: GameSessionState) -> str:
     if not session.notes:
-        return "Journal:\n- No notes recorded."
-    return "Journal:\n" + "\n".join(f"- {note}" for note in session.notes)
+        return "Your notes:\n- You have not recorded any notes."
+    return "Your notes:\n" + "\n".join(f"- {note}" for note in session.notes)
 
 
 def _session_after_path(session: GameSessionState, path: tuple[Coordinate, ...]) -> GameSessionState:

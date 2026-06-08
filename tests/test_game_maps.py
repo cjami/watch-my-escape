@@ -70,7 +70,8 @@ def test_agent_view_uses_visibility_from_passable_cells_and_blockers():
 
     view = render_agent_view(session)
 
-    assert "Position: (1, 1)" in view
+    assert "Position:" not in view
+    assert "(1, 1)" not in view
     assert "- brass-key: Brass key." in view
     assert "- locked-door: Locked door." in view
     assert "target brass-key" not in view
@@ -83,7 +84,7 @@ def test_agent_view_excludes_non_notable_entities_from_visible_entity_list():
     session = GameSessionState(map=GameMap.model_validate(_map_payload()))
 
     view = render_agent_view(session)
-    visible_entity_list = view.split("Visible entities:", maxsplit=1)[1]
+    visible_entity_list = view.split("Visible objects:", maxsplit=1)[1]
 
     assert "y\\x" not in view
     assert "locked-door" in visible_entity_list

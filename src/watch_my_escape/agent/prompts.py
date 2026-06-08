@@ -60,8 +60,8 @@ def build_action_messages(
 
 
 def _turn_context(*, game_state: str, history: tuple[str, ...]) -> str:
-    history_text = "\n".join(f"- {entry}" for entry in history) if history else "- No previous turns."
-    return f"Game state:\n{game_state.strip()}\n\nHistory:\n{history_text}"
+    history_text = "\n".join(f"- {entry}" for entry in history) if history else "- No recent actions."
+    return f"Game state:\n{game_state.strip()}\n\nRecent actions:\n{history_text}"
 
 
 def format_action_options(action_model: type[BaseModel]) -> str:
@@ -95,10 +95,20 @@ def _collect_action_schemas(schema_node: Any) -> list[dict[str, Any]]:
 
 def _format_action_schema(action_schema: dict[str, Any]) -> str:
     action = _action_name(action_schema)
-    description = action_schema.get("description")
-    if isinstance(description, str):
-        return f"- {action}: {description}"
-    return f"- {action}"
+    return f"- {_action_signature(action, action_schema)}"
+
+
+def _action_signature(action: str, action_schema: dict[str, Any]) -> str:
+    properties = action_schema.get("properties", {})
+    required = action_schema.get("required", [])
+    if not isinstance(properties, dict) or not isinstance(required, list):
+        return action
+
+    ordered_fields = ("item", "target", "text")
+    fields = [field for field in ordered_fields if field in properties and field in required]
+    if not fields:
+        return action
+    return f"{action}({', '.join(fields)})"
 
 
 def _literal_values(schema_node: dict[str, Any]) -> list[str]:

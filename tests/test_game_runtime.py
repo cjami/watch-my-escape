@@ -37,13 +37,13 @@ def test_take_note_records_journal_and_renders_to_agent():
 
     assert result.sanity == 99
     assert result.session.notes == ("The key should open the door.",)
-    assert "Journal:\n- The key should open the door." in render_game_state_for_agent(result.session, result.sanity)
+    assert "Your notes:\n- The key should open the door." in render_game_state_for_agent(result.session, result.sanity)
 
 
 def test_empty_journal_is_rendered_to_agent():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
 
-    assert "Journal:\n- No notes recorded." in render_game_state_for_agent(session, STARTING_SANITY)
+    assert "Your notes:\n- You have not recorded any notes." in render_game_state_for_agent(session, STARTING_SANITY)
 
 
 def test_inventory_entities_can_be_used_with_each_other():
