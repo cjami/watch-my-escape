@@ -1,16 +1,17 @@
 from fastapi.testclient import TestClient
 from gradio import Server
 
-from watch_my_escape.agent.escape_demo import EscapeDemoFrame
+from watch_my_escape.agent.escape_run import EscapeRunFrame
 from watch_my_escape.app import server
 from watch_my_escape.app.server import (
     GENERATED_STATIC_DIR,
     SOURCE_STATIC_DIR,
     TEMPLATES_DIR,
-    build_escape_demo_response,
+    build_escape_run_response,
     create_app,
 )
 from watch_my_escape.llm.client import LlmConfigurationError
+from watch_my_escape.llm.config import MODEL_PRESETS
 
 
 def test_create_app_returns_gradio_server():
@@ -36,18 +37,20 @@ def test_homepage_renders_without_request_query_parameter():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Watch My Escape" in response.text
-    assert "Run model escape" in response.text
+    assert "WATCH" in response.text
+    assert "Select Model" in response.text
+    assert "key-door-room" in response.text
+    assert next(iter(MODEL_PRESETS)) in response.text
 
 
-def test_escape_demo_response_reports_model_configuration_error(monkeypatch):
+def test_escape_run_response_reports_model_configuration_error(monkeypatch):
     def raise_configuration_error():
         message = "Configure WME_MODEL_PATH before running inference."
         raise LlmConfigurationError(message)
 
     monkeypatch.setattr(server, "run_model_escape", raise_configuration_error)
 
-    response = build_escape_demo_response()
+    response = build_escape_run_response()
 
     assert response["status"] == "Model is not configured."
     assert response["sanity"] == "100"
@@ -57,50 +60,77 @@ def test_escape_demo_response_reports_model_configuration_error(monkeypatch):
     assert "Configure WME_MODEL_PATH" in response["transcript"]
 
 
-def test_escape_demo_response_formats_successful_run(monkeypatch):
+def test_escape_run_response_formats_successful_run(monkeypatch):
     class FakeResult:
         status = "Escaped with 98 sanity remaining."
         sanity = 98
-        visible_entities = ("(15, 8) locked-door: Locked door. A locked door bars the exit.",)
-        inventory = ("brass key",)
+        visible_entities = ("target locked-door: Locked door. A locked door bars the exit.",)
+        inventory = ("brass-key",)
         journal = ("The key should open the door.",)
         map_view = ((".", "door"), ("key", "."))
         transcript = "Turn 1 - sanity 100 -> 99"
 
     monkeypatch.setattr(server, "run_model_escape", FakeResult)
 
-    response = build_escape_demo_response()
+    response = build_escape_run_response()
 
     assert response["status"] == "Escaped with 98 sanity remaining."
     assert response["sanity"] == "98"
-    assert response["visible_entities"] == "- (15, 8) locked-door: Locked door. A locked door bars the exit."
-    assert response["inventory"] == "- brass key"
+    assert response["visible_entities"] == "- target locked-door: Locked door. A locked door bars the exit."
+    assert response["inventory"] == "- brass-key"
     assert response["journal"] == "- The key should open the door."
     assert response["map"] == ". door\nkey ."
     assert response["transcript"] == "Turn 1 - sanity 100 -> 99"
 
 
 def test_escape_stream_returns_turn_frames(monkeypatch):
-    def fake_steps():
-        yield EscapeDemoFrame(
+    seen = {}
+
+    def fake_steps(**kwargs):
+        seen.update(kwargs)
+        yield EscapeRunFrame(
             escaped=False,
             sanity=99,
             position="(8, 8)",
-            visible_entities=("(15, 8) locked-door: Locked door. A locked door bars the exit.",),
-            inventory=("brass key",),
+            visible_entities=("target locked-door: Locked door. A locked door bars the exit.",),
+            inventory=("brass-key",),
             journal=("The key opens the door.",),
             map_view=((".", "\U0001f642"), ("\U0001f511", "\U0001f6aa")),
             transcript="Turn 1 - sanity 100 -> 99",
             status="Still searching with 99 sanity remaining.",
         )
 
+    provider = object()
+    monkeypatch.setattr(server, "create_provider", lambda _config: provider)
     monkeypatch.setattr(server, "run_model_escape_steps", fake_steps)
     client = TestClient(create_app())
 
-    response = client.get("/escape-stream")
+    response = client.get(f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&map_id=key-door-room")
 
     assert response.status_code == 200
+    assert seen["provider"] is provider
+    assert seen["game_map"].id == "key-door-room"
+    assert "Escape the room" in seen["objective"]
     assert "Still searching with 99 sanity remaining." in response.text
     assert "(8, 8)" in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
+
+
+def test_escape_stream_rejects_unknown_model_preset():
+    client = TestClient(create_app())
+
+    response = client.get("/escape-stream?model_preset=missing&map_id=key-door-room")
+
+    assert response.status_code == 400
+    assert "Unknown model preset" in response.text
+
+
+def test_escape_stream_rejects_unknown_map(monkeypatch):
+    monkeypatch.setattr(server, "create_provider", lambda _config: object())
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&map_id=missing")
+
+    assert response.status_code == 400
+    assert "Unknown map" in response.text

@@ -311,8 +311,7 @@ def _render_visible_entity_lines(visible_entities: tuple[PlacedEntity, ...]) -> 
     if not notable_entities:
         return ["- None."]
     return [
-        f"- ({placed.position.x}, {placed.position.y}) {placed.entity.id}: "
-        f"{placed.entity.name}. {placed.entity.description}"
+        f"- target {placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
         for placed in sorted(notable_entities, key=lambda item: (item.position.y, item.position.x, item.entity.id))
     ]
 

@@ -89,7 +89,7 @@ def _take_note_model() -> type[BaseModel]:
 
 def _targets_for_action(session: GameSessionState, action: str) -> tuple[str, ...]:
     return tuple(
-        placed.entity.name.lower()
+        placed.entity.id
         for placed in visible_notable_entities(session)
         if any(behavior.trigger.action == action for behavior in placed.entity.behaviors)
     )
@@ -100,7 +100,7 @@ def _use_item_options(session: GameSessionState) -> tuple[tuple[str, str], ...]:
     inventory = set(session.inventory)
     for placed in visible_notable_entities(session):
         options.extend(
-            (behavior.trigger.item, placed.entity.name.lower())
+            (behavior.trigger.item, placed.entity.id)
             for behavior in placed.entity.behaviors
             if behavior.trigger.action == "use_item" and behavior.trigger.item in inventory
         )

@@ -5,47 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ app_name }}</title>
     <link rel="stylesheet" href="/static/styles.css" />
+    <script id="app-data" type="application/json">
+      {{ {"models": model_presets, "maps": premade_maps} | tojson }}
+    </script>
     <script type="module" src="/static/app.js"></script>
   </head>
   <body>
-    <main class="grid min-h-screen w-[min(1180px,calc(100%-2rem))] grid-cols-1 gap-6 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:gap-8 mx-auto">
-      <section class="room-stage grid min-h-90 content-start gap-4 border border-white/10 p-4 lg:min-h-140" aria-label="Puzzle room">
-        <div class="flex items-center justify-between gap-3">
-          <p class="m-0 text-xs font-bold uppercase tracking-[.12em] text-mechanism">{{ app_name }}</p>
-          <div class="flex gap-3 font-mono text-sm text-[#e8ece4]">
-            <output id="position">Position: --</output>
-            <output id="sanity">Sanity: 100</output>
-          </div>
-        </div>
-        <div id="map-view" class="map-view rounded-md border border-white/10 bg-black/25 p-3" aria-live="polite">
-          <span class="map-empty">Run the model to reveal the room map.</span>
+    <main class="min-h-screen overflow-hidden">
+      <section id="splash-screen" class="screen splash-screen is-active" data-screen="splash" aria-label="{{ app_name }}">
+        <h1 class="splash-title" aria-label="Watch My Escape">
+          <span>WATCH</span>
+          <span>MY</span>
+          <span>ESCAPE</span>
+        </h1>
+      </section>
+
+      <section id="model-screen" class="screen select-screen" data-screen="models" aria-labelledby="model-title">
+        <div class="select-shell">
+          <header class="select-header">
+            <p class="brand-mark">{{ app_name }}</p>
+            <h1 id="model-title">Select Model</h1>
+          </header>
+          <div id="model-options" class="option-grid" aria-label="Model presets"></div>
         </div>
       </section>
 
-      <section class="grid content-start gap-4" aria-labelledby="console-title">
-        <h1 id="console-title" class="m-0 text-4xl leading-none tracking-normal">{{ project_description }}</h1>
-        <button id="run-escape" type="button" class="justify-self-start rounded-md bg-mechanism px-4 py-3 font-extrabold text-[#171812]">Run model escape</button>
-        <output id="status" class="min-h-14 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">Waiting for a configured model.</output>
+      <section id="map-screen" class="screen select-screen" data-screen="maps" aria-labelledby="map-title">
+        <div class="select-shell">
+          <header class="select-header">
+            <p id="selected-model-label" class="brand-mark"></p>
+            <h1 id="map-title">Select Map</h1>
+          </header>
+          <div id="map-options" class="option-grid" aria-label="Premade maps"></div>
+        </div>
+      </section>
 
-        <section class="grid gap-2" aria-labelledby="visible-entities-title">
-          <h2 id="visible-entities-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Visible Entities</h2>
-          <pre id="visible-entities" class="min-h-20 rounded-md border border-white/10 bg-white/10 p-3 text-sm">- None.</pre>
-        </section>
+      <section id="game-screen" class="screen game-screen" data-screen="game" aria-label="Puzzle room">
+        <div class="game-layout">
+          <section class="room-stage grid content-start gap-4 border border-white/10 p-4" aria-label="Puzzle room map">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="m-0 text-xs font-bold uppercase text-mechanism">WATCH MY ESCAPE</p>
+                <p id="game-selection-label" class="m-0 mt-1 text-sm text-[#c4cbc1]"></p>
+              </div>
+              <div class="flex gap-3 font-mono text-sm text-[#e8ece4]">
+                <output id="position">Position: --</output>
+                <output id="sanity">Sanity: 100</output>
+              </div>
+            </div>
+            <div id="map-view" class="map-view rounded-md border border-white/10 bg-black/25 p-3" aria-live="polite">
+              <span class="map-empty">.</span>
+            </div>
+          </section>
 
-        <section class="grid gap-2" aria-labelledby="inventory-title">
-          <h2 id="inventory-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Inventory</h2>
-          <pre id="inventory" class="min-h-16 rounded-md border border-white/10 bg-white/10 p-3 text-sm">- Empty.</pre>
-        </section>
+          <section class="grid content-start gap-4" aria-labelledby="console-title">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <h1 id="console-title" class="m-0 text-4xl leading-none tracking-normal">{{ project_description }}</h1>
+              <button id="restart-flow" type="button" class="secondary-button">Change Setup</button>
+            </div>
+            <button id="run-escape" type="button" class="primary-button justify-self-start">Run Escape</button>
+            <output id="status" class="min-h-14 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">Ready.</output>
 
-        <section class="grid gap-2" aria-labelledby="journal-title">
-          <h2 id="journal-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Journal</h2>
-          <pre id="journal" class="min-h-20 rounded-md border border-white/10 bg-white/10 p-3 text-sm">- No notes recorded.</pre>
-        </section>
+            <section class="panel-section" aria-labelledby="visible-entities-title">
+              <h2 id="visible-entities-title">Visible Entities</h2>
+              <pre id="visible-entities">- None.</pre>
+            </section>
 
-        <section class="grid gap-2" aria-labelledby="transcript-title">
-          <h2 id="transcript-title" class="m-0 text-sm font-bold uppercase tracking-[.12em] text-[#c4cbc1]">Transcript</h2>
-          <pre id="transcript" class="max-h-96 overflow-auto rounded-md border border-white/10 bg-black/25 p-3 text-sm whitespace-pre-wrap">The model has not tried the room yet.</pre>
-        </section>
+            <section class="panel-section" aria-labelledby="inventory-title">
+              <h2 id="inventory-title">Inventory</h2>
+              <pre id="inventory">- Empty.</pre>
+            </section>
+
+            <section class="panel-section" aria-labelledby="journal-title">
+              <h2 id="journal-title">Journal</h2>
+              <pre id="journal">- No notes recorded.</pre>
+            </section>
+
+            <section class="panel-section" aria-labelledby="transcript-title">
+              <h2 id="transcript-title">Transcript</h2>
+              <pre id="transcript" class="max-h-96 overflow-auto whitespace-pre-wrap">The model has not tried the room yet.</pre>
+            </section>
+          </section>
+        </div>
       </section>
     </main>
   </body>

@@ -7,7 +7,7 @@ from watch_my_escape.llm.config import (
     LangfuseConfig,
     LlamaCppConfig,
     LlmProviderName,
-    ModelPresetError,
+    config_for_model_preset,
     is_huggingface_space,
     load_config,
     resolve_provider,
@@ -120,31 +120,26 @@ def test_load_config_rejects_invalid_langfuse_tracing_value():
         load_config({"LANGFUSE_TRACING_ENABLED": "sometimes"})
 
 
-def test_load_config_resolves_model_preset_to_hub_source():
-    preset_name, preset = next(iter(MODEL_PRESETS.items()))
-
-    config = load_config({"WME_MODEL_PRESET": preset_name})
-
-    assert config.model_preset == preset_name
-    assert config.model_repo_id == preset.repo_id
-    assert config.model_filename == preset.filename
-
-
-def test_explicit_model_source_wins_over_model_preset():
-    preset_name = next(iter(MODEL_PRESETS))
+def test_explicit_model_source_is_read_from_environment():
     config = load_config(
         {
-            "WME_MODEL_PRESET": preset_name,
             "WME_MODEL_REPO_ID": "custom/repo",
             "WME_MODEL_FILENAME": "custom.gguf",
         }
     )
 
-    assert config.model_preset == preset_name
+    assert config.model_preset is None
     assert config.model_repo_id == "custom/repo"
     assert config.model_filename == "custom.gguf"
 
 
-def test_unknown_model_preset_lists_available_options():
-    with pytest.raises(ModelPresetError, match="Available presets"):
-        load_config({"WME_MODEL_PRESET": "nope"})
+def test_config_for_model_preset_resolves_preset_to_hub_source():
+    preset_name, preset = next(iter(MODEL_PRESETS.items()))
+    base_config = load_config({"WME_MODEL_PATH": "~/models/custom.gguf"})
+
+    config = config_for_model_preset(preset_name, base_config)
+
+    assert config.model_preset == preset_name
+    assert config.model_path is None
+    assert config.model_repo_id == preset.repo_id
+    assert config.model_filename == preset.filename

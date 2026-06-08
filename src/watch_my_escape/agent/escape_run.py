@@ -1,4 +1,4 @@
-"""Run a model through the simple key-door escape demo."""
+"""Run a model through an escape-room game map."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from watch_my_escape.agent.runner import ThinkActResult, ThinkActSettings
 from watch_my_escape.game.action_options import build_available_action_model
 from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import GameSessionState, PlacedEntity, render_user_map_view, visible_notable_entities
+from watch_my_escape.game.premade_maps import get_premade_map
 from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_room_state_for_agent
-from watch_my_escape.game.simple_maps import create_key_door_map
 from watch_my_escape.llm.client import InferenceProvider, create_provider
 from watch_my_escape.llm.models import InferenceRequest, StructuredOutputSpec
 from watch_my_escape.llm.structured import StructuredOutputError, strip_thinking_sections, validate_structured_output
@@ -21,11 +21,14 @@ from watch_my_escape.llm.structured import StructuredOutputError, strip_thinking
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from watch_my_escape.game.maps import GameMap
+
 ESCAPE_OBJECTIVE = "Escape the room by picking up the key and using it to unlock the door."
+DEFAULT_MAP_ID = "key-door-room"
 
 
 @dataclass(frozen=True, slots=True)
-class EscapeDemoFrame:
+class EscapeRunFrame:
     """Visible state after one moment in the model escape attempt."""
 
     escaped: bool
@@ -41,7 +44,7 @@ class EscapeDemoFrame:
 
 
 @dataclass(frozen=True, slots=True)
-class EscapeDemoResult:
+class EscapeRunResult:
     """Complete result for one model escape attempt."""
 
     escaped: bool
@@ -51,7 +54,7 @@ class EscapeDemoResult:
     journal: tuple[str, ...]
     map_view: tuple[tuple[str, ...], ...]
     transcript: str
-    frames: tuple[EscapeDemoFrame, ...] = ()
+    frames: tuple[EscapeRunFrame, ...] = ()
 
     @property
     def status(self) -> str:
@@ -84,12 +87,21 @@ class EscapeTurnActionError(ValueError):
 def run_model_escape(
     *,
     provider: InferenceProvider | None = None,
+    game_map: GameMap | None = None,
+    objective: str | None = None,
     starting_sanity: int = STARTING_SANITY,
-) -> EscapeDemoResult:
-    """Run the configured model through the key-door room."""
-    frames = tuple(run_model_escape_steps(provider=provider, starting_sanity=starting_sanity))
+) -> EscapeRunResult:
+    """Run the configured model through an escape-room map."""
+    frames = tuple(
+        run_model_escape_steps(
+            provider=provider,
+            game_map=game_map,
+            objective=objective,
+            starting_sanity=starting_sanity,
+        )
+    )
     final_frame = frames[-1]
-    return EscapeDemoResult(
+    return EscapeRunResult(
         escaped=final_frame.escaped,
         sanity=final_frame.sanity,
         visible_entities=final_frame.visible_entities,
@@ -104,11 +116,19 @@ def run_model_escape(
 def run_model_escape_steps(
     *,
     provider: InferenceProvider | None = None,
+    game_map: GameMap | None = None,
+    objective: str | None = None,
     starting_sanity: int = STARTING_SANITY,
-) -> Iterator[EscapeDemoFrame]:
-    """Yield visible state after each model turn in the key-door room."""
+) -> Iterator[EscapeRunFrame]:
+    """Yield visible state after each model turn in an escape-room map."""
     resolved_provider = create_provider() if provider is None else provider
-    session = GameSessionState(map=create_key_door_map())
+    premade_map = get_premade_map(DEFAULT_MAP_ID) if game_map is None else None
+    selected_map = premade_map.map if premade_map else game_map
+    if selected_map is None:
+        msg = "a game map is required"
+        raise ValueError(msg)
+    selected_objective = objective or (premade_map.objective if premade_map else ESCAPE_OBJECTIVE)
+    session = GameSessionState(map=selected_map)
     sanity = starting_sanity
     history: list[str] = []
     transcript: list[str] = []
@@ -123,6 +143,7 @@ def run_model_escape_steps(
                 provider=resolved_provider,
                 session=session,
                 room_state=room_state,
+                objective=selected_objective,
                 history=tuple(history),
             )
         except EscapeTurnActionError as exc:
@@ -196,8 +217,8 @@ def _frame(
     status: str,
     *,
     presentation: FramePresentation = DEFAULT_FRAME_PRESENTATION,
-) -> EscapeDemoFrame:
-    return EscapeDemoFrame(
+) -> EscapeRunFrame:
+    return EscapeRunFrame(
         escaped=session.escaped,
         sanity=sanity,
         position=_position_text(session),
@@ -233,10 +254,7 @@ def _visible_entity_text(session: GameSessionState) -> tuple[str, ...]:
 
 
 def _placed_entity_text(placed: PlacedEntity) -> str:
-    return (
-        f"({placed.position.x}, {placed.position.y}) {placed.entity.id}: "
-        f"{placed.entity.name}. {placed.entity.description}"
-    )
+    return f"target {placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
 
 
 def _run_escape_turn(
@@ -244,6 +262,7 @@ def _run_escape_turn(
     provider: InferenceProvider,
     session: GameSessionState,
     room_state: str,
+    objective: str,
     history: tuple[str, ...],
 ) -> tuple[ThinkActResult, str]:
     settings = ThinkActSettings()
@@ -252,7 +271,7 @@ def _run_escape_turn(
         InferenceRequest(
             messages=build_deliberation_messages(
                 room_state=room_state,
-                objective=ESCAPE_OBJECTIVE,
+                objective=objective,
                 action_model=action_model,
                 history=history,
             ),
@@ -266,7 +285,7 @@ def _run_escape_turn(
         InferenceRequest(
             messages=build_action_messages(
                 room_state=room_state,
-                objective=ESCAPE_OBJECTIVE,
+                objective=objective,
                 deliberation=action_deliberation,
                 action_model=action_model,
                 history=history,

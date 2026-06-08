@@ -1,0 +1,1 @@
+"""Bundled premade map data."""

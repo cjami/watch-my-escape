@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from importlib import import_module
 from pathlib import Path
@@ -27,8 +27,11 @@ LANGFUSE_REQUIRED_KEYS: Final = ("LANGFUSE_SECRET_KEY", "LANGFUSE_PUBLIC_KEY", "
 
 @dataclass(frozen=True, slots=True)
 class ModelPreset:
-    """Known Hub GGUF model source."""
+    """Known Hub GGUF model source and presentation metadata."""
 
+    display_name: str
+    company: str
+    brand_color: str
     repo_id: str
     filename: str
 
@@ -43,22 +46,37 @@ class LangfuseConfig:
 MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
     {
         "gemma-4-12b-it": ModelPreset(
+            display_name="Gemma 4 12B IT",
+            company="Google",
+            brand_color="#4285F4",
             repo_id="ggml-org/gemma-4-12B-it-GGUF",
             filename="gemma-4-12B-it-Q4_K_M.gguf",
         ),
         "nvidia-nemotron-3-nano-4b": ModelPreset(
+            display_name="Nemotron 3 Nano 4B",
+            company="NVIDIA",
+            brand_color="#76B900",
             repo_id="nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF",
             filename="NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf",
         ),
         "minicpm5-1b": ModelPreset(
+            display_name="MiniCPM5 1B",
+            company="OpenBMB",
+            brand_color="#2563EB",
             repo_id="openbmb/MiniCPM5-1B-GGUF",
             filename="MiniCPM5-1B-Q4_K_M.gguf",
         ),
         "tiny-aya-global": ModelPreset(
+            display_name="Tiny Aya Global",
+            company="Cohere",
+            brand_color="#39594D",
             repo_id="CohereLabs/tiny-aya-global-GGUF",
             filename="tiny-aya-global-q4_k_m.gguf",
         ),
         "mellum2-12b-a2.5b-thinking": ModelPreset(
+            display_name="Mellum2 12B Thinking",
+            company="JetBrains",
+            brand_color="#A855F7",
             repo_id="JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M",
             filename="Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf",
         ),
@@ -126,17 +144,14 @@ def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
     env = dict(os.environ) if environ is None else environ
     requested_provider = LlmProviderName(env.get("WME_LLM_PROVIDER", LlmProviderName.AUTO))
     model_path = env.get("WME_MODEL_PATH")
-    model_preset_name = _resolve_model_preset_name(env.get("WME_MODEL_PRESET"))
-    model_preset = MODEL_PRESETS[model_preset_name] if model_preset_name else None
     model_repo_id = env.get("WME_MODEL_REPO_ID")
     model_filename = env.get("WME_MODEL_FILENAME")
-    should_use_preset_source = model_path is None and model_repo_id is None and model_filename is None and model_preset
     return LlamaCppConfig(
         provider=resolve_provider(requested_provider, env),
-        model_preset=model_preset_name,
+        model_preset=None,
         model_path=Path(model_path).expanduser() if model_path else None,
-        model_repo_id=model_preset.repo_id if should_use_preset_source else model_repo_id,
-        model_filename=model_preset.filename if should_use_preset_source else model_filename,
+        model_repo_id=model_repo_id,
+        model_filename=model_filename,
         chat_format=env.get("WME_CHAT_FORMAT"),
         context_tokens=int(env.get("WME_CONTEXT_TOKENS", DEFAULT_CONTEXT_TOKENS)),
         max_tokens=int(env.get("WME_MAX_TOKENS", DEFAULT_MAX_TOKENS)),
@@ -147,6 +162,25 @@ def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
         zerogpu_duration=int(env.get("WME_ZEROGPU_DURATION", DEFAULT_ZEROGPU_DURATION)),
         flash_attn=_optional_bool(env, "WME_FLASH_ATTN"),
         langfuse=_load_langfuse_config(env),
+    )
+
+
+def config_for_model_preset(preset_name: str, base_config: LlamaCppConfig | None = None) -> LlamaCppConfig:
+    """Return a runtime config that uses one explicit model preset."""
+    try:
+        preset = MODEL_PRESETS[preset_name]
+    except KeyError as exc:
+        available = ", ".join(MODEL_PRESETS)
+        msg = f"Unknown model preset {preset_name!r}. Available presets: {available}."
+        raise ModelPresetError(msg) from exc
+
+    config = load_config() if base_config is None else base_config
+    return replace(
+        config,
+        model_preset=preset_name,
+        model_path=None,
+        model_repo_id=preset.repo_id,
+        model_filename=preset.filename,
     )
 
 
@@ -195,14 +229,3 @@ def _load_langfuse_config(env: dict[str, str]) -> LangfuseConfig:
 
 def _has_value(env: dict[str, str], key: str) -> bool:
     return bool(env.get(key, "").strip())
-
-
-def _resolve_model_preset_name(raw_name: str | None) -> str | None:
-    if raw_name is None:
-        return None
-    name = raw_name.strip().lower()
-    if name in MODEL_PRESETS:
-        return name
-    available = ", ".join(MODEL_PRESETS)
-    msg = f"Unknown WME_MODEL_PRESET {raw_name!r}. Available presets: {available}."
-    raise ModelPresetError(msg)

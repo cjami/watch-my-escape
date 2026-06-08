@@ -7,7 +7,7 @@ import platform
 import sys
 from typing import TYPE_CHECKING
 
-from watch_my_escape.llm.config import MODEL_PRESETS, is_huggingface_space, load_config
+from watch_my_escape.llm.config import is_huggingface_space, load_config
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -28,7 +28,6 @@ def build_report() -> list[str]:
         f"llama_cpp installed: {'yes' if _installed('llama_cpp') else 'no'}",
         f"spaces installed: {'yes' if _installed('spaces') else 'no'}",
         f"torch installed: {'yes' if _installed('torch') else 'no'}",
-        f"Model preset: {config.model_preset or '(not set)'}",
         f"Model path: {config.model_path or '(not set)'}",
         f"Model repo: {config.model_repo_id or '(not set)'}",
         f"Model filename: {config.model_filename or '(not set)'}",
@@ -38,11 +37,7 @@ def build_report() -> list[str]:
     if not _installed("llama_cpp"):
         lines.append("Suggested fix: uv run python -m watch_my_escape.setup_llm cpu")
     if not config.has_model_source:
-        presets = ", ".join(MODEL_PRESETS)
-        lines.append(
-            "Suggested fix: set WME_MODEL_PRESET to one of "
-            f"{presets}, or set WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME."
-        )
+        lines.append("Suggested fix: set WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME.")
     return lines
 
 

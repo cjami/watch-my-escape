@@ -253,7 +253,10 @@ def build_model_targets(args: argparse.Namespace, base_config: LlamaCppConfig) -
         targets.append(ModelTarget(name=_configured_model_name(base_config), config=base_config))
 
     if not targets:
-        msg = "Configure WME_MODEL_PATH/WME_MODEL_PRESET, pass --model-path, or pass --preset/--all-presets."
+        msg = (
+            "Configure WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME, "
+            "pass --model-path, or pass --preset/--all-presets."
+        )
         raise ValueError(msg)
     return tuple(targets)
 

@@ -5,8 +5,8 @@ from watch_my_escape.game.action_options import build_available_action_model
 from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import Direction, GameMap, GameSessionState, MoveBlockedError
 from watch_my_escape.game.models import Coordinate
+from watch_my_escape.game.premade_maps import create_key_door_map
 from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_room_state_for_agent
-from watch_my_escape.game.simple_maps import create_key_door_map
 
 EMOTION = "\U0001f914"
 
@@ -14,11 +14,11 @@ EMOTION = "\U0001f914"
 def test_key_door_map_allows_key_pickup_and_hides_key():
     session = GameSessionState(map=create_key_door_map())
 
-    result = apply_agent_action(session, STARTING_SANITY, _action("pick_up", target="brass key"))
+    result = apply_agent_action(session, STARTING_SANITY, _action("pick_up", target="brass-key"))
 
     assert result.sanity == 99
     assert result.session.agent_position == Coordinate(x=8, y=8)
-    assert result.session.inventory == ("brass key",)
+    assert result.session.inventory == ("brass-key",)
     assert result.session.map.entities_by_id()["brass-key"].visible is False
     assert result.movement_path == (Coordinate(x=8, y=8),)
     assert result.message == "You pick up the brass key."
@@ -36,9 +36,9 @@ def test_key_door_map_blocks_door_until_key_unlocks_escape():
     assert "Locked door" in str(exc_info.value)
 
     initial = GameSessionState(map=create_key_door_map())
-    with_key = apply_agent_action(initial, STARTING_SANITY, _action("pick_up", target="brass key")).session
+    with_key = apply_agent_action(initial, STARTING_SANITY, _action("pick_up", target="brass-key")).session
 
-    escaped = apply_agent_action(with_key, 99, _action("use_item", item="brass key", target="locked door"))
+    escaped = apply_agent_action(with_key, 99, _action("use_item", item="brass-key", target="locked-door"))
 
     assert escaped.sanity == 98
     assert escaped.session.escaped is True
@@ -52,7 +52,7 @@ def test_key_door_map_blocks_door_until_key_unlocks_escape():
 def test_visible_action_auto_moves_to_passable_entity_coordinate():
     session = GameSessionState(map=create_key_door_map())
 
-    result = apply_agent_action(session, STARTING_SANITY, _action("examine", target="brass key"))
+    result = apply_agent_action(session, STARTING_SANITY, _action("examine", target="brass-key"))
 
     assert result.sanity == 99
     assert result.session.agent_position == Coordinate(x=8, y=8)
@@ -64,10 +64,10 @@ def test_visible_action_auto_moves_adjacent_to_impassable_entity_and_costs_one_s
     session = apply_agent_action(
         GameSessionState(map=create_key_door_map()),
         STARTING_SANITY,
-        _action("pick_up", target="brass key"),
+        _action("pick_up", target="brass-key"),
     ).session
 
-    result = apply_agent_action(session, 99, _action("use_item", item="brass key", target="locked door"))
+    result = apply_agent_action(session, 99, _action("use_item", item="brass-key", target="locked-door"))
 
     assert result.sanity == 98
     assert result.session.agent_position == Coordinate(x=14, y=8)
@@ -78,7 +78,7 @@ def test_visible_action_auto_moves_adjacent_to_impassable_entity_and_costs_one_s
 def test_action_on_sealed_entity_fails_and_costs_one_sanity():
     session = GameSessionState(map=GameMap.model_validate(_sealed_map_payload()))
 
-    result = apply_agent_action(session, STARTING_SANITY, _action("examine", target="sealed hatch"))
+    result = apply_agent_action(session, STARTING_SANITY, _action("examine", target="sealed-hatch"))
 
     assert result.sanity == 99
     assert result.session == session
@@ -128,20 +128,31 @@ def test_available_action_model_constrains_targets_to_current_possibilities():
     session = GameSessionState(map=create_key_door_map())
     action_model = build_available_action_model(session)
 
-    assert action_model.model_validate({"action": "pick_up", "target": "brass key", "emotion": EMOTION})
+    assert action_model.model_validate({"action": "pick_up", "target": "brass-key", "emotion": EMOTION})
     with pytest.raises(ValidationError, match="use_item"):
         action_model.model_validate(
-            {"action": "use_item", "item": "brass key", "target": "locked door", "emotion": EMOTION}
+            {"action": "use_item", "item": "brass-key", "target": "locked-door", "emotion": EMOTION}
         )
 
-    with_key = apply_agent_action(session, STARTING_SANITY, _action("pick_up", target="brass key")).session
+    with_key = apply_agent_action(session, STARTING_SANITY, _action("pick_up", target="brass-key")).session
     door_action_model = build_available_action_model(with_key)
 
     assert door_action_model.model_validate(
-        {"action": "use_item", "item": "brass key", "target": "locked door", "emotion": EMOTION}
+        {"action": "use_item", "item": "brass-key", "target": "locked-door", "emotion": EMOTION}
     )
     with pytest.raises(ValidationError, match="pick_up"):
-        door_action_model.model_validate({"action": "pick_up", "target": "brass key", "emotion": EMOTION})
+        door_action_model.model_validate({"action": "pick_up", "target": "brass-key", "emotion": EMOTION})
+
+
+def test_available_action_model_uses_entity_ids_for_duplicate_names():
+    session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
+
+    action_model = build_available_action_model(session)
+
+    assert action_model.model_validate({"action": "examine", "target": "left-statue", "emotion": EMOTION})
+    assert action_model.model_validate({"action": "examine", "target": "right-statue", "emotion": EMOTION})
+    with pytest.raises(ValidationError, match="target"):
+        action_model.model_validate({"action": "examine", "target": "statue", "emotion": EMOTION})
 
 
 def _action(action: str, **values: object) -> EscapeRoomAction:
@@ -176,6 +187,38 @@ def _sealed_map_payload():
                     "icon": "\U0001f573\ufe0f",
                     "description": "A hatch sealed beyond the wall.",
                     "passable": True,
+                },
+            },
+        ],
+    }
+
+
+def _duplicate_name_map_payload():
+    return {
+        "id": "duplicate-name-map",
+        "name": "Duplicate Name Map",
+        "agent_start": {"x": 1, "y": 1},
+        "entities": [
+            {
+                "position": {"x": 2, "y": 1},
+                "entity": {
+                    "id": "left-statue",
+                    "name": "Statue",
+                    "icon": "\U0001f5ff",
+                    "description": "A statue to the west.",
+                    "passable": True,
+                    "behaviors": [{"trigger": {"action": "examine"}}],
+                },
+            },
+            {
+                "position": {"x": 3, "y": 1},
+                "entity": {
+                    "id": "right-statue",
+                    "name": "Statue",
+                    "icon": "\U0001f5ff",
+                    "description": "A statue to the east.",
+                    "passable": True,
+                    "behaviors": [{"trigger": {"action": "examine"}}],
                 },
             },
         ],

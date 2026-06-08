@@ -1,0 +1,918 @@
+{
+  "description": "A compact training room with a brass key, a locked door, and one clear escape route.",
+  "objective": "Escape the room by picking up the key and using it to unlock the door.",
+  "map": {
+    "id": "key-door-room",
+    "name": "Key Door Room",
+    "agent_start": {
+      "x": 7,
+      "y": 8
+    },
+    "entities": [
+      {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-0-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 1
+        },
+        "entity": {
+          "id": "wall-0-1",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 2
+        },
+        "entity": {
+          "id": "wall-0-2",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 3
+        },
+        "entity": {
+          "id": "wall-0-3",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 4
+        },
+        "entity": {
+          "id": "wall-0-4",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 5
+        },
+        "entity": {
+          "id": "wall-0-5",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 6
+        },
+        "entity": {
+          "id": "wall-0-6",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 7
+        },
+        "entity": {
+          "id": "wall-0-7",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 8
+        },
+        "entity": {
+          "id": "wall-0-8",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 9
+        },
+        "entity": {
+          "id": "wall-0-9",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 10
+        },
+        "entity": {
+          "id": "wall-0-10",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 11
+        },
+        "entity": {
+          "id": "wall-0-11",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 12
+        },
+        "entity": {
+          "id": "wall-0-12",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 13
+        },
+        "entity": {
+          "id": "wall-0-13",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 14
+        },
+        "entity": {
+          "id": "wall-0-14",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 0,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-0-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 1,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-1-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 1,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-1-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 2,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-2-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 2,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-2-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 3,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-3-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 3,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-3-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 4,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-4-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 4,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-4-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 5,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-5-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 5,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-5-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 6,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-6-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 6,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-6-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 7,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-7-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 7,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-7-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 8,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-8-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 8,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-8-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 9,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-9-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 9,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-9-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 10,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-10-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 10,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-10-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 11,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-11-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 11,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-11-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 12,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-12-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 12,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-12-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 13,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-13-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 13,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-13-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 14,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-14-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 14,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-14-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 0
+        },
+        "entity": {
+          "id": "wall-15-0",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 1
+        },
+        "entity": {
+          "id": "wall-15-1",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 2
+        },
+        "entity": {
+          "id": "wall-15-2",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 3
+        },
+        "entity": {
+          "id": "wall-15-3",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 4
+        },
+        "entity": {
+          "id": "wall-15-4",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 5
+        },
+        "entity": {
+          "id": "wall-15-5",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 6
+        },
+        "entity": {
+          "id": "wall-15-6",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 7
+        },
+        "entity": {
+          "id": "wall-15-7",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 9
+        },
+        "entity": {
+          "id": "wall-15-9",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 10
+        },
+        "entity": {
+          "id": "wall-15-10",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 11
+        },
+        "entity": {
+          "id": "wall-15-11",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 12
+        },
+        "entity": {
+          "id": "wall-15-12",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 13
+        },
+        "entity": {
+          "id": "wall-15-13",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 14
+        },
+        "entity": {
+          "id": "wall-15-14",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 15
+        },
+        "entity": {
+          "id": "wall-15-15",
+          "name": "Wall",
+          "icon": "🧱",
+          "description": "A solid wall around the room.",
+          "passable": false,
+          "notable": false
+        }
+      },
+      {
+        "position": {
+          "x": 8,
+          "y": 8
+        },
+        "entity": {
+          "id": "brass-key",
+          "name": "Brass key",
+          "icon": "🔑",
+          "description": "A brass key lies on the floor.",
+          "passable": true,
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "pick_up"
+              },
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You pick up the brass key."
+                },
+                {
+                  "type": "add_inventory",
+                  "item": "brass-key"
+                },
+                {
+                  "type": "set_entity_visible",
+                  "visible": false
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "position": {
+          "x": 15,
+          "y": 8
+        },
+        "entity": {
+          "id": "locked-door",
+          "name": "Locked door",
+          "icon": "🚪",
+          "description": "A locked door bars the exit.",
+          "passable": false,
+          "state": "locked",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "use_item",
+                "item": "brass-key"
+              },
+              "conditions": [
+                {
+                  "state": "locked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The brass key turns. The locked door opens, and you escape."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "open"
+                },
+                {
+                  "type": "set_entity_passable",
+                  "passable": true
+                },
+                {
+                  "type": "escape_map"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
