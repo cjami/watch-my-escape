@@ -192,7 +192,7 @@ class TalkToAction(ActionBase):
 
 
 class WriteNoteAction(ActionBase):
-    """Record a note for yourself."""
+    """Keep track of important information in your journal."""
 
     action: Literal["write_note"]
     text: NoteText
