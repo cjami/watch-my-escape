@@ -2,7 +2,7 @@ from watch_my_escape.agent.escape_run import run_model_escape
 from watch_my_escape.game.maps import GameMap
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
-EMOTION_JSON = "\\ud83e\\udd14"
+EMOTION_JSON = "curious"
 
 
 class ScriptedProvider:

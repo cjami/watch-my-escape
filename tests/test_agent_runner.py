@@ -18,7 +18,7 @@ class FakeProvider:
                     "<think>Inspect the key before trying the door.</think>\nIntended action: examine the brass key."
                 )
             )
-        return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"🤔"}')
+        return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"curious"}')
 
 
 def test_run_think_act_turn_deliberates_before_constrained_action():
@@ -36,7 +36,9 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert result.deliberation == (
         "<think>Inspect the key before trying the door.</think>\nIntended action: examine the brass key."
     )
-    assert result.action == EscapeRoomAction(root=ExamineAction(action="examine", target="brass key", emotion="🤔"))
+    assert result.action == EscapeRoomAction(
+        root=ExamineAction(action="examine", target="brass key", emotion="curious")
+    )
     assert provider.requests[0].structured_output is None
     assert provider.requests[0].settings.temperature == 1.0
     assert provider.requests[0].settings.max_tokens == 2048
@@ -77,7 +79,7 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
             return InferenceResponse(
                 content=(
                     "<think>I should not show this in the final action.</think>\n"
-                    '{"action":"examine","target":"brass key","emotion":"🤔"}'
+                    '{"action":"examine","target":"brass key","emotion":"curious"}'
                 )
             )
 

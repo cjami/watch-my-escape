@@ -1,14 +1,5 @@
-"""Agent emotion validation placeholders."""
+"""Agent emotion vocabulary re-exported for presentation code."""
 
-from typing import Literal
+from watch_my_escape.game.emotions import DEFAULT_EMOTION, EMOTION_TO_EMOJI, Emotion, emotion_to_emoji
 
-type Emotion = Literal["neutral", "pondering", "realization", "frustrated", "escaped"]
-ALLOWED_EMOTIONS: frozenset[Emotion] = frozenset(
-    {
-        "neutral",
-        "pondering",
-        "realization",
-        "frustrated",
-        "escaped",
-    },
-)
+__all__ = ["DEFAULT_EMOTION", "EMOTION_TO_EMOJI", "Emotion", "emotion_to_emoji"]

@@ -6,108 +6,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
-type Emotion = Literal[
-    "😀",
-    "😃",
-    "😄",
-    "😁",
-    "😆",
-    "😅",
-    "😂",
-    "🙂",
-    "🙃",
-    "😉",
-    "😊",
-    "😇",
-    "🥰",
-    "😍",
-    "🤩",
-    "😘",
-    "😗",
-    "☺️",
-    "😚",
-    "😙",
-    "🥲",
-    "😋",
-    "😛",
-    "😜",
-    "🤪",
-    "😝",
-    "🤑",
-    "🤗",
-    "🤭",
-    "🫢",
-    "🫣",
-    "🤫",
-    "🤔",
-    "🫡",
-    "🤐",
-    "🤨",
-    "😐",
-    "😑",
-    "😶",
-    "🫥",
-    "😶‍🌫️",
-    "😏",
-    "😒",
-    "🙄",
-    "😬",
-    "😮‍💨",
-    "🤥",
-    "😌",
-    "😔",
-    "😪",
-    "🤤",
-    "😴",
-    "😷",
-    "🤒",
-    "🤕",
-    "🤢",
-    "🤮",
-    "🤧",
-    "🥵",
-    "🥶",
-    "🥴",
-    "😵",
-    "😵‍💫",
-    "🤯",
-    "🤠",
-    "🥳",
-    "🥸",
-    "😎",
-    "🤓",
-    "🧐",
-    "😕",
-    "🫤",
-    "😟",
-    "🙁",
-    "☹️",
-    "😮",
-    "😯",
-    "😲",
-    "😳",
-    "🥺",
-    "🥹",
-    "😦",
-    "😧",
-    "😨",
-    "😰",
-    "😥",
-    "😢",
-    "😭",
-    "😱",
-    "😖",
-    "😣",
-    "😞",
-    "😓",
-    "😩",
-    "😫",
-    "🥱",
-    "😤",
-    "😡",
-    "😠",
-    "🤬",
-]
+from watch_my_escape.game.emotions import Emotion  # noqa: TC001
+
 type InventoryItem = Annotated[str, Field(min_length=1, description="An item currently in inventory.")]
 type SpokenText = Annotated[str, Field(min_length=1, description="Words to say to the target.")]
 type VisibleTarget = Annotated[str, Field(min_length=1, description="A visible object.")]
@@ -123,8 +23,6 @@ class ActionBase(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    emotion: Emotion
-
 
 class UseItemAction(ActionBase):
     """Use an inventory item on a target."""
@@ -132,6 +30,7 @@ class UseItemAction(ActionBase):
     action: Literal["use_item"]
     item: InventoryItem
     target: Target
+    emotion: Emotion
 
 
 class UseAction(ActionBase):
@@ -139,6 +38,7 @@ class UseAction(ActionBase):
 
     action: Literal["use"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class PickUpAction(ActionBase):
@@ -146,6 +46,7 @@ class PickUpAction(ActionBase):
 
     action: Literal["pick_up"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class OpenAction(ActionBase):
@@ -153,6 +54,7 @@ class OpenAction(ActionBase):
 
     action: Literal["open"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class CloseAction(ActionBase):
@@ -160,6 +62,7 @@ class CloseAction(ActionBase):
 
     action: Literal["close"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class ExamineAction(ActionBase):
@@ -167,6 +70,7 @@ class ExamineAction(ActionBase):
 
     action: Literal["examine"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class PushAction(ActionBase):
@@ -174,6 +78,7 @@ class PushAction(ActionBase):
 
     action: Literal["push"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class PullAction(ActionBase):
@@ -181,6 +86,7 @@ class PullAction(ActionBase):
 
     action: Literal["pull"]
     target: VisibleTarget
+    emotion: Emotion
 
 
 class TalkToAction(ActionBase):
@@ -189,6 +95,7 @@ class TalkToAction(ActionBase):
     action: Literal["talk_to"]
     target: VisibleTarget
     text: SpokenText
+    emotion: Emotion
 
 
 class WriteNoteAction(ActionBase):
@@ -196,6 +103,7 @@ class WriteNoteAction(ActionBase):
 
     action: Literal["write_note"]
     text: NoteText
+    emotion: Emotion
 
 
 class EscapeRoomAction(

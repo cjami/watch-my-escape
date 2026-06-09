@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
+from watch_my_escape.agent.emotions import emotion_to_emoji
 from watch_my_escape.agent.prompts import build_action_messages, build_deliberation_messages
 from watch_my_escape.agent.runner import ThinkActResult, ThinkActSettings
 from watch_my_escape.game.action_options import build_available_action_model
@@ -159,7 +160,7 @@ def run_model_escape_steps(
             continue
         action = EscapeRoomAction.model_validate(result.action.model_dump(mode="json"))
         applied = apply_agent_action(session, sanity, action)
-        action_emotion = action.root.emotion
+        action_emotion = emotion_to_emoji(action.root.emotion)
         action_text = action.model_dump_json()
         transcript.append(
             "\n".join(

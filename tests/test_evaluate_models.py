@@ -46,14 +46,14 @@ def test_evaluate_model_scores_think_then_act_turns():
         normalized_prompt = user_content.lower()
         if "collect the brass key" in normalized_prompt:
             return InferenceResponse(
-                content='Here is JSON: {"action":"pick_up","target":"brass key","emotion":"\U0001f913"}'
+                content='Here is JSON: {"action":"pick_up","target":"brass key","emotion":"confident"}'
             )
         if "try the silver key" in normalized_prompt:
             return InferenceResponse(
-                content='{"action":"use_item","item":"silver key","target":"locked diary","emotion":"\U0001f642"}'
+                content='{"action":"use_item","item":"silver key","target":"locked diary","emotion":"focused"}'
             )
         if "look closely at the brass key" in normalized_prompt:
-            return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"\U0001f914"}')
+            return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"curious"}')
         raise AssertionError
 
     results = evaluate_model(complete)
@@ -117,7 +117,7 @@ def test_score_case_rejects_item_outside_inventory_vocabulary():
     result = score_case(
         action_case,
         InferenceResponse(
-            content='{"action":"use_item","item":"rusty coin","target":"locked diary","emotion":"\U0001f642"}'
+            content='{"action":"use_item","item":"rusty coin","target":"locked diary","emotion":"focused"}'
         ),
     )
 
@@ -132,8 +132,8 @@ def test_score_case_strips_thinking_sections_before_parsing_json():
         json_case,
         InferenceResponse(
             content=(
-                '<think>\nThe answer is {"action":"pick_up","target":"brass key","emotion":"\U0001f913"}.\n</think>\n'
-                '{"action":"pick_up","target":"brass key","emotion":"\U0001f913"}'
+                '<think>\nThe answer is {"action":"pick_up","target":"brass key","emotion":"confident"}.\n</think>\n'
+                '{"action":"pick_up","target":"brass key","emotion":"confident"}'
             )
         ),
     )
@@ -148,8 +148,8 @@ def test_score_case_strips_dangling_thinking_close_before_parsing_json():
         json_case,
         InferenceResponse(
             content=(
-                'We need to output {"action":"pick_up","target":"brass key","emotion":"\U0001f913"}.\n'
-                '</think>\n{"action":"pick_up","target":"brass key","emotion":"\U0001f913"}'
+                'We need to output {"action":"pick_up","target":"brass key","emotion":"confident"}.\n'
+                '</think>\n{"action":"pick_up","target":"brass key","emotion":"confident"}'
             )
         ),
     )
@@ -165,7 +165,7 @@ def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failu
         InferenceResponse(
             content=(
                 '<think>\nFirst, the user says: "Return this object exactly: '
-                '{"action":"pick_up","target":"brass key","emotion":"\U0001f913"}"\n\n'
+                '{"action":"pick_up","target":"brass key","emotion":"confident"}"\n\n'
                 "So, I need to return this object exactly as it is."
             )
         ),

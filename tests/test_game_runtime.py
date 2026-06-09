@@ -6,7 +6,7 @@ from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import GameMap, GameSessionState
 from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
 
-EMOTION = "\U0001f914"
+EMOTION = "curious"
 
 
 def test_action_on_sealed_entity_fails_and_costs_one_sanity():
@@ -168,6 +168,7 @@ def test_available_action_model_schema_requires_action_discriminator():
 
     assert "action" in schema["$defs"]["AvailablePickUpAction"]["required"]
     assert "action" in schema["$defs"]["AvailableWriteNoteAction"]["required"]
+    assert list(schema["$defs"]["AvailablePickUpAction"]["properties"]) == ["action", "target", "emotion"]
 
 
 def test_available_action_model_builds_fresh_schema_for_matching_action_contexts():

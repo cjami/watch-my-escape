@@ -148,7 +148,7 @@ CASES: tuple[EvaluationCase, ...] = (
         game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Look closely at the brass key.",
         expected=ExpectedPydanticJson(
             model=EvalExamineAction,
-            value=EvalExamineAction(action="examine", target="brass key", emotion="🤔"),
+            value=EvalExamineAction(action="examine", target="brass key", emotion="curious"),
         ),
     ),
     EvaluationCase(
@@ -156,7 +156,7 @@ CASES: tuple[EvaluationCase, ...] = (
         game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Try the silver key on the locked diary.",
         expected=ExpectedPydanticJson(
             model=EvalUseItemAction,
-            value=EvalUseItemAction(action="use_item", item="silver key", target="locked diary", emotion="🙂"),
+            value=EvalUseItemAction(action="use_item", item="silver key", target="locked diary", emotion="focused"),
         ),
     ),
     EvaluationCase(
@@ -164,7 +164,7 @@ CASES: tuple[EvaluationCase, ...] = (
         game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Collect the brass key.",
         expected=ExpectedPydanticJson(
             model=EvalPickUpAction,
-            value=EvalPickUpAction(action="pick_up", target="brass key", emotion="🤓"),
+            value=EvalPickUpAction(action="pick_up", target="brass key", emotion="confident"),
         ),
     ),
 )

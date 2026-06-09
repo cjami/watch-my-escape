@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 from pydantic import BaseModel, Field, RootModel, create_model
 
 from watch_my_escape.game.actions import ActionBase, NoteText, SpokenText
+from watch_my_escape.game.emotions import Emotion
 from watch_my_escape.game.maps import visible_notable_entities
 
 if TYPE_CHECKING:
@@ -93,6 +94,7 @@ def _entity_action_models(
                     action=(_literal((action,)), ...),
                     target=(target_type, ...),
                     text=(SpokenText, ...),
+                    emotion=(Emotion, ...),
                 )
             )
             continue
@@ -103,6 +105,7 @@ def _entity_action_models(
                 __doc__=ACTION_DESCRIPTIONS[action],
                 action=(_literal((action,)), ...),
                 target=(target_type, ...),
+                emotion=(Emotion, ...),
             )
         )
     return models
@@ -123,6 +126,7 @@ def _use_item_models(*, items: tuple[str, ...], visible_targets: tuple[str, ...]
             action=(Literal["use_item"], ...),
             item=(_literal(items), ...),
             target=(_literal(targets), ...),
+            emotion=(Emotion, ...),
         )
     ]
 
@@ -138,6 +142,7 @@ def _write_note_model() -> type[BaseModel]:
         __doc__=ACTION_DESCRIPTIONS["write_note"],
         action=(Literal["write_note"], ...),
         text=(NoteText, ...),
+        emotion=(Emotion, ...),
     )
 
 
