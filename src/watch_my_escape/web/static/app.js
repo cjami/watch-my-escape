@@ -71,7 +71,6 @@ const effectOptions = [
   "add_inventory",
   "remove_inventory",
   "set_entity_state",
-  "set_entity_property",
   "set_entity_passable",
   "set_entity_active",
   "escape_map",
@@ -81,7 +80,6 @@ const effectLabels = {
   add_inventory: "Give",
   remove_inventory: "Take",
   set_entity_state: "State",
-  set_entity_property: "Set property",
   set_entity_passable: "Passable",
   set_entity_active: "Active",
   escape_map: "Escape",
@@ -1135,7 +1133,7 @@ function behaviorBlock(behavior, index) {
   });
   block.querySelector("[data-add-condition]").addEventListener("click", () => {
     recordEditorHistory();
-    behavior.conditions.push({ entity_id: "", state: "", property: "", equals: null });
+    behavior.conditions.push({ entity_id: "", state: "" });
     renderEditor();
   });
   block.querySelector("[data-add-effect]").addEventListener("click", () => {
@@ -1175,8 +1173,6 @@ function renderConditionList(container, behavior) {
       row.innerHTML = `
         <label class="block-field">Entity ${entitySelectHtml(condition.entity_id, `data-condition-field="entity_id"`, { emptyLabel: "Any entity" })}</label>
         <label class="block-field">State <input data-condition-field="state" type="text" value="${escapeAttribute(condition.state ?? "")}" /></label>
-        <label class="block-field">Property <input data-condition-field="property" type="text" value="${escapeAttribute(condition.property ?? "")}" /></label>
-        <label class="block-field">Equals <input data-condition-field="equals" type="text" value="${escapeAttribute(condition.equals ?? "")}" /></label>
         <button type="button" class="mini-button" data-remove-condition="${index}">Remove</button>
       `;
       row.querySelectorAll("[data-condition-field]").forEach((input) => {
@@ -1240,13 +1236,6 @@ function effectFieldsHtml(effect) {
       <label class="block-field">State <input data-effect-field="state" type="text" value="${escapeAttribute(effect.state ?? "")}" /></label>
     `;
   }
-  if (effect.type === "set_entity_property") {
-    return `
-      <label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`)}</label>
-      <label class="block-field">Property <input data-effect-field="property" type="text" value="${escapeAttribute(effect.property ?? "")}" /></label>
-      <label class="block-field">Value <input data-effect-field="value" type="text" value="${escapeAttribute(effect.value ?? "")}" /></label>
-    `;
-  }
   if (effect.type === "set_entity_passable" || effect.type === "set_entity_active") {
     const valueField = effect.type === "set_entity_passable" ? "passable" : "active";
     return `
@@ -1268,10 +1257,6 @@ function updateEffectField(effect, input) {
   }
   if (field === "passable" || field === "active") {
     effect[field] = input.value === "true";
-    return;
-  }
-  if (field === "value") {
-    effect[field] = parseScalar(input.value);
     return;
   }
   effect[field] = input.value.trim() || undefined;
@@ -1359,7 +1344,6 @@ function normalizeImportedEntity(entity) {
     active: entity.active,
     notable: entity.notable,
     state: entity.state,
-    properties: entity.properties ?? {},
     behaviors: entity.behaviors ?? [],
   };
 }
@@ -1391,7 +1375,6 @@ function normalizeEntity(entity) {
     active: entity.active,
     notable: entity.notable,
     state: entity.state.trim() || "default",
-    properties: entity.properties,
     behaviors: entity.behaviors.map(normalizeBehavior),
   };
 }
@@ -1442,9 +1425,6 @@ function effectSummary(effect) {
   if (effect.type === "remove_inventory") {
     return `Take ${effect.entity_id || "item"}`;
   }
-  if (effect.type === "set_entity_property") {
-    return `Property ${effect.entity_id || "self"}`;
-  }
   return optionLabel(effectLabels, effect.type);
 }
 
@@ -1465,7 +1445,7 @@ function entitySelectHtml(selected, attributes, options = {}) {
     .filter((placed) => placed.entity.notable)
     .map((placed) => ({
       value: placed.entity.id,
-      label: `${placed.entity.id} - ${placed.entity.name}`,
+      label: placed.entity.id,
     }));
   const optionHtml = [
     ...(allowEmpty ? [{ value: "", label: emptyLabel }] : []),
@@ -1645,7 +1625,6 @@ function starterEditorState() {
         active: true,
         notable: true,
         state: "default",
-        properties: {},
         behaviors: [
           {
             trigger: { action: "pick_up" },
@@ -1671,7 +1650,6 @@ function starterEditorState() {
         active: true,
         notable: true,
         state: "locked",
-        properties: {},
         behaviors: [
           {
             trigger: { action: "use_item", item: "brass-key" },
@@ -1705,7 +1683,6 @@ function wallDefinition(x, y) {
     active: true,
     notable: false,
     state: "default",
-    properties: {},
     behaviors: [],
   };
 }
@@ -1730,7 +1707,6 @@ function createEntity(preset, x, y) {
       active: preset.active ?? true,
       notable: preset.notable ?? true,
       state: preset.state ?? "default",
-      properties: {},
       behaviors: structuredClone(preset.behaviors ?? []),
     },
   };
@@ -1753,9 +1729,6 @@ function defaultEffect(type) {
   }
   if (type === "set_entity_state") {
     return { type, entity_id: "", state: "open" };
-  }
-  if (type === "set_entity_property") {
-    return { type, entity_id: "", property: "used", value: true };
   }
   if (type === "set_entity_passable") {
     return { type, entity_id: "", passable: true };
@@ -1800,22 +1773,6 @@ function selectHtml(options, selected, attributes, labels = {}) {
 
 function optionLabel(labels, value) {
   return labels[value] ?? value;
-}
-
-function parseScalar(value) {
-  if (value === "true") {
-    return true;
-  }
-  if (value === "false") {
-    return false;
-  }
-  if (value === "null") {
-    return null;
-  }
-  if (value.trim() !== "" && !Number.isNaN(Number(value))) {
-    return Number(value);
-  }
-  return value;
 }
 
 function setEditorStatus(message) {

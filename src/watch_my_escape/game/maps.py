@@ -20,7 +20,6 @@ from watch_my_escape.game.models import (
     RemoveInventoryEffect,
     SetEntityActiveEffect,
     SetEntityPassableEffect,
-    SetEntityPropertyEffect,
     SetEntityStateEffect,
     StrictModel,
     evaluate_entity_behavior,
@@ -327,9 +326,13 @@ def _render_visible_entity_lines(visible_entities: tuple[PlacedEntity, ...]) -> 
     if not notable_entities:
         return ["- None."]
     return [
-        f"- {placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
+        f"- {placed.entity.id}: {placed.entity.name}. {_render_entity_description(placed.entity)}"
         for placed in sorted(notable_entities, key=lambda item: (item.position.y, item.position.x, item.entity.id))
     ]
+
+
+def _render_entity_description(entity: Entity) -> str:
+    return entity.description.replace("{state}", entity.state)
 
 
 def _apply_entity_updates(game_map: GameMap, updates: dict[str, EntityUpdate]) -> GameMap:
@@ -352,8 +355,7 @@ def _updated_placed_entity(placed: PlacedEntity, update: EntityUpdate | None) ->
 
 
 def _updated_entity(entity: Entity, update: EntityUpdate) -> Entity:
-    properties = {**entity.properties, **update.properties}
-    data: dict[str, object] = {"properties": properties}
+    data: dict[str, object] = {}
     if update.state is not None:
         data["state"] = update.state
     if update.passable is not None:
@@ -366,7 +368,7 @@ def _updated_entity(entity: Entity, update: EntityUpdate) -> Entity:
 def _effect_target_id(effect: BehaviorEffect) -> str | None:
     if isinstance(
         effect,
-        SetEntityStateEffect | SetEntityPropertyEffect | SetEntityPassableEffect | SetEntityActiveEffect,
+        SetEntityStateEffect | SetEntityPassableEffect | SetEntityActiveEffect,
     ):
         return effect.entity_id
     return None

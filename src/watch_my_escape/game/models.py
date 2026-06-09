@@ -6,9 +6,7 @@ from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-type JsonScalar = str | int | float | bool | None
 type ActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"]
-type EntityPropertyUpdates = dict[str, JsonScalar]
 
 
 class StrictModel(BaseModel):
@@ -35,12 +33,10 @@ class BehaviorTrigger(StrictModel):
 
 
 class BehaviorCondition(StrictModel):
-    """Required entity state or property value for a behavior to run."""
+    """Required entity state for a behavior to run."""
 
     entity_id: Annotated[str | None, Field(default=None, min_length=1)] = None
     state: Annotated[str | None, Field(default=None, min_length=1)] = None
-    property: Annotated[str | None, Field(default=None, min_length=1)] = None
-    equals: JsonScalar = None
 
 
 class MessageEffect(StrictModel):
@@ -72,15 +68,6 @@ class SetEntityStateEffect(StrictModel):
     entity_id: Annotated[str | None, Field(default=None, min_length=1)] = None
 
 
-class SetEntityPropertyEffect(StrictModel):
-    """Request that an entity property be changed."""
-
-    type: Literal["set_entity_property"]
-    property: Annotated[str, Field(min_length=1)]
-    value: JsonScalar
-    entity_id: Annotated[str | None, Field(default=None, min_length=1)] = None
-
-
 class SetEntityPassableEffect(StrictModel):
     """Request that an entity passability flag be changed."""
 
@@ -108,7 +95,6 @@ type BehaviorEffect = Annotated[
     | AddInventoryEffect
     | RemoveInventoryEffect
     | SetEntityStateEffect
-    | SetEntityPropertyEffect
     | SetEntityPassableEffect
     | SetEntityActiveEffect
     | EscapeMapEffect,
@@ -135,7 +121,6 @@ class Entity(StrictModel):
     active: bool = True
     notable: bool = True
     state: Annotated[str, Field(min_length=1)] = "default"
-    properties: dict[str, JsonScalar] = Field(default_factory=dict)
     behaviors: tuple[EntityBehavior, ...] = ()
 
 
@@ -145,7 +130,6 @@ class EntityUpdate(StrictModel):
     state: str | None = None
     passable: bool | None = None
     active: bool | None = None
-    properties: EntityPropertyUpdates = Field(default_factory=dict)
 
 
 class BehaviorResult(StrictModel):
@@ -249,9 +233,7 @@ def _condition_matches(
     entity = current_entity if condition.entity_id is None else entities.get(condition.entity_id)
     if entity is None:
         return False
-    if condition.state is not None and entity.state != condition.state:
-        return False
-    return condition.property is None or entity.properties.get(condition.property) == condition.equals
+    return condition.state is None or entity.state == condition.state
 
 
 def _apply_effect(
@@ -276,8 +258,6 @@ def _apply_effect(
     update = accumulator.entity_updates.setdefault(_effect_entity_id(effect, current_entity), EntityUpdate())
     if isinstance(effect, SetEntityStateEffect):
         update.state = effect.state
-    elif isinstance(effect, SetEntityPropertyEffect):
-        update.properties[effect.property] = effect.value
     elif isinstance(effect, SetEntityPassableEffect):
         update.passable = effect.passable
     elif isinstance(effect, SetEntityActiveEffect):
@@ -285,7 +265,7 @@ def _apply_effect(
 
 
 def _effect_entity_id(
-    effect: SetEntityStateEffect | SetEntityPropertyEffect | SetEntityPassableEffect | SetEntityActiveEffect,
+    effect: SetEntityStateEffect | SetEntityPassableEffect | SetEntityActiveEffect,
     current_entity: Entity,
 ) -> str:
     return effect.entity_id or current_entity.id

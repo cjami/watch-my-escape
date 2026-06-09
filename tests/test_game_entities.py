@@ -17,7 +17,6 @@ def test_entity_defaults_to_default_state_and_no_behaviors():
     assert entity.active is True
     assert entity.notable is True
     assert entity.state == "default"
-    assert entity.properties == {}
     assert entity.behaviors == ()
 
 
@@ -157,7 +156,7 @@ def test_lever_behavior_can_change_another_entity_when_condition_matches():
                         {"type": "message", "text": "The lever clunks down and the north door opens."},
                         {"type": "set_entity_state", "entity_id": "north-door", "state": "open"},
                         {"type": "set_entity_passable", "entity_id": "north-door", "passable": True},
-                        {"type": "set_entity_property", "property": "used", "value": True},
+                        {"type": "set_entity_state", "state": "used"},
                     ],
                 }
             ],
@@ -173,7 +172,7 @@ def test_lever_behavior_can_change_another_entity_when_condition_matches():
     assert result.messages == ("The lever clunks down and the north door opens.",)
     assert result.entity_updates["north-door"].state == "open"
     assert result.entity_updates["north-door"].passable is True
-    assert result.entity_updates["brass-lever"].properties == {"used": True}
+    assert result.entity_updates["brass-lever"].state == "used"
 
 
 def test_behavior_conditions_that_do_not_match_produce_no_effects():

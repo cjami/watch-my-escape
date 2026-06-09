@@ -93,6 +93,19 @@ def test_agent_view_excludes_non_notable_entities_from_visible_entity_list():
     assert "wall-2" not in visible_entity_list
 
 
+def test_agent_view_can_interpolate_entity_state_in_descriptions():
+    payload = _map_payload()
+    locked_door = next(placed["entity"] for placed in payload["entities"] if placed["entity"]["id"] == "locked-door")
+    locked_door["description"] = "A heavy door. It is {state}."
+    locked_door["state"] = "locked"
+    session = GameSessionState(map=GameMap.model_validate(payload))
+
+    view = render_agent_view(session)
+
+    assert "- locked-door: Locked door. A heavy door. It is locked." in view
+    assert "{state}" not in view
+
+
 def test_user_map_view_shows_full_grid_with_visible_icons():
     session = GameSessionState(map=GameMap.model_validate(_map_payload()))
 
