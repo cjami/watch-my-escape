@@ -1,3 +1,5 @@
+import emojibaseCompactData from "emojibase-data/en/compact.json";
+
 const appData = JSON.parse(document.querySelector("#app-data").textContent);
 const screens = new Map([...document.querySelectorAll("[data-screen]")].map((screen) => [screen.dataset.screen, screen]));
 const modelOptions = document.querySelector("#model-options");
@@ -88,7 +90,56 @@ const booleanLabels = {
   true: "Yes",
   false: "No",
 };
-const emojiOptions = ["🧱", "🚪", "🔑", "📝", "🧍", "🎚️", "📦", "💡", "🪟", "🧰", "🔒", "🪜", "🧪", "📚", "🏁"];
+const maxVisibleIconOptions = 10;
+const suggestedIconValues = [
+  "🧱",
+  "🚪",
+  "🔑",
+  "📝",
+  "🧍",
+  "🎚️",
+  "📦",
+  "💡",
+  "🪟",
+  "🧰",
+  "🔒",
+  "🪜",
+  "🧪",
+  "📚",
+  "🏁",
+  "🌐",
+  "🕯️",
+  "🕳️",
+  "🗿",
+  "🪞",
+  "🧩",
+  "🔎",
+  "🧭",
+  "🧲",
+  "⚙️",
+  "⏳",
+  "🧿",
+  "💎",
+  "🪙",
+  "🧹",
+  "🪣",
+  "🪤",
+];
+const emojiIconOptions = emojibaseCompactData
+  .filter((emoji) => emoji.unicode && emoji.label)
+  .map((emoji) => ({
+    icon: emoji.unicode,
+    name: emoji.label,
+    terms: Array.isArray(emoji.tags) ? emoji.tags : [],
+    searchText: normalizeIconSearch([emoji.label, emoji.unicode, ...(Array.isArray(emoji.tags) ? emoji.tags : [])].join(" ")),
+    searchTokens: normalizedIconTokens([emoji.label, ...(Array.isArray(emoji.tags) ? emoji.tags : [])].join(" ")),
+  }));
+const emojiIconOptionsByIcon = new Map();
+for (const option of emojiIconOptions) {
+  emojiIconOptionsByIcon.set(option.icon, option);
+  emojiIconOptionsByIcon.set(normalizeEmojiIcon(option.icon), option);
+}
+const suggestedIconOptions = suggestedIconValues.map((icon) => iconOptionForIcon(icon)).filter(Boolean);
 const presets = [
   {
     type: "wall",
@@ -168,6 +219,7 @@ let selectedPreset = presets[0];
 let selectedEntityId = null;
 let selectedEditorTab = "entity";
 let selectedBehaviorIndex = 0;
+let iconSearchQuery = "";
 let editorState = starterEditorState();
 let undoStack = [];
 let redoStack = [];
@@ -873,17 +925,11 @@ function renderEntityForm() {
     <label><span>Name</span><input data-entity-field="name" type="text" value="${escapeAttribute(entity.name)}" /></label>
     <div>
       <span class="field-label">Icon</span>
-      <div class="icon-picker" aria-label="Entity icon">
-        ${emojiOptions
-          .map(
-            (emoji) => `
-              <button type="button" class="icon-option ${entity.icon === emoji ? "is-selected" : ""}" data-icon="${escapeAttribute(emoji)}">
-                ${escapeHtml(toTextEmoji(emoji))}
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
+      <label class="icon-search-label">
+        <span>Search Icons</span>
+        <input data-icon-search type="search" placeholder="door, key, clue..." value="${escapeAttribute(iconSearchQuery)}" />
+      </label>
+      <div class="icon-picker" aria-label="Entity icon"></div>
     </div>
     <label><span>Description</span><textarea data-entity-field="description" rows="3">${escapeHtml(entity.description)}</textarea></label>
     <label><span>State</span><input data-entity-field="state" type="text" value="${escapeAttribute(entity.state)}" /></label>
@@ -896,15 +942,106 @@ function renderEntityForm() {
   entityForm.querySelectorAll("[data-entity-field]").forEach((input) => {
     input.addEventListener("input", () => updateEntityField(input, placed));
   });
-  entityForm.querySelectorAll("[data-icon]").forEach((button) => {
-    button.replaceChildren(pixelSprite(button.dataset.icon, "Icon option"));
-    button.setAttribute("aria-label", `Choose ${button.dataset.icon}`);
-    button.addEventListener("click", () => {
-      recordEditorHistory();
-      placed.entity.icon = button.dataset.icon;
-      renderEditor();
-    });
+  const iconPicker = entityForm.querySelector(".icon-picker");
+  const iconSearch = entityForm.querySelector("[data-icon-search]");
+  renderIconOptions(iconPicker, placed);
+  iconSearch.addEventListener("input", () => {
+    iconSearchQuery = iconSearch.value;
+    renderIconOptions(iconPicker, placed);
   });
+}
+
+function renderIconOptions(iconPicker, placed) {
+  const entity = placed.entity;
+  iconPicker.replaceChildren(
+    ...visibleIconOptions(entity.icon).map((option) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "icon-option";
+      button.dataset.icon = option.icon;
+      button.classList.toggle("is-selected", entity.icon === option.icon);
+      button.title = option.name;
+      button.setAttribute("aria-label", `Choose ${option.name} icon`);
+      button.append(pixelSprite(option.icon, option.name));
+      button.addEventListener("click", () => {
+        recordEditorHistory();
+        placed.entity.icon = button.dataset.icon;
+        renderEditor();
+      });
+      return button;
+    }),
+  );
+}
+
+function visibleIconOptions(selectedIcon) {
+  const query = normalizeIconSearch(iconSearchQuery);
+  const queryTerms = query.split(/\s+/).filter(Boolean);
+  const matchingOptions = query ? rankedIconOptions(queryTerms) : suggestedIconOptions;
+  const visibleOptions = matchingOptions.slice(0, maxVisibleIconOptions);
+  if (!selectedIcon || visibleOptions.some((option) => normalizeEmojiIcon(option.icon) === normalizeEmojiIcon(selectedIcon))) {
+    return visibleOptions;
+  }
+
+  const selectedOption = iconOptionForIcon(selectedIcon);
+  return [selectedOption, ...matchingOptions.filter((option) => normalizeEmojiIcon(option.icon) !== normalizeEmojiIcon(selectedIcon))].slice(
+    0,
+    maxVisibleIconOptions,
+  );
+}
+
+function rankedIconOptions(queryTerms) {
+  return emojiIconOptions
+    .map((option, index) => ({
+      option,
+      rank: iconSearchRank(option, queryTerms),
+      index,
+    }))
+    .filter((result) => result.rank > 0)
+    .sort((left, right) => right.rank - left.rank || left.index - right.index)
+    .map((result) => result.option);
+}
+
+function iconSearchRank(option, queryTerms) {
+  return queryTerms.reduce((total, term) => {
+    const termRank = iconSearchTermRank(option, term);
+    return termRank > 0 && total >= 0 ? total + termRank : -1;
+  }, 0);
+}
+
+function iconSearchTermRank(option, term) {
+  if (normalizeEmojiIcon(option.icon) === normalizeEmojiIcon(term)) {
+    return 100;
+  }
+  if (option.searchTokens.some((token) => token === term)) {
+    return 80;
+  }
+  if (option.searchTokens.some((token) => token.startsWith(term))) {
+    return 50;
+  }
+  return option.searchText.includes(term) ? 10 : 0;
+}
+
+function iconOptionForIcon(icon) {
+  return (
+    emojiIconOptionsByIcon.get(icon) ??
+    emojiIconOptionsByIcon.get(normalizeEmojiIcon(icon)) ?? {
+      icon,
+      name: "Current icon",
+      terms: [],
+    }
+  );
+}
+
+function normalizeIconSearch(value) {
+  return String(value).trim().toLowerCase();
+}
+
+function normalizedIconTokens(value) {
+  return normalizeIconSearch(value).split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+function normalizeEmojiIcon(value) {
+  return String(value).replaceAll("\uFE0E", "").replaceAll("\uFE0F", "");
 }
 
 function updateEntityField(input, placed) {

@@ -1321,7 +1321,12 @@
   .icon-picker {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-content: start;
     gap: 0.35rem;
+  }
+
+  .icon-search-label {
+    margin-bottom: 0.45rem;
   }
 
   .icon-option {

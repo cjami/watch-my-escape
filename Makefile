@@ -2,7 +2,7 @@
 
 assets:
 	npx @tailwindcss/cli -i src/watch_my_escape/web/static/input.css -o build/web/static/styles.css --minify
-	npx esbuild src/watch_my_escape/web/static/app.js --minify --format=esm --outfile=build/web/static/app.js
+	npx esbuild src/watch_my_escape/web/static/app.js --bundle --minify --format=esm --outfile=build/web/static/app.js
 	node -e "const fs=require('fs'); const src='src/watch_my_escape/web/static/fonts'; const dest='build/web/static/fonts'; fs.mkdirSync(dest,{recursive:true}); for (const name of fs.readdirSync(src)) { const target=dest+'/'+name; if (!fs.existsSync(target)) fs.copyFileSync(src+'/'+name,target); }"
 
 test:
