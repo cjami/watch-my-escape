@@ -241,7 +241,7 @@ function renderModelOptions() {
   modelOptions.style.setProperty("--model-color", model.brand_color);
   modelAgentOrbit.style.setProperty("--model-color", model.brand_color);
   modelAgentOrbit.style.setProperty("--model-scale", String(0.62 + sizeRatio * 0.48));
-  modelAgentIcon.replaceChildren(pixelSprite(model.agent_icon, model.display_name, model.brand_color, 128));
+  modelAgentIcon.replaceChildren(pixelSprite(model.agent_icon, model.display_name, model.brand_color, 48));
   modelCompany.textContent = model.company;
   modelName.textContent = model.display_name;
   modelStats.replaceChildren(
@@ -260,7 +260,7 @@ function renderModelOptions() {
       button.style.setProperty("--lineup-color", candidate.brand_color);
       button.style.setProperty("--lineup-size", `${2.2 + ratio * 2.4}rem`);
       button.setAttribute("aria-label", candidate.display_name);
-      button.append(pixelSprite(candidate.agent_icon, candidate.display_name, candidate.brand_color, 80));
+      button.append(pixelSprite(candidate.agent_icon, candidate.display_name, candidate.brand_color, 32));
       button.addEventListener("click", () => {
         selectedModelIndex = index;
         renderModelOptions();
