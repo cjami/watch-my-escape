@@ -53,6 +53,7 @@ const behaviorsTabPanel = document.querySelector("#behaviors-tab-panel");
 
 const mapSize = 16;
 const historyLimit = 50;
+const editorValidationDelayMs = 600;
 const spriteCache = new Map();
 const actionOptions = ["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"];
 const actionLabels = {
@@ -1050,10 +1051,21 @@ function updateEntityField(input, placed) {
   }
   if (input.type === "checkbox") {
     placed.entity[field] = input.checked;
+  } else if (field === "id") {
+    placed.entity[field] = input.value.trim();
   } else {
     placed.entity[field] = input.value;
   }
-  renderEditor();
+  updateEditorAfterEntityFieldChange(field);
+}
+
+function updateEditorAfterEntityFieldChange(field) {
+  renderEditorGrid();
+  if (field === "id" || field === "notable") {
+    renderBehaviors();
+  }
+  updateHistoryButtons();
+  scheduleEditorValidation();
 }
 
 function renderBehaviors() {
@@ -1520,12 +1532,12 @@ function updateHistoryButtons() {
 
 function scheduleEditorValidation() {
   window.clearTimeout(validationTimer);
+  validationEpoch += 1;
   updateValidationState("pending", "Validation pending.");
-  validationTimer = window.setTimeout(validateEditorDocument, 350);
+  validationTimer = window.setTimeout(() => validateEditorDocument(validationEpoch), editorValidationDelayMs);
 }
 
-async function validateEditorDocument() {
-  const currentEpoch = (validationEpoch += 1);
+async function validateEditorDocument(currentEpoch) {
   const localIssues = editorValidationIssues();
   if (localIssues.length) {
     updateValidationState("invalid", localIssues.slice(0, 3).join(" "));

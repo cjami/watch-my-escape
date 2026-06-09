@@ -141,6 +141,16 @@ def test_movement_is_blocked_by_closed_door_until_cross_map_effect_opens_it():
     assert Coordinate(x=3, y=1) in visible_coordinates(updated)
 
 
+def test_inactive_entities_do_not_block_movement_or_visibility():
+    session = GameSessionState(map=GameMap.model_validate(_map_payload()))
+    result = session.evaluate_entity_action("locked-door", "push")
+    updated = session.apply_behavior_result(result)
+
+    assert updated.map.entities_by_id()["locked-door"].active is False
+    assert updated.move(Direction.EAST).agent_position == Coordinate(x=2, y=1)
+    assert Coordinate(x=3, y=1) in visible_coordinates(updated)
+
+
 def test_escape_map_effect_marks_session_escaped():
     session = GameSessionState(map=GameMap.model_validate(_map_payload()))
 
@@ -212,6 +222,12 @@ def _map_payload():
                     "icon": "🚪",
                     "description": "A heavy door.",
                     "passable": False,
+                    "behaviors": [
+                        {
+                            "trigger": {"action": "push"},
+                            "effects": [{"type": "set_entity_active", "active": False}],
+                        }
+                    ],
                 },
             },
             {

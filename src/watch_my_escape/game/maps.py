@@ -151,7 +151,11 @@ class GameSessionState(StrictModel):
             msg = f"cannot move {direction}: destination is outside the map"
             raise MoveBlockedError(msg) from exc
 
-        blockers = [placed.entity for placed in self.map.entities_at(destination) if not placed.entity.passable]
+        blockers = [
+            placed.entity
+            for placed in self.map.entities_at(destination)
+            if placed.entity.active and not placed.entity.passable
+        ]
         if blockers:
             blocker_names = ", ".join(blocker.name for blocker in blockers)
             msg = f"cannot move {direction}: blocked by {blocker_names}"
@@ -225,7 +229,7 @@ def visible_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
 
 
 def reachable_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
-    """Return passable coordinates reachable from the agent."""
+    """Return coordinates reachable from the agent through active passable entities."""
     seen: set[Coordinate] = {session.current_position}
     queue: deque[Coordinate] = deque([session.current_position])
 
@@ -296,7 +300,7 @@ def _neighbor_coordinates(position: Coordinate) -> tuple[Coordinate, ...]:
 
 
 def _is_passable(placed_entities: tuple[PlacedEntity, ...]) -> bool:
-    return all(placed.entity.passable for placed in placed_entities)
+    return all(not placed.entity.active or placed.entity.passable for placed in placed_entities)
 
 
 def _shortest_path(session: GameSessionState, goals: tuple[Coordinate, ...]) -> tuple[Coordinate, ...] | None:
