@@ -1,0 +1,27 @@
+<section id="model-screen" class="screen select-screen" data-screen="models" aria-labelledby="model-title">
+  <div class="select-shell model-select-shell">
+    <header class="select-header">
+      <p class="brand-mark">{{ app_name }}</p>
+      <h1 id="model-title">Select Model</h1>
+    </header>
+    <div id="model-options" class="model-selector" aria-label="Model presets" tabindex="0">
+      <button id="previous-model" type="button" class="model-nav-button" aria-label="Previous model">&lsaquo;</button>
+      <section class="model-arena" aria-live="polite">
+        <div id="model-lineup" class="model-lineup"></div>
+        <div class="model-agent-stage">
+          <div id="model-agent-orbit" class="model-agent-orbit">
+            <span id="model-agent-icon" class="model-agent-icon"></span>
+          </div>
+        </div>
+        <div class="model-readout">
+          <p id="model-company" class="brand-mark"></p>
+          <h2 id="model-name"></h2>
+          <div id="model-stats" class="model-stats"></div>
+          <p id="model-file" class="model-file"></p>
+        </div>
+        <button id="choose-model" type="button" class="primary-button model-choose-button">Choose Agent</button>
+      </section>
+      <button id="next-model" type="button" class="model-nav-button" aria-label="Next model">&rsaquo;</button>
+    </div>
+  </div>
+</section>

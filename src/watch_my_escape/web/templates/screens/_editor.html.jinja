@@ -1,0 +1,66 @@
+<section id="editor-screen" class="screen editor-screen" data-screen="editor" aria-label="Map editor">
+  <div class="editor-layout">
+    <header class="editor-toolbar">
+      <div>
+        <p class="brand-mark">{{ app_name }}</p>
+        <h1>Map Editor</h1>
+      </div>
+      <div class="editor-actions">
+        <button id="editor-back" type="button" class="secondary-button">Menu</button>
+        <button id="import-map" type="button" class="secondary-button">Import JSON</button>
+        <input id="import-map-file" type="file" accept="application/json,.json" hidden />
+        <button id="export-map" type="button" class="primary-button">Export JSON</button>
+      </div>
+    </header>
+
+    <section class="editor-stage" aria-label="Room builder">
+      <div class="editor-sidebar" aria-label="Editor tools">
+        <label>
+          <span>Map Name</span>
+          <input id="editor-map-name" type="text" value="New Escape Room" />
+        </label>
+        <label>
+          <span>Map Id</span>
+          <input id="editor-map-id" type="text" value="new-escape-room" />
+        </label>
+        <label>
+          <span>Description</span>
+          <textarea id="editor-description" rows="3">A manually authored escape room.</textarea>
+        </label>
+        <div>
+          <span class="field-label">Tool</span>
+          <div class="tool-strip" role="group" aria-label="Editor tool">
+            <button type="button" class="tool-button is-selected" data-editor-tool="select">Select</button>
+            <button type="button" class="tool-button" data-editor-tool="place">Place</button>
+            <button type="button" class="tool-button" data-editor-tool="erase">Erase</button>
+            <button type="button" class="tool-button" data-editor-tool="start">Start</button>
+          </div>
+        </div>
+        <div>
+          <span class="field-label">Presets</span>
+          <div id="entity-presets" class="preset-grid" aria-label="Entity presets"></div>
+        </div>
+        <output id="editor-status" class="editor-status">Ready.</output>
+      </div>
+
+      <div class="editor-map-shell">
+        <div id="editor-grid" class="editor-grid" aria-label="Editable 16 by 16 room grid"></div>
+      </div>
+
+      <aside class="entity-panel" aria-label="Selected entity">
+        <div class="panel-heading">
+          <h2>Entity</h2>
+          <button id="add-entity" type="button" class="secondary-button">New</button>
+        </div>
+        <div id="entity-form" class="entity-form"></div>
+        <section class="behavior-panel" aria-label="Behaviors">
+          <div class="panel-heading">
+            <h2>Behaviors</h2>
+            <button id="add-behavior" type="button" class="secondary-button">Add</button>
+          </div>
+          <div id="behavior-list" class="behavior-list"></div>
+        </section>
+      </aside>
+    </section>
+  </div>
+</section>

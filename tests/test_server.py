@@ -23,6 +23,7 @@ def test_create_app_returns_gradio_server():
 
 def test_web_assets_live_inside_package():
     assert TEMPLATES_DIR.joinpath("index.html.jinja").is_file()
+    assert TEMPLATES_DIR.joinpath("screens", "_game.html.jinja").is_file()
     assert SOURCE_STATIC_DIR.joinpath("input.css").is_file()
     assert SOURCE_STATIC_DIR.joinpath("app.js").is_file()
 

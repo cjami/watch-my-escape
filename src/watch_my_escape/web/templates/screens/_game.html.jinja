@@ -1,0 +1,69 @@
+<section id="game-screen" class="screen game-screen" data-screen="game" aria-label="Puzzle room">
+  <div class="game-layout">
+    <section class="room-stage grid content-start gap-4 border border-white/10 p-4" aria-label="Puzzle room map">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="m-0 text-xs font-bold uppercase text-mechanism">WATCH MY ESCAPE</p>
+          <p id="game-selection-label" class="m-0 mt-1 text-sm text-[#c4cbc1]"></p>
+        </div>
+        <div class="flex gap-3 font-mono text-sm text-[#e8ece4]">
+          <output id="position">Position: --</output>
+          <output id="sanity">Sanity: 100</output>
+        </div>
+      </div>
+      <div class="crt-frame" aria-label="CRT display">
+        <div id="map-view" class="map-view" aria-live="polite">
+          <span class="map-empty">.</span>
+        </div>
+        <div id="escape-banner" class="escape-banner" hidden>
+          <div class="escape-victory">
+            <span class="escape-agent" aria-hidden="true">
+              <span id="escape-agent-icon" class="escape-agent-icon"></span>
+            </span>
+            <span class="escape-message" aria-label="I did it">
+              <span class="escape-word">I</span>
+              <span class="escape-word">DID</span>
+              <span class="escape-word">IT</span>
+            </span>
+          </div>
+        </div>
+        <div id="game-intro" class="game-intro" aria-hidden="true" hidden>
+          <div class="game-intro-screen" aria-label="Game startup sequence">
+            <span>WATCH</span>
+            <span>MY</span>
+            <span>ESCAPE</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid content-start gap-4" aria-labelledby="console-title">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <h1 id="console-title" class="m-0 text-4xl leading-none tracking-normal">{{ project_description }}</h1>
+        <button id="restart-flow" type="button" class="secondary-button">Change Setup</button>
+      </div>
+      <button id="run-escape" type="button" class="primary-button justify-self-start">Run Escape</button>
+      <output id="status" class="min-h-14 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">Ready.</output>
+
+      <section class="panel-section" aria-labelledby="visible-entities-title">
+        <h2 id="visible-entities-title">Visible Entities</h2>
+        <pre id="visible-entities">- None.</pre>
+      </section>
+
+      <section class="panel-section" aria-labelledby="inventory-title">
+        <h2 id="inventory-title">Inventory</h2>
+        <pre id="inventory">- Empty.</pre>
+      </section>
+
+      <section class="panel-section" aria-labelledby="journal-title">
+        <h2 id="journal-title">Journal</h2>
+        <pre id="journal">- No notes recorded.</pre>
+      </section>
+
+      <section class="panel-section" aria-labelledby="transcript-title">
+        <h2 id="transcript-title">Transcript</h2>
+        <pre id="transcript" class="max-h-96 overflow-auto whitespace-pre-wrap">The model has not tried the room yet.</pre>
+      </section>
+    </section>
+  </div>
+</section>
