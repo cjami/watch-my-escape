@@ -4,6 +4,7 @@ const modelOptions = document.querySelector("#model-options");
 const previousModelButton = document.querySelector("#previous-model");
 const nextModelButton = document.querySelector("#next-model");
 const chooseModelButton = document.querySelector("#choose-model");
+const modelMenuButton = document.querySelector("#model-menu");
 const modelLineup = document.querySelector("#model-lineup");
 const modelAgentOrbit = document.querySelector("#model-agent-orbit");
 const modelAgentIcon = document.querySelector("#model-agent-icon");
@@ -167,6 +168,7 @@ playGameButton.addEventListener("click", () => {
 previousModelButton.addEventListener("click", () => changeModel(-1));
 nextModelButton.addEventListener("click", () => changeModel(1));
 chooseModelButton.addEventListener("click", chooseSelectedModel);
+modelMenuButton.addEventListener("click", () => showScreen("menu"));
 modelOptions.addEventListener("keydown", (event) => {
   if (event.key === "ArrowLeft") {
     event.preventDefault();

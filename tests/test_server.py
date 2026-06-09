@@ -43,6 +43,7 @@ def test_homepage_renders_without_request_query_parameter():
     assert "Main Menu" in response.text
     assert "Map Editor" in response.text
     assert "Select Model" in response.text
+    assert 'id="model-menu"' in response.text
     assert "key-door-room" in response.text
     assert next(iter(MODEL_PRESETS)) in response.text
 
