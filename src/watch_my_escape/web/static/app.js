@@ -258,6 +258,7 @@ editorDescription.addEventListener("input", () => {
 document.querySelectorAll("[data-editor-tool]").forEach((button) => {
   button.addEventListener("click", () => {
     setEditorTool(button.dataset.editorTool);
+    setEditorStatus(editorToolHint(button.dataset.editorTool));
   });
 });
 editorTabButtons.forEach((button) => {
@@ -489,10 +490,6 @@ function renderMap(mapText, agentPosition) {
   mapOutput.replaceChildren();
   const rows = mapText.trim() ? mapText.trim().split("\n") : [];
   if (!rows.length) {
-    const empty = document.createElement("span");
-    empty.className = "map-empty";
-    empty.textContent = ".";
-    mapOutput.append(empty);
     return;
   }
 
@@ -560,18 +557,21 @@ function renderEditorGrid() {
     for (let x = 0; x < mapSize; x += 1) {
       const cell = document.createElement("button");
       const entity = editorState.entities.find((candidate) => candidate.position.x === x && candidate.position.y === y);
+      const isAgentStart = editorState.agentStart.x === x && editorState.agentStart.y === y;
       cell.type = "button";
       cell.className = "editor-cell";
       cell.dataset.x = String(x);
       cell.dataset.y = String(y);
-      cell.classList.toggle("is-start", editorState.agentStart.x === x && editorState.agentStart.y === y);
+      cell.classList.toggle("is-start", isAgentStart);
       cell.classList.toggle("is-selected", entity?.entity.id === selectedEntityId);
       cell.classList.toggle("is-inactive", Boolean(entity && !entity.entity.active));
+      applyDragClasses(cell, x, y);
       if (entity) {
         cell.append(pixelSprite(entity.entity.icon, entity.entity.name));
       }
-      cell.title = entity ? entity.entity.name : `(${x}, ${y})`;
-      cell.addEventListener("pointerdown", (event) => handleEditorCellPointerDown(event, x, y, entity));
+      cell.title = editorCellTitle(entity, isAgentStart, x, y);
+      cell.setAttribute("aria-label", cell.title);
+      cell.addEventListener("pointerdown", (event) => handleEditorCellPointerDown(event, cell, x, y, entity));
       cell.addEventListener("pointerenter", () => handleEditorCellPointerEnter(cell, x, y));
       cell.addEventListener("pointerup", () => handleEditorCellPointerUp(x, y));
       editorGrid.append(cell);
@@ -579,19 +579,23 @@ function renderEditorGrid() {
   }
 }
 
-function handleEditorCellPointerDown(event, x, y, placedEntity) {
+function handleEditorCellPointerDown(event, cell, x, y, placedEntity) {
   if (event.button !== 0) {
     return;
   }
   event.preventDefault();
   clearDropPreview();
   if (selectedTool === "start") {
-    if (editorState.agentStart.x === x && editorState.agentStart.y === y) {
-      return;
-    }
-    recordEditorHistory();
-    editorState.agentStart = { x, y };
-    setEditorStatus(`Agent start set to (${x}, ${y}).`);
+    beginStartDrag(cell, x, y);
+    return;
+  }
+  if (selectedTool === "select" && !placedEntity && editorState.agentStart.x === x && editorState.agentStart.y === y) {
+    beginStartDrag(cell, x, y);
+    return;
+  }
+  if (selectedTool === "select" && !placedEntity) {
+    selectedEntityId = null;
+    selectedEditorTab = "entity";
     renderEditor();
     return;
   }
@@ -600,6 +604,8 @@ function handleEditorCellPointerDown(event, x, y, placedEntity) {
     sourceId: placedEntity?.entity.id ?? null,
     sourceX: x,
     sourceY: y,
+    targetX: x,
+    targetY: y,
     count: 0,
     changed: false,
     visited: new Set(),
@@ -612,10 +618,9 @@ function handleEditorCellPointerDown(event, x, y, placedEntity) {
     paintPlace(x, y);
     return;
   }
-  if (!placedEntity) {
-    selectedEntityId = null;
-    selectedEditorTab = "entity";
-    renderEditor();
+  if (selectedTool === "select" && placedEntity) {
+    updateDropPreview(cell, x, y);
+    setEditorStatus(`Dragging ${placedEntity.entity.name}. Release on an open tile to move it.`);
   }
 }
 
@@ -631,10 +636,12 @@ function handleEditorCellPointerEnter(cell, x, y) {
     paintErase(x, y);
     return;
   }
+  if (dragState.tool === "start") {
+    updateDropPreview(cell, x, y);
+    return;
+  }
   if (dragState.tool === "select" && dragState.sourceId) {
-    const target = entityAt(x, y);
-    clearDropPreview();
-    cell.classList.add(target && target.entity.id !== dragState.sourceId ? "is-drop-blocked" : "is-drop-ok");
+    updateDropPreview(cell, x, y);
   }
 }
 
@@ -645,10 +652,29 @@ function handleEditorCellPointerUp(x, y) {
   if (dragState.tool === "select") {
     finishSelectDrag(x, y);
   }
+  if (dragState.tool === "start") {
+    finishStartDrag(x, y);
+  }
   finishGridDrag();
 }
 
 document.addEventListener("pointerup", finishGridDrag);
+
+function beginStartDrag(cell, x, y) {
+  dragState = {
+    tool: "start",
+    sourceId: null,
+    sourceX: editorState.agentStart.x,
+    sourceY: editorState.agentStart.y,
+    targetX: x,
+    targetY: y,
+    count: 0,
+    changed: false,
+    visited: new Set(),
+  };
+  updateDropPreview(cell, x, y);
+  setEditorStatus("Dragging agent start. Release on a tile to set the new starting position.");
+}
 
 function finishSelectDrag(x, y) {
   if (!dragState?.sourceId) {
@@ -676,6 +702,20 @@ function finishSelectDrag(x, y) {
   selectedEntityId = source.entity.id;
   selectedEditorTab = "entity";
   setEditorStatus(`Moved ${source.entity.name} to (${x}, ${y}).`);
+  renderEditor();
+}
+
+function finishStartDrag(x, y) {
+  if (!dragState) {
+    return;
+  }
+  if (editorState.agentStart.x === x && editorState.agentStart.y === y) {
+    setEditorStatus(`Agent start remains at (${x}, ${y}).`);
+    return;
+  }
+  recordEditorHistory();
+  editorState.agentStart = { x, y };
+  setEditorStatus(`Agent start moved to (${x}, ${y}).`);
   renderEditor();
 }
 
@@ -739,9 +779,50 @@ function recordDragHistory() {
 }
 
 function clearDropPreview() {
-  editorGrid.querySelectorAll(".is-drop-ok, .is-drop-blocked").forEach((cell) => {
-    cell.classList.remove("is-drop-ok", "is-drop-blocked");
+  editorGrid.classList.remove("is-dragging");
+  editorGrid.querySelectorAll(".is-drag-source, .is-drop-ok, .is-drop-blocked").forEach((cell) => {
+    cell.classList.remove("is-drag-source", "is-drop-ok", "is-drop-blocked");
   });
+}
+
+function updateDropPreview(cell, x, y) {
+  if (!dragState) {
+    return;
+  }
+  dragState.targetX = x;
+  dragState.targetY = y;
+  clearDropPreview();
+  applyDragClasses(editorGridCell(dragState.sourceX, dragState.sourceY), dragState.sourceX, dragState.sourceY);
+  applyDragClasses(cell, x, y);
+}
+
+function applyDragClasses(cell, x, y) {
+  if (!cell || !dragState) {
+    return;
+  }
+  if (dragState.tool !== "select" && dragState.tool !== "start") {
+    return;
+  }
+  editorGrid.classList.add("is-dragging");
+  if (dragState.sourceX === x && dragState.sourceY === y) {
+    cell.classList.add("is-drag-source");
+  }
+  if (dragState.targetX !== x || dragState.targetY !== y) {
+    return;
+  }
+  if (dragState.tool === "start") {
+    cell.classList.add("is-drop-ok");
+    return;
+  }
+  if (dragState.tool !== "select" || !dragState.sourceId) {
+    return;
+  }
+  const target = entityAt(x, y);
+  cell.classList.add(target && target.entity.id !== dragState.sourceId ? "is-drop-blocked" : "is-drop-ok");
+}
+
+function editorGridCell(x, y) {
+  return editorGrid.querySelector(`[data-x="${x}"][data-y="${y}"]`);
 }
 
 function setEditorTool(tool) {
@@ -749,6 +830,20 @@ function setEditorTool(tool) {
   document.querySelectorAll("[data-editor-tool]").forEach((toolButton) => {
     toolButton.classList.toggle("is-selected", toolButton.dataset.editorTool === tool);
   });
+}
+
+function editorToolHint(tool) {
+  const hints = {
+    select: "Select an entity, drag an entity to move it, or drag the start marker.",
+    place: `Drag on open tiles to place ${selectedPreset.name.toLowerCase()} entities.`,
+    erase: "Drag across occupied tiles to remove entities.",
+    start: "Click a tile or drag the start marker to set the agent start.",
+  };
+  return hints[tool] ?? "Ready.";
+}
+
+function editorCellTitle(entity, isAgentStart, x, y) {
+  return [entity?.entity.name, isAgentStart ? "Agent start" : null, `(${x}, ${y})`].filter(Boolean).join(" - ");
 }
 
 function setEditorTab(tab) {
