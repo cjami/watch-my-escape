@@ -379,12 +379,14 @@ async function runEscape() {
   runButton.disabled = true;
   statusOutput.textContent = "The CRT is warming up...";
   transcriptOutput.textContent = "Waiting for the first turn...";
-  const introComplete = playGameIntro();
+  const startupDelay = gameStartupDelay();
+  void playGameIntro();
   statusOutput.textContent = "The model is trying to escape...";
 
   const params = new URLSearchParams({
     model_preset: selectedModel.id,
     map_id: selectedMap.id,
+    startup_delay_ms: String(startupDelay),
   });
   activeStream = new EventSource(`/escape-stream?${params}`);
   activeStream.onmessage = (event) => {
@@ -417,7 +419,6 @@ async function runEscape() {
     stopStream();
     runButton.disabled = false;
   };
-  await introComplete;
 }
 
 function showScreen(name) {
@@ -426,7 +427,21 @@ function showScreen(name) {
   }
 }
 
-function playGameIntro() {
+function gameIntroDuration() {
+  if (!gameIntro) {
+    return 0;
+  }
+  return 4300;
+}
+
+function gameStartupDelay() {
+  if (!gameIntro) {
+    return 0;
+  }
+  return 2000;
+}
+
+function playGameIntro(introDuration = gameIntroDuration()) {
   if (!gameIntro) {
     return Promise.resolve();
   }
@@ -437,7 +452,6 @@ function playGameIntro() {
   void gameIntro.offsetWidth;
   gameIntro.classList.add("is-playing");
   return new Promise((resolve) => {
-    const introDuration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 900 : 4300;
     gameIntroTimer = window.setTimeout(() => {
       gameIntro.hidden = true;
       gameIntro.classList.remove("is-playing");

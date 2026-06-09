@@ -115,6 +115,7 @@ def run_model_escape_steps(
     provider: InferenceProvider | None = None,
     game_map: GameMap | None = None,
     starting_sanity: int = STARTING_SANITY,
+    startup_delay_ms: int = 0,
 ) -> Iterator[EscapeRunFrame]:
     """Yield visible state after each model turn in an escape-room map."""
     resolved_provider = create_provider() if provider is None else provider
@@ -128,7 +129,13 @@ def run_model_escape_steps(
     history: list[str] = []
     transcript: list[str] = []
 
-    yield _frame(session, sanity, transcript, "Model run started.")
+    yield _frame(
+        session,
+        sanity,
+        transcript,
+        "Model run started.",
+        presentation=FramePresentation(delay_ms=startup_delay_ms),
+    )
 
     while sanity > 0 and not session.escaped:
         turn_number = len(transcript) + 1

@@ -119,11 +119,14 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     monkeypatch.setattr(server, "run_model_escape_steps", fake_steps)
     client = TestClient(create_app())
 
-    response = client.get(f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&map_id=key-door-room")
+    response = client.get(
+        f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&map_id=key-door-room&startup_delay_ms=2000"
+    )
 
     assert response.status_code == 200
     assert seen["provider"] is provider
     assert seen["game_map"].id == "key-door-room"
+    assert seen["startup_delay_ms"] == 2000
     assert "objective" not in seen
     assert "Still searching with 99 sanity remaining." in response.text
     assert "(8, 8)" in response.text

@@ -1,4 +1,4 @@
-from watch_my_escape.agent.escape_run import run_model_escape
+from watch_my_escape.agent.escape_run import run_model_escape, run_model_escape_steps
 from watch_my_escape.game.maps import GameMap
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
@@ -60,6 +60,17 @@ def test_run_model_escape_stops_when_the_model_escapes():
     assert len(result.frames) == 8
     assert [frame.position for frame in result.frames[:4]] == ["(7, 8)", "(8, 8)", "(9, 8)", "(10, 8)"]
     assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 7
+
+
+def test_run_model_escape_steps_can_delay_before_first_model_request():
+    provider = ScriptedProvider((f'{{"action":"open","target":"missing door","emotion":"{EMOTION_JSON}"}}',))
+    frames = run_model_escape_steps(provider=provider, startup_delay_ms=2000)
+
+    first_frame = next(frames)
+
+    assert first_frame.status == "Model run started."
+    assert first_frame.delay_ms == 2000
+    assert provider.requests == []
 
 
 def test_run_model_escape_stops_when_sanity_reaches_zero():
