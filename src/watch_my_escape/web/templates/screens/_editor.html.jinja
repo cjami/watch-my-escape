@@ -6,6 +6,8 @@
         <h1>Map Editor</h1>
       </div>
       <div class="editor-actions">
+        <button id="undo-editor" type="button" class="secondary-button" disabled>Undo</button>
+        <button id="redo-editor" type="button" class="secondary-button" disabled>Redo</button>
         <button id="editor-back" type="button" class="secondary-button">Menu</button>
         <button id="import-map" type="button" class="secondary-button">Import JSON</button>
         <input id="import-map-file" type="file" accept="application/json,.json" hidden />
@@ -18,10 +20,6 @@
         <label>
           <span>Map Name</span>
           <input id="editor-map-name" type="text" value="New Escape Room" />
-        </label>
-        <label>
-          <span>Map Id</span>
-          <input id="editor-map-id" type="text" value="new-escape-room" />
         </label>
         <label>
           <span>Description</span>
@@ -41,6 +39,7 @@
           <div id="entity-presets" class="preset-grid" aria-label="Entity presets"></div>
         </div>
         <output id="editor-status" class="editor-status">Ready.</output>
+        <div id="editor-validation" class="editor-validation is-pending">Validation pending.</div>
       </div>
 
       <div class="editor-map-shell">
@@ -48,12 +47,40 @@
       </div>
 
       <aside class="entity-panel" aria-label="Selected entity">
-        <div class="panel-heading">
-          <h2>Entity</h2>
-          <button id="add-entity" type="button" class="secondary-button">New</button>
+        <div class="editor-tabs" role="tablist" aria-label="Entity editor sections">
+          <button
+            id="entity-tab"
+            type="button"
+            class="editor-tab is-selected"
+            role="tab"
+            aria-selected="true"
+            aria-controls="entity-tab-panel"
+            data-editor-tab="entity"
+          >
+            Entity
+          </button>
+          <button
+            id="behaviors-tab"
+            type="button"
+            class="editor-tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="behaviors-tab-panel"
+            data-editor-tab="behaviors"
+          >
+            Behaviors
+          </button>
         </div>
-        <div id="entity-form" class="entity-form"></div>
-        <section class="behavior-panel" aria-label="Behaviors">
+        <div id="entity-tab-panel" class="editor-tab-panel" role="tabpanel" aria-labelledby="entity-tab">
+          <div id="entity-form" class="entity-form"></div>
+        </div>
+        <section
+          id="behaviors-tab-panel"
+          class="behavior-panel editor-tab-panel"
+          role="tabpanel"
+          aria-labelledby="behaviors-tab"
+          hidden
+        >
           <div class="panel-heading">
             <h2>Behaviors</h2>
             <button id="add-behavior" type="button" class="secondary-button">Add</button>

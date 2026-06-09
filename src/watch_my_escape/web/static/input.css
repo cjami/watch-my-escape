@@ -1092,6 +1092,13 @@
     transform: none;
   }
 
+  .secondary-button:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.55);
+    opacity: 0.46;
+    transform: none;
+  }
+
   .secondary-button,
   .tool-button,
   .preset-button,
@@ -1115,6 +1122,14 @@
       inset 0 0 24px rgb(255 212 71 / 8%),
       0 4px 0 rgb(0 0 0 / 60%);
     color: #fff7c2 !important;
+  }
+
+  .editor-status {
+    display: block;
+    box-sizing: border-box;
+    padding: 0.68rem 0.75rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 
   .panel-section {
@@ -1148,6 +1163,32 @@
     color: #e0e1cf;
     font-size: 0.88rem;
     line-height: 1.45;
+  }
+
+  .editor-validation {
+    padding: 0.68rem 0.75rem;
+    border: 2px solid rgb(248 255 232 / 14%);
+    border-left: 5px solid rgb(248 255 232 / 26%);
+    border-radius: 2px;
+    background: rgb(5 7 13 / 58%);
+    color: #d4d7c6;
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .editor-validation.is-valid {
+    border-left-color: #71f7b1;
+    color: #d9ffe9;
+  }
+
+  .editor-validation.is-invalid {
+    border-left-color: #ff6b6b;
+    color: #ffd1d1;
+  }
+
+  .editor-validation.is-pending {
+    border-left-color: var(--arcade-amber);
+    color: #fff7c2;
   }
 
   .editor-screen {
@@ -1259,9 +1300,18 @@
   .preset-button {
     display: grid;
     gap: 0.2rem;
+    grid-template-rows: 2rem minmax(1rem, auto);
     min-height: 4.5rem;
+    min-width: 0;
     place-items: center;
     text-align: center;
+  }
+
+  .preset-name {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: 0.66rem;
+    line-height: 1.1;
   }
 
   .preset-icon {
@@ -1348,6 +1398,23 @@
     outline-offset: -3px;
   }
 
+  .editor-cell.is-inactive .pixel-sprite {
+    filter: grayscale(0.5) brightness(0.62) contrast(0.95);
+    opacity: 0.48;
+  }
+
+  .editor-cell.is-drop-ok {
+    background:
+      radial-gradient(circle, rgb(113 247 177 / 24%), transparent 66%),
+      rgb(13 36 29 / 94%);
+  }
+
+  .editor-cell.is-drop-blocked {
+    background:
+      radial-gradient(circle, rgb(255 107 107 / 24%), transparent 66%),
+      rgb(40 18 20 / 94%);
+  }
+
   .editor-cell.is-start::after {
     position: absolute;
     right: 0.18rem;
@@ -1364,6 +1431,32 @@
   .entity-form {
     display: grid;
     gap: 0.75rem;
+  }
+
+  .editor-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .editor-tab {
+    border: 2px solid rgb(89 228 255 / 28%);
+    border-radius: 2px;
+    background: rgb(5 7 13 / 62%);
+    color: var(--arcade-paper);
+    padding: 0.62rem 0.5rem;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+  }
+
+  .editor-tab.is-selected {
+    border-color: var(--arcade-amber);
+    background: linear-gradient(180deg, rgb(255 212 71 / 24%), rgb(78 58 9 / 72%));
+    color: #fff7c2;
+  }
+
+  .editor-tab-panel[hidden] {
+    display: none;
   }
 
   .entity-form .checkbox-row {
@@ -1404,6 +1497,45 @@
     gap: 0.75rem;
   }
 
+  .behavior-rule-list {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .behavior-summary {
+    display: grid;
+    gap: 0.2rem;
+    width: 100%;
+    min-width: 0;
+    padding: 0.58rem 0.64rem;
+    border: 2px solid rgb(89 228 255 / 22%);
+    border-radius: 2px;
+    background: rgb(5 7 13 / 48%);
+    color: #d4d7c6;
+    text-align: left;
+  }
+
+  .behavior-summary span {
+    color: var(--arcade-cyan);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+  }
+
+  .behavior-summary strong {
+    overflow: hidden;
+    color: #fff7c2;
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .behavior-summary.is-selected {
+    border-color: var(--arcade-amber);
+    background: rgb(255 212 71 / 12%);
+  }
+
   .behavior-block {
     display: grid;
     gap: 0.65rem;
@@ -1430,6 +1562,14 @@
     grid-column: 1 / -1;
   }
 
+  .block-action {
+    grid-column: 1 / -1;
+  }
+
+  .effect-grid .block-action {
+    margin-top: -0.1rem;
+  }
+
   .mini-button {
     justify-self: start;
     padding: 0.4rem 0.5rem;
@@ -1439,6 +1579,10 @@
   .block-list {
     display: grid;
     gap: 0.5rem;
+  }
+
+  .block-list + .mini-button {
+    margin-top: 0.65rem;
   }
 
   @keyframes crt-flicker {

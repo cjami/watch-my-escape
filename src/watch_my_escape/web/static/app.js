@@ -34,20 +34,36 @@ const editorBackButton = document.querySelector("#editor-back");
 const importMapButton = document.querySelector("#import-map");
 const importMapFile = document.querySelector("#import-map-file");
 const exportMapButton = document.querySelector("#export-map");
+const undoEditorButton = document.querySelector("#undo-editor");
+const redoEditorButton = document.querySelector("#redo-editor");
 const editorGrid = document.querySelector("#editor-grid");
 const entityPresets = document.querySelector("#entity-presets");
 const entityForm = document.querySelector("#entity-form");
 const behaviorList = document.querySelector("#behavior-list");
-const addEntityButton = document.querySelector("#add-entity");
 const addBehaviorButton = document.querySelector("#add-behavior");
 const editorStatus = document.querySelector("#editor-status");
+const editorValidation = document.querySelector("#editor-validation");
 const editorMapName = document.querySelector("#editor-map-name");
-const editorMapId = document.querySelector("#editor-map-id");
 const editorDescription = document.querySelector("#editor-description");
+const editorTabButtons = document.querySelectorAll("[data-editor-tab]");
+const entityTabPanel = document.querySelector("#entity-tab-panel");
+const behaviorsTabPanel = document.querySelector("#behaviors-tab-panel");
 
 const mapSize = 16;
+const historyLimit = 50;
 const spriteCache = new Map();
 const actionOptions = ["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"];
+const actionLabels = {
+  examine: "examine",
+  pick_up: "pick up",
+  open: "open",
+  close: "close",
+  push: "push",
+  pull: "pull",
+  talk_to: "talk to",
+  use: "use",
+  use_item: "use item",
+};
 const effectOptions = [
   "message",
   "add_inventory",
@@ -58,6 +74,20 @@ const effectOptions = [
   "set_entity_active",
   "escape_map",
 ];
+const effectLabels = {
+  message: "Message",
+  add_inventory: "Give",
+  remove_inventory: "Take",
+  set_entity_state: "State",
+  set_entity_property: "Set property",
+  set_entity_passable: "Passable",
+  set_entity_active: "Active",
+  escape_map: "Escape",
+};
+const booleanLabels = {
+  true: "Yes",
+  false: "No",
+};
 const emojiOptions = ["🧱", "🚪", "🔑", "📝", "🧍", "🎚️", "📦", "💡", "🪟", "🧰", "🔒", "🪜", "🧪", "📚", "🏁"];
 const presets = [
   {
@@ -136,7 +166,14 @@ let selectedMap = null;
 let selectedTool = "select";
 let selectedPreset = presets[0];
 let selectedEntityId = null;
+let selectedEditorTab = "entity";
+let selectedBehaviorIndex = 0;
 let editorState = starterEditorState();
+let undoStack = [];
+let redoStack = [];
+let dragState = null;
+let validationTimer = null;
+let validationEpoch = 0;
 let selectedModelIndex = 0;
 let lastMapText = "";
 let lastAgentPosition = "";
@@ -188,25 +225,20 @@ editorBackButton.addEventListener("click", () => showScreen("menu"));
 importMapButton.addEventListener("click", () => importMapFile.click());
 importMapFile.addEventListener("change", importEditorMap);
 exportMapButton.addEventListener("click", exportEditorMap);
-addEntityButton.addEventListener("click", () => {
-  const position = firstOpenPosition() ?? editorState.agentStart;
-  if (entityAt(position.x, position.y)) {
-    setEditorStatus("No open tile is available for a new entity.");
-    return;
-  }
-  const placedEntity = createEntity(selectedPreset, position.x, position.y);
-  editorState.entities.push(placedEntity);
-  selectedEntityId = placedEntity.entity.id;
-  renderEditor();
-});
+undoEditorButton.addEventListener("click", undoEditorChange);
+redoEditorButton.addEventListener("click", redoEditorChange);
 addBehaviorButton.addEventListener("click", () => {
   const entity = selectedEntity();
   if (!entity) {
     setEditorStatus("Select an entity before adding behavior.");
     return;
   }
+  recordEditorHistory();
   entity.behaviors.push(defaultBehavior());
+  selectedBehaviorIndex = entity.behaviors.length - 1;
+  setEditorTab("behaviors");
   renderEditor();
+  setEditorStatus("Behavior added.");
 });
 restartButton.addEventListener("click", () => {
   runEpoch += 1;
@@ -216,19 +248,21 @@ restartButton.addEventListener("click", () => {
 });
 runButton.addEventListener("click", runEscape);
 editorMapName.addEventListener("input", () => {
-  if (!editorMapId.dataset.touched) {
-    editorMapId.value = slugify(editorMapName.value) || "new-escape-room";
-  }
+  recordEditorHistory();
+  scheduleEditorValidation();
 });
-editorMapId.addEventListener("input", () => {
-  editorMapId.dataset.touched = "true";
+editorDescription.addEventListener("input", () => {
+  recordEditorHistory();
+  scheduleEditorValidation();
 });
 document.querySelectorAll("[data-editor-tool]").forEach((button) => {
   button.addEventListener("click", () => {
-    selectedTool = button.dataset.editorTool;
-    document.querySelectorAll("[data-editor-tool]").forEach((toolButton) => {
-      toolButton.classList.toggle("is-selected", toolButton === button);
-    });
+    setEditorTool(button.dataset.editorTool);
+  });
+});
+editorTabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setEditorTab(button.dataset.editorTab);
   });
 });
 
@@ -482,12 +516,15 @@ function renderPresets() {
       button.className = "preset-button";
       icon.className = "preset-icon";
       icon.append(pixelSprite(preset.icon, preset.name));
+      name.className = "preset-name";
       name.textContent = preset.name;
       button.append(icon, name);
       button.classList.toggle("is-selected", preset === selectedPreset);
       button.addEventListener("click", () => {
         selectedPreset = preset;
+        setEditorTool("place");
         renderPresets();
+        setEditorStatus(`${preset.name} preset selected.`);
       });
       return button;
     }),
@@ -495,9 +532,12 @@ function renderPresets() {
 }
 
 function renderEditor() {
+  renderEditorTabs();
   renderEditorGrid();
   renderEntityForm();
   renderBehaviors();
+  updateHistoryButtons();
+  scheduleEditorValidation();
 }
 
 function renderEditorGrid() {
@@ -508,58 +548,214 @@ function renderEditorGrid() {
       const entity = editorState.entities.find((candidate) => candidate.position.x === x && candidate.position.y === y);
       cell.type = "button";
       cell.className = "editor-cell";
+      cell.dataset.x = String(x);
+      cell.dataset.y = String(y);
       cell.classList.toggle("is-start", editorState.agentStart.x === x && editorState.agentStart.y === y);
       cell.classList.toggle("is-selected", entity?.entity.id === selectedEntityId);
+      cell.classList.toggle("is-inactive", Boolean(entity && !entity.entity.active));
       if (entity) {
         cell.append(pixelSprite(entity.entity.icon, entity.entity.name));
       }
       cell.title = entity ? entity.entity.name : `(${x}, ${y})`;
-      cell.addEventListener("click", () => handleEditorCellClick(x, y, entity));
+      cell.addEventListener("pointerdown", (event) => handleEditorCellPointerDown(event, x, y, entity));
+      cell.addEventListener("pointerenter", () => handleEditorCellPointerEnter(cell, x, y));
+      cell.addEventListener("pointerup", () => handleEditorCellPointerUp(x, y));
       editorGrid.append(cell);
     }
   }
 }
 
-function handleEditorCellClick(x, y, placedEntity) {
+function handleEditorCellPointerDown(event, x, y, placedEntity) {
+  if (event.button !== 0) {
+    return;
+  }
+  event.preventDefault();
+  clearDropPreview();
   if (selectedTool === "start") {
+    if (editorState.agentStart.x === x && editorState.agentStart.y === y) {
+      return;
+    }
+    recordEditorHistory();
     editorState.agentStart = { x, y };
     setEditorStatus(`Agent start set to (${x}, ${y}).`);
     renderEditor();
     return;
   }
+  dragState = {
+    tool: selectedTool,
+    sourceId: placedEntity?.entity.id ?? null,
+    sourceX: x,
+    sourceY: y,
+    count: 0,
+    changed: false,
+    visited: new Set(),
+  };
   if (selectedTool === "erase") {
-    if (placedEntity) {
-      editorState.entities = editorState.entities.filter((candidate) => candidate.entity.id !== placedEntity.entity.id);
-      if (selectedEntityId === placedEntity.entity.id) {
-        selectedEntityId = null;
-      }
-      setEditorStatus(`Removed ${placedEntity.entity.name}.`);
-    }
-    renderEditor();
+    paintErase(x, y);
     return;
   }
   if (selectedTool === "place") {
-    if (placedEntity) {
-      selectedEntityId = placedEntity.entity.id;
-      setEditorStatus(`${placedEntity.entity.name} is already on this tile.`);
-      renderEditor();
-      return;
-    }
-    const entity = createEntity(selectedPreset, x, y);
-    editorState.entities.push(entity);
-    selectedEntityId = entity.entity.id;
-    setEditorStatus(`Placed ${entity.entity.name}.`);
+    paintPlace(x, y);
+    return;
+  }
+  if (!placedEntity) {
+    selectedEntityId = null;
+    selectedEditorTab = "entity";
+    renderEditor();
+  }
+}
+
+function handleEditorCellPointerEnter(cell, x, y) {
+  if (!dragState) {
+    return;
+  }
+  if (dragState.tool === "place") {
+    paintPlace(x, y);
+    return;
+  }
+  if (dragState.tool === "erase") {
+    paintErase(x, y);
+    return;
+  }
+  if (dragState.tool === "select" && dragState.sourceId) {
+    const target = entityAt(x, y);
+    clearDropPreview();
+    cell.classList.add(target && target.entity.id !== dragState.sourceId ? "is-drop-blocked" : "is-drop-ok");
+  }
+}
+
+function handleEditorCellPointerUp(x, y) {
+  if (!dragState) {
+    return;
+  }
+  if (dragState.tool === "select") {
+    finishSelectDrag(x, y);
+  }
+  finishGridDrag();
+}
+
+document.addEventListener("pointerup", finishGridDrag);
+
+function finishSelectDrag(x, y) {
+  if (!dragState?.sourceId) {
+    return;
+  }
+  const source = editorState.entities.find((placed) => placed.entity.id === dragState.sourceId);
+  if (!source) {
+    return;
+  }
+  if (source.position.x === x && source.position.y === y) {
+    selectedEntityId = source.entity.id;
+    selectedEditorTab = "entity";
     renderEditor();
     return;
   }
-  selectedEntityId = placedEntity?.entity.id ?? null;
+  const target = entityAt(x, y);
+  if (target) {
+    selectedEntityId = source.entity.id;
+    setEditorStatus(`${target.entity.name} already occupies that tile.`);
+    renderEditor();
+    return;
+  }
+  recordEditorHistory();
+  source.position = { x, y };
+  selectedEntityId = source.entity.id;
+  selectedEditorTab = "entity";
+  setEditorStatus(`Moved ${source.entity.name} to (${x}, ${y}).`);
   renderEditor();
+}
+
+function finishGridDrag() {
+  if (!dragState) {
+    return;
+  }
+  if (dragState.tool === "place" && dragState.count > 1) {
+    setEditorStatus(`Placed ${dragState.count} ${selectedPreset.name.toLowerCase()} entities.`);
+  }
+  if (dragState.tool === "erase" && dragState.count > 1) {
+    setEditorStatus(`Removed ${dragState.count} entities.`);
+  }
+  dragState = null;
+  clearDropPreview();
+}
+
+function paintPlace(x, y) {
+  if (!dragState || visitDraggedTile(x, y) || entityAt(x, y)) {
+    return;
+  }
+  recordDragHistory();
+  const entity = createEntity(selectedPreset, x, y);
+  editorState.entities.push(entity);
+  selectedEntityId = entity.entity.id;
+  dragState.count += 1;
+  setEditorStatus(`Placed ${entity.entity.name}.`);
+  renderEditor();
+}
+
+function paintErase(x, y) {
+  const placedEntity = entityAt(x, y);
+  if (!dragState || visitDraggedTile(x, y) || !placedEntity) {
+    return;
+  }
+  recordDragHistory();
+  editorState.entities = editorState.entities.filter((candidate) => candidate.entity.id !== placedEntity.entity.id);
+  if (selectedEntityId === placedEntity.entity.id) {
+    selectedEntityId = null;
+  }
+  dragState.count += 1;
+  setEditorStatus(`Removed ${placedEntity.entity.name}.`);
+  renderEditor();
+}
+
+function visitDraggedTile(x, y) {
+  const key = `${x},${y}`;
+  if (dragState.visited.has(key)) {
+    return true;
+  }
+  dragState.visited.add(key);
+  return false;
+}
+
+function recordDragHistory() {
+  if (dragState.changed) {
+    return;
+  }
+  recordEditorHistory();
+  dragState.changed = true;
+}
+
+function clearDropPreview() {
+  editorGrid.querySelectorAll(".is-drop-ok, .is-drop-blocked").forEach((cell) => {
+    cell.classList.remove("is-drop-ok", "is-drop-blocked");
+  });
+}
+
+function setEditorTool(tool) {
+  selectedTool = tool;
+  document.querySelectorAll("[data-editor-tool]").forEach((toolButton) => {
+    toolButton.classList.toggle("is-selected", toolButton.dataset.editorTool === tool);
+  });
+}
+
+function setEditorTab(tab) {
+  selectedEditorTab = tab;
+  renderEditorTabs();
+}
+
+function renderEditorTabs() {
+  editorTabButtons.forEach((button) => {
+    const selected = button.dataset.editorTab === selectedEditorTab;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+  entityTabPanel.hidden = selectedEditorTab !== "entity";
+  behaviorsTabPanel.hidden = selectedEditorTab !== "behaviors";
 }
 
 function renderEntityForm() {
   const placed = selectedPlacedEntity();
   if (!placed) {
-    entityForm.innerHTML = `<p class="selection-detail">Select an entity on the grid or create one.</p>`;
+    entityForm.innerHTML = `<p class="selection-detail">Select an entity on the grid or place one from a preset.</p>`;
     return;
   }
   const entity = placed.entity;
@@ -587,7 +783,6 @@ function renderEntityForm() {
       <label><input data-entity-field="active" type="checkbox" ${entity.active ? "checked" : ""} />Active</label>
       <label><input data-entity-field="notable" type="checkbox" ${entity.notable ? "checked" : ""} />Notable</label>
     </div>
-    <label><span>Properties JSON</span><textarea data-entity-field="properties" rows="3">${escapeHtml(JSON.stringify(entity.properties, null, 2))}</textarea></label>
   `;
   entityForm.querySelectorAll("[data-entity-field]").forEach((input) => {
     input.addEventListener("input", () => updateEntityField(input, placed));
@@ -596,6 +791,7 @@ function renderEntityForm() {
     button.replaceChildren(pixelSprite(button.dataset.icon, "Icon option"));
     button.setAttribute("aria-label", `Choose ${button.dataset.icon}`);
     button.addEventListener("click", () => {
+      recordEditorHistory();
       placed.entity.icon = button.dataset.icon;
       renderEditor();
     });
@@ -603,24 +799,17 @@ function renderEntityForm() {
 }
 
 function updateEntityField(input, placed) {
+  recordEditorHistory();
   const field = input.dataset.entityField;
   if (field === "id") {
     selectedEntityId = input.value.trim();
   }
-  if (field === "properties") {
-    try {
-      placed.entity.properties = JSON.parse(input.value || "{}");
-      setEditorStatus("Properties updated.");
-    } catch {
-      setEditorStatus("Properties must be valid JSON.");
-      return;
-    }
-  } else if (input.type === "checkbox") {
+  if (input.type === "checkbox") {
     placed.entity[field] = input.checked;
   } else {
     placed.entity[field] = input.value;
   }
-  renderEditorGrid();
+  renderEditor();
 }
 
 function renderBehaviors() {
@@ -630,12 +819,30 @@ function renderBehaviors() {
     behaviorList.innerHTML = `<p class="selection-detail">No entity selected.</p>`;
     return;
   }
-  placed.entity.behaviors.forEach((behavior, index) => {
-    behaviorList.append(behaviorBlock(behavior, index));
-  });
   if (!placed.entity.behaviors.length) {
     behaviorList.innerHTML = `<p class="selection-detail">No behaviors configured.</p>`;
+    selectedBehaviorIndex = 0;
+    return;
   }
+  selectedBehaviorIndex = Math.min(selectedBehaviorIndex, placed.entity.behaviors.length - 1);
+  const ruleList = document.createElement("div");
+  ruleList.className = "behavior-rule-list";
+  placed.entity.behaviors.forEach((behavior, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "behavior-summary";
+    button.classList.toggle("is-selected", index === selectedBehaviorIndex);
+    button.innerHTML = `
+      <span>Rule ${index + 1}</span>
+      <strong>${escapeHtml(behaviorSummary(behavior))}</strong>
+    `;
+    button.addEventListener("click", () => {
+      selectedBehaviorIndex = index;
+      renderBehaviors();
+    });
+    ruleList.append(button);
+  });
+  behaviorList.append(ruleList, behaviorBlock(placed.entity.behaviors[selectedBehaviorIndex], selectedBehaviorIndex));
 }
 
 function behaviorBlock(behavior, index) {
@@ -647,7 +854,7 @@ function behaviorBlock(behavior, index) {
       <button type="button" class="mini-button" data-remove-behavior="${index}">Remove</button>
     </div>
     <div class="block-grid">
-      <label class="block-field">Action ${selectHtml(actionOptions, behavior.trigger.action, `data-trigger-field="action"`)}</label>
+      <label class="block-field">On action ${selectHtml(actionOptions, behavior.trigger.action, `data-trigger-field="action"`, actionLabels)}</label>
       ${triggerFieldsHtml(behavior.trigger)}
     </div>
     <div>
@@ -663,25 +870,32 @@ function behaviorBlock(behavior, index) {
   `;
   block.querySelectorAll("[data-trigger-field]").forEach((input) => {
     input.addEventListener("input", () => {
+      recordEditorHistory();
       const value = input.value.trim();
       behavior.trigger[input.dataset.triggerField] = value || undefined;
       normalizeTrigger(behavior.trigger);
       if (input.dataset.triggerField === "action") {
         renderBehaviors();
+      } else {
+        renderEditor();
       }
     });
   });
   block.querySelector("[data-remove-behavior]").addEventListener("click", () => {
+    recordEditorHistory();
     selectedPlacedEntity().entity.behaviors.splice(index, 1);
-    renderBehaviors();
+    selectedBehaviorIndex = Math.max(0, index - 1);
+    renderEditor();
   });
   block.querySelector("[data-add-condition]").addEventListener("click", () => {
+    recordEditorHistory();
     behavior.conditions.push({ entity_id: "", state: "", property: "", equals: null });
-    renderBehaviors();
+    renderEditor();
   });
   block.querySelector("[data-add-effect]").addEventListener("click", () => {
+    recordEditorHistory();
     behavior.effects.push({ type: "message", text: "Something happens." });
-    renderBehaviors();
+    renderEditor();
   });
   renderConditionList(block.querySelector("[data-condition-list]"), behavior);
   renderEffectList(block.querySelector("[data-effect-list]"), behavior);
@@ -690,7 +904,7 @@ function behaviorBlock(behavior, index) {
 
 function triggerFieldsHtml(trigger) {
   if (trigger.action === "use_item") {
-    return `<label class="block-field">Item Id <input data-trigger-field="item" type="text" value="${escapeAttribute(trigger.item ?? "")}" /></label>`;
+    return `<label class="block-field">Item ${entitySelectHtml(trigger.item, `data-trigger-field="item"`, { emptyLabel: "Choose item" })}</label>`;
   }
   if (trigger.action === "talk_to") {
     return `<label class="block-field block-wide">Phrase <input data-trigger-field="phrase" type="text" value="${escapeAttribute(trigger.phrase ?? "")}" /></label>`;
@@ -713,7 +927,7 @@ function renderConditionList(container, behavior) {
       const row = document.createElement("div");
       row.className = "block-grid";
       row.innerHTML = `
-        <label class="block-field">Entity Id <input data-condition-field="entity_id" type="text" value="${escapeAttribute(condition.entity_id ?? "")}" /></label>
+        <label class="block-field">Entity ${entitySelectHtml(condition.entity_id, `data-condition-field="entity_id"`, { emptyLabel: "Any entity" })}</label>
         <label class="block-field">State <input data-condition-field="state" type="text" value="${escapeAttribute(condition.state ?? "")}" /></label>
         <label class="block-field">Property <input data-condition-field="property" type="text" value="${escapeAttribute(condition.property ?? "")}" /></label>
         <label class="block-field">Equals <input data-condition-field="equals" type="text" value="${escapeAttribute(condition.equals ?? "")}" /></label>
@@ -721,12 +935,15 @@ function renderConditionList(container, behavior) {
       `;
       row.querySelectorAll("[data-condition-field]").forEach((input) => {
         input.addEventListener("input", () => {
+          recordEditorHistory();
           condition[input.dataset.conditionField] = input.value.trim() || null;
+          scheduleEditorValidation();
         });
       });
       row.querySelector("[data-remove-condition]").addEventListener("click", () => {
+        recordEditorHistory();
         behavior.conditions.splice(index, 1);
-        renderBehaviors();
+        renderEditor();
       });
       return row;
     }),
@@ -737,23 +954,27 @@ function renderEffectList(container, behavior) {
   container.replaceChildren(
     ...behavior.effects.map((effect, index) => {
       const row = document.createElement("div");
-      row.className = "block-grid";
+      row.className = "block-grid effect-grid";
       row.innerHTML = `
-        <label class="block-field">Type ${selectHtml(effectOptions, effect.type, `data-effect-field="type"`)}</label>
+        <label class="block-field">Effect ${selectHtml(effectOptions, effect.type, `data-effect-field="type"`, effectLabels)}</label>
         ${effectFieldsHtml(effect)}
-        <button type="button" class="mini-button" data-remove-effect="${index}">Remove</button>
+        <button type="button" class="mini-button block-action" data-remove-effect="${index}">Remove</button>
       `;
       row.querySelectorAll("[data-effect-field]").forEach((input) => {
         input.addEventListener("input", () => {
+          recordEditorHistory();
           updateEffectField(effect, input);
           if (input.dataset.effectField === "type") {
-            renderBehaviors();
+            renderEditor();
+          } else {
+            scheduleEditorValidation();
           }
         });
       });
       row.querySelector("[data-remove-effect]").addEventListener("click", () => {
+        recordEditorHistory();
         behavior.effects.splice(index, 1);
-        renderBehaviors();
+        renderEditor();
       });
       return row;
     }),
@@ -765,17 +986,17 @@ function effectFieldsHtml(effect) {
     return `<label class="block-field block-wide">Text <input data-effect-field="text" type="text" value="${escapeAttribute(effect.text ?? "")}" /></label>`;
   }
   if (effect.type === "add_inventory" || effect.type === "remove_inventory") {
-    return `<label class="block-field">Entity Id <input data-effect-field="entity_id" type="text" value="${escapeAttribute(effect.entity_id ?? "")}" /></label>`;
+    return `<label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`, { allowEmpty: false })}</label>`;
   }
   if (effect.type === "set_entity_state") {
     return `
-      <label class="block-field">Entity Id <input data-effect-field="entity_id" type="text" value="${escapeAttribute(effect.entity_id ?? "")}" /></label>
+      <label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`)}</label>
       <label class="block-field">State <input data-effect-field="state" type="text" value="${escapeAttribute(effect.state ?? "")}" /></label>
     `;
   }
   if (effect.type === "set_entity_property") {
     return `
-      <label class="block-field">Entity Id <input data-effect-field="entity_id" type="text" value="${escapeAttribute(effect.entity_id ?? "")}" /></label>
+      <label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`)}</label>
       <label class="block-field">Property <input data-effect-field="property" type="text" value="${escapeAttribute(effect.property ?? "")}" /></label>
       <label class="block-field">Value <input data-effect-field="value" type="text" value="${escapeAttribute(effect.value ?? "")}" /></label>
     `;
@@ -783,8 +1004,8 @@ function effectFieldsHtml(effect) {
   if (effect.type === "set_entity_passable" || effect.type === "set_entity_active") {
     const valueField = effect.type === "set_entity_passable" ? "passable" : "active";
     return `
-      <label class="block-field">Entity Id <input data-effect-field="entity_id" type="text" value="${escapeAttribute(effect.entity_id ?? "")}" /></label>
-      <label class="block-field">${valueField} ${selectHtml(["true", "false"], String(effect[valueField] ?? true), `data-effect-field="${valueField}"`)}</label>
+      <label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`)}</label>
+      <label class="block-field">${effectToggleLabel(effect.type)} ${selectHtml(["true", "false"], String(effect[valueField] ?? true), `data-effect-field="${valueField}"`, booleanLabels)}</label>
     `;
   }
   return "";
@@ -811,6 +1032,13 @@ function updateEffectField(effect, input) {
 }
 
 async function exportEditorMap() {
+  const localIssues = editorValidationIssues();
+  if (localIssues.length) {
+    const message = localIssues.slice(0, 3).join(" ");
+    updateValidationState("invalid", message);
+    setEditorStatus(`Validation failed: ${message}`);
+    return;
+  }
   const payload = buildEditorDocument();
   const response = await fetch("/maps/validate", {
     method: "POST",
@@ -824,6 +1052,7 @@ async function exportEditorMap() {
   }
   const normalized = await response.json();
   downloadJson(`${normalized.map.id}.json`, normalized);
+  updateValidationState("valid", "Map is valid.");
   setEditorStatus("Map validated and exported.");
 }
 
@@ -853,15 +1082,14 @@ async function importEditorMap() {
   }
 
   const normalized = await response.json();
+  recordEditorHistory();
   loadEditorDocument(normalized);
   setEditorStatus(`Imported ${normalized.map.name}.`);
 }
 
 function loadEditorDocument(document) {
   editorDescription.value = document.description;
-  editorMapName.value = document.map.name;
-  editorMapId.value = document.map.id;
-  editorMapId.dataset.touched = "true";
+  editorMapName.value = document.map.name || document.map.id;
   editorState = {
     agentStart: document.map.agent_start,
     entities: document.map.entities.map((placed) => ({
@@ -870,6 +1098,8 @@ function loadEditorDocument(document) {
     })),
   };
   selectedEntityId = editorState.entities[0]?.entity.id ?? null;
+  selectedEditorTab = "entity";
+  selectedBehaviorIndex = 0;
   renderEditor();
 }
 
@@ -883,8 +1113,8 @@ function normalizeImportedEntity(entity) {
     active: entity.active,
     notable: entity.notable,
     state: entity.state,
-    properties: entity.properties,
-    behaviors: entity.behaviors,
+    properties: entity.properties ?? {},
+    behaviors: entity.behaviors ?? [],
   };
 }
 
@@ -892,7 +1122,7 @@ function buildEditorDocument() {
   return {
     description: editorDescription.value.trim(),
     map: {
-      id: editorMapId.value.trim(),
+      id: slugify(editorMapName.value) || "new-escape-room",
       name: editorMapName.value.trim(),
       agent_start: editorState.agentStart,
       width: mapSize,
@@ -932,6 +1162,217 @@ function compactObject(value) {
   return Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null && entry !== ""),
   );
+}
+
+function behaviorSummary(behavior) {
+  const trigger = behavior.trigger.item
+    ? `${optionLabel(actionLabels, behavior.trigger.action)} ${behavior.trigger.item}`
+    : behavior.trigger.phrase
+      ? `${optionLabel(actionLabels, behavior.trigger.action)} "${behavior.trigger.phrase}"`
+      : optionLabel(actionLabels, behavior.trigger.action);
+  const effects = behavior.effects.map(effectSummary).filter(Boolean);
+  return `${trigger} -> ${effects.length ? effects.join(", ") : "no effects"}`;
+}
+
+function effectSummary(effect) {
+  if (effect.type === "message") {
+    return "Message";
+  }
+  if (effect.type === "escape_map") {
+    return "Escape";
+  }
+  if (effect.type === "set_entity_state") {
+    return `State ${effect.entity_id || "self"}`;
+  }
+  if (effect.type === "set_entity_active") {
+    return `Active ${effect.active ? "yes" : "no"} ${effect.entity_id || "self"}`;
+  }
+  if (effect.type === "set_entity_passable") {
+    return `Passable ${effect.passable ? "yes" : "no"} ${effect.entity_id || "self"}`;
+  }
+  if (effect.type === "add_inventory") {
+    return `Give ${effect.entity_id || "item"}`;
+  }
+  if (effect.type === "remove_inventory") {
+    return `Take ${effect.entity_id || "item"}`;
+  }
+  if (effect.type === "set_entity_property") {
+    return `Property ${effect.entity_id || "self"}`;
+  }
+  return optionLabel(effectLabels, effect.type);
+}
+
+function effectToggleLabel(type) {
+  if (type === "set_entity_passable") {
+    return "Passable";
+  }
+  if (type === "set_entity_active") {
+    return "Active";
+  }
+  return "Value";
+}
+
+function entitySelectHtml(selected, attributes, options = {}) {
+  const allowEmpty = options.allowEmpty ?? true;
+  const emptyLabel = options.emptyLabel ?? "Current entity";
+  const entityOptions = editorState.entities
+    .filter((placed) => placed.entity.notable)
+    .map((placed) => ({
+      value: placed.entity.id,
+      label: `${placed.entity.id} - ${placed.entity.name}`,
+    }));
+  const optionHtml = [
+    ...(allowEmpty ? [{ value: "", label: emptyLabel }] : []),
+    ...entityOptions,
+  ]
+    .map(
+      (option) =>
+        `<option value="${escapeAttribute(option.value)}" ${option.value === (selected ?? "") ? "selected" : ""}>${escapeHtml(option.label)}</option>`,
+    )
+    .join("");
+  return `<select ${attributes}>${optionHtml}</select>`;
+}
+
+function recordEditorHistory() {
+  undoStack.push(editorSnapshot());
+  if (undoStack.length > historyLimit) {
+    undoStack = undoStack.slice(-historyLimit);
+  }
+  redoStack = [];
+  updateHistoryButtons();
+}
+
+function undoEditorChange() {
+  if (!undoStack.length) {
+    return;
+  }
+  redoStack.push(editorSnapshot());
+  restoreEditorSnapshot(undoStack.pop());
+  setEditorStatus("Undid last editor change.");
+}
+
+function redoEditorChange() {
+  if (!redoStack.length) {
+    return;
+  }
+  undoStack.push(editorSnapshot());
+  restoreEditorSnapshot(redoStack.pop());
+  setEditorStatus("Redid editor change.");
+}
+
+function editorSnapshot() {
+  return {
+    state: structuredClone(editorState),
+    selectedEntityId,
+    selectedTool,
+    selectedPresetType: selectedPreset.type,
+    selectedEditorTab,
+    selectedBehaviorIndex,
+    mapName: editorMapName.value,
+    description: editorDescription.value,
+  };
+}
+
+function restoreEditorSnapshot(snapshot) {
+  editorState = structuredClone(snapshot.state);
+  selectedEntityId = snapshot.selectedEntityId;
+  selectedTool = snapshot.selectedTool;
+  selectedPreset = presets.find((preset) => preset.type === snapshot.selectedPresetType) ?? selectedPreset;
+  selectedEditorTab = snapshot.selectedEditorTab;
+  selectedBehaviorIndex = snapshot.selectedBehaviorIndex;
+  editorMapName.value = snapshot.mapName;
+  editorDescription.value = snapshot.description;
+  setEditorTool(selectedTool);
+  renderPresets();
+  renderEditor();
+}
+
+function updateHistoryButtons() {
+  undoEditorButton.disabled = !undoStack.length;
+  redoEditorButton.disabled = !redoStack.length;
+}
+
+function scheduleEditorValidation() {
+  window.clearTimeout(validationTimer);
+  updateValidationState("pending", "Validation pending.");
+  validationTimer = window.setTimeout(validateEditorDocument, 350);
+}
+
+async function validateEditorDocument() {
+  const currentEpoch = (validationEpoch += 1);
+  const localIssues = editorValidationIssues();
+  if (localIssues.length) {
+    updateValidationState("invalid", localIssues.slice(0, 3).join(" "));
+    return;
+  }
+
+  try {
+    const response = await fetch("/maps/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildEditorDocument()),
+    });
+    if (currentEpoch !== validationEpoch) {
+      return;
+    }
+    if (!response.ok) {
+      const error = await response.json();
+      updateValidationState("invalid", `Validation failed: ${formatValidationError(error)}`);
+      return;
+    }
+    updateValidationState("valid", "Map is valid.");
+  } catch {
+    if (currentEpoch === validationEpoch) {
+      updateValidationState("pending", "Validation unavailable while the app is offline.");
+    }
+  }
+}
+
+function editorValidationIssues() {
+  const issues = [];
+  if (!editorMapName.value.trim()) {
+    issues.push("Map name is required.");
+  }
+  const entityIds = editorState.entities.map((placed) => placed.entity.id.trim()).filter(Boolean);
+  const entityIdSet = new Set(entityIds);
+  if (entityIds.length !== new Set(entityIds).size) {
+    issues.push("Entity ids must be unique.");
+  }
+  const positions = editorState.entities.map((placed) => `${placed.position.x},${placed.position.y}`);
+  if (positions.length !== new Set(positions).size) {
+    issues.push("Only one entity may occupy each tile.");
+  }
+  for (const placed of editorState.entities) {
+    for (const behavior of placed.entity.behaviors) {
+      if (behavior.trigger.action === "use_item" && !behavior.trigger.item) {
+        issues.push(`${placed.entity.id} use item behavior needs an item.`);
+      }
+      if (behavior.trigger.item && !entityIdSet.has(behavior.trigger.item)) {
+        issues.push(`${placed.entity.id} references missing item ${behavior.trigger.item}.`);
+      }
+      for (const condition of behavior.conditions) {
+        if (condition.entity_id && !entityIdSet.has(condition.entity_id)) {
+          issues.push(`${placed.entity.id} condition references missing entity ${condition.entity_id}.`);
+        }
+      }
+      for (const effect of behavior.effects) {
+        if ((effect.type === "add_inventory" || effect.type === "remove_inventory") && !effect.entity_id) {
+          issues.push(`${placed.entity.id} ${optionLabel(effectLabels, effect.type)} effect needs an entity.`);
+        }
+        if (effect.entity_id && !entityIdSet.has(effect.entity_id)) {
+          issues.push(`${placed.entity.id} effect references missing entity ${effect.entity_id}.`);
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+function updateValidationState(state, message) {
+  editorValidation.classList.toggle("is-valid", state === "valid");
+  editorValidation.classList.toggle("is-invalid", state === "invalid");
+  editorValidation.classList.toggle("is-pending", state === "pending");
+  editorValidation.textContent = message;
 }
 
 function starterEditorState() {
@@ -1091,17 +1532,6 @@ function entityAt(x, y) {
   return editorState.entities.find((candidate) => candidate.position.x === x && candidate.position.y === y) ?? null;
 }
 
-function firstOpenPosition() {
-  for (let y = 1; y < mapSize - 1; y += 1) {
-    for (let x = 1; x < mapSize - 1; x += 1) {
-      if (!entityAt(x, y)) {
-        return { x, y };
-      }
-    }
-  }
-  return null;
-}
-
 function uniqueEntityId(base) {
   let candidate = base || "entity";
   let suffix = 2;
@@ -1113,10 +1543,17 @@ function uniqueEntityId(base) {
   return candidate;
 }
 
-function selectHtml(options, selected, attributes) {
+function selectHtml(options, selected, attributes, labels = {}) {
   return `<select ${attributes}>${options
-    .map((option) => `<option value="${escapeAttribute(option)}" ${option === selected ? "selected" : ""}>${escapeHtml(option)}</option>`)
+    .map(
+      (option) =>
+        `<option value="${escapeAttribute(option)}" ${option === selected ? "selected" : ""}>${escapeHtml(optionLabel(labels, option))}</option>`,
+    )
     .join("")}</select>`;
+}
+
+function optionLabel(labels, value) {
+  return labels[value] ?? value;
 }
 
 function parseScalar(value) {
