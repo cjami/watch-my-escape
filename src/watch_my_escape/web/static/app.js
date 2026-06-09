@@ -466,7 +466,7 @@ function renderMap(mapText, agentPosition) {
 }
 
 function renderEscapeCelebration() {
-  escapeAgentIcon.replaceChildren(pixelSprite("\u{1F973}", "Escaped agent", selectedModel?.brand_color, 96));
+  escapeAgentIcon.replaceChildren(pixelSprite("\u{1F973}", "Escaped agent", selectedModel?.brand_color, 40));
 }
 
 function renderPresets() {
