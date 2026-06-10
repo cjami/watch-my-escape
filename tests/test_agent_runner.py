@@ -42,12 +42,12 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     )
     assert provider.requests[0].structured_output is None
     assert provider.requests[0].settings.temperature == 1.0
-    assert provider.requests[0].settings.max_tokens == 2048
+    assert provider.requests[0].settings.max_tokens == 4096
     deliberation_system_prompt = provider.requests[0].messages[0].content
     assert "Assess your surroundings" in deliberation_system_prompt
     assert "consider all possible actions and targets" in deliberation_system_prompt
-    assert "one concise sentence" in deliberation_system_prompt
-    assert "action, target, and reason" in deliberation_system_prompt
+    assert "short sentence of your reasoning" in deliberation_system_prompt
+    assert "named action and target" in deliberation_system_prompt
     deliberation_prompt = provider.requests[0].messages[-1].content
     assert "Game state:" in deliberation_prompt
     assert "Objective:" not in deliberation_prompt

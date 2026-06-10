@@ -121,6 +121,29 @@ def test_run_model_escape_offers_use_item_on_visible_distant_door_after_key_pick
     assert "pick_up brass-key -> You pick up the brass key." in action_prompt
 
 
+def test_run_model_escape_prompts_include_full_action_vocabulary():
+    provider = PairedProvider(
+        (
+            (
+                "The next useful step is to pick up the key.",
+                f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+            ),
+        )
+    )
+
+    run_model_escape(provider=provider, starting_sanity=1)
+
+    deliberation_prompt = provider.requests[0].messages[-1].content
+    action_prompt = provider.requests[1].messages[-1].content
+    assert "- close(target): Close an object." in action_prompt
+    assert "- push(target): Push an object." in action_prompt
+    assert "- pull(target): Pull an object." in action_prompt
+    assert "- talk_to(target, text): Say something to an object or character." in action_prompt
+    assert "- use(target): Use an object directly." in action_prompt
+    assert "- use_item(item, target): Use an inventory item on a target." in deliberation_prompt
+    assert "- use_item(item, target): Use an inventory item on a target." in action_prompt
+
+
 def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_item():
     provider = PairedProvider(
         (
