@@ -60,6 +60,7 @@ def test_run_model_escape_stops_when_the_model_escapes():
     assert len(result.frames) == 8
     assert [frame.position for frame in result.frames[:4]] == ["(7, 8)", "(8, 8)", "(9, 8)", "(10, 8)"]
     assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 7
+    assert [frame.action_label for frame in result.frames] == ["", "pick up", "", "", "", "", "", "use"]
 
 
 def test_run_model_escape_steps_can_delay_before_first_model_request():
@@ -70,6 +71,7 @@ def test_run_model_escape_steps_can_delay_before_first_model_request():
 
     assert first_frame.status == "Model run started."
     assert first_frame.delay_ms == 2000
+    assert first_frame.action_label == ""
     assert provider.requests == []
 
 
@@ -98,6 +100,7 @@ def test_run_model_escape_shows_journal_to_later_turns():
     second_turn_prompt = provider.requests[2].messages[-1].content
     assert result.escaped is True
     assert result.journal == ("The key should open the door.",)
+    assert result.frames[1].action_label == "note"
     assert "Objective:" not in second_turn_prompt
     assert "Your notes:\n- The key should open the door." in second_turn_prompt
     assert "Journal:" not in second_turn_prompt
@@ -154,6 +157,7 @@ def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_ar
 
     assert result.sanity == 0
     assert result.frames[-1].position == "(7, 8)"
+    assert result.frames[-1].action_label == ""
     assert "Deliberation: I will pick up the brass key." in result.transcript
     assert "Model returned an action outside the current grammar" in result.transcript
 

@@ -229,6 +229,7 @@ let selectedModelIndex = 0;
 let lastMapText = "";
 let lastVisibilityText = "";
 let lastAgentPosition = "";
+let lastActionLabel = "";
 let gameIntroTimer = null;
 let runEpoch = 0;
 
@@ -450,7 +451,7 @@ async function runEscape() {
     statusOutput.textContent = frame.status;
     sanityOutput.textContent = `Sanity: ${frame.sanity}`;
     positionOutput.textContent = frame.position ? `Position: ${frame.position}` : "Position: --";
-    renderMap(frame.map, frame.position, frame.visibility);
+    renderMap(frame.map, frame.position, frame.visibility, frame.action_label);
     visibleEntitiesOutput.textContent = frame.visible_entities;
     inventoryOutput.textContent = frame.inventory;
     journalOutput.textContent = frame.journal;
@@ -531,17 +532,18 @@ function resetGame() {
   transcriptOutput.textContent = "The model has not tried the room yet.";
   escapeBanner.hidden = true;
   escapeAgentIcon.replaceChildren();
-  renderMap("", "", "");
+  renderMap("", "", "", "");
   runButton.disabled = false;
 }
 
-function renderMap(mapText, agentPosition, visibilityText = "") {
+function renderMap(mapText, agentPosition, visibilityText = "", actionLabel = "") {
   const previousAgentPosition = lastAgentPosition;
   lastMapText = mapText;
   lastVisibilityText = visibilityText;
   lastAgentPosition = agentPosition;
+  lastActionLabel = actionLabel;
   mapOutput.replaceChildren();
-  const rows = mapText.trim() ? mapText.trim().split("\n") : [];
+  const rows = parseMapRows(mapText);
   if (!rows.length) {
     return;
   }
@@ -550,25 +552,42 @@ function renderMap(mapText, agentPosition, visibilityText = "") {
   const hasVisibility = visibilityRows.length === rows.length;
   const agentCoordinate = parsePosition(agentPosition);
   const agentMoved = Boolean(previousAgentPosition && agentPosition && previousAgentPosition !== agentPosition);
+  const labelCoordinate = actionLabel
+    ? actionLabelCoordinate(rows, visibilityRows, hasVisibility, agentCoordinate)
+    : null;
   rows.forEach((row, y) => {
-    row.split(" ").forEach((cell, x) => {
+    row.forEach((cell, x) => {
       const tile = document.createElement("span");
       tile.className = "map-tile";
       const visibleToAgent = !hasVisibility || visibilityRows[y]?.[x] !== false;
       tile.classList.toggle("visible-tile", visibleToAgent);
       tile.classList.toggle("hidden-tile", !visibleToAgent);
       tile.setAttribute("aria-label", visibleToAgent ? "visible to agent" : "not visible to agent");
+      const isAgentTile = agentCoordinate?.x === x && agentCoordinate.y === y;
       if (agentCoordinate?.x === x && agentCoordinate.y === y) {
         tile.classList.add("agent-tile");
         tile.classList.toggle("agent-just-moved", agentMoved);
       }
       if (cell !== ".") {
-        const tint = agentCoordinate?.x === x && agentCoordinate.y === y ? selectedModel?.brand_color : null;
+        const tint = isAgentTile ? selectedModel?.brand_color : null;
         tile.append(pixelSprite(cell, cell, tint));
+      }
+      if (labelCoordinate?.x === x && labelCoordinate.y === y) {
+        tile.append(actionLabelElement(actionLabel, isAgentTile));
       }
       mapOutput.append(tile);
     });
   });
+}
+
+function parseMapRows(mapText) {
+  if (!mapText?.trim()) {
+    return [];
+  }
+  return mapText
+    .trim()
+    .split("\n")
+    .map((row) => row.split(" "));
 }
 
 function parseVisibilityRows(visibilityText) {
@@ -579,6 +598,36 @@ function parseVisibilityRows(visibilityText) {
     .trim()
     .split("\n")
     .map((row) => row.split(" ").map((cell) => cell === "1"));
+}
+
+function actionLabelCoordinate(rows, visibilityRows, hasVisibility, agentCoordinate) {
+  if (!agentCoordinate) {
+    return null;
+  }
+
+  const candidates = [
+    { x: agentCoordinate.x, y: agentCoordinate.y - 1 },
+    { x: agentCoordinate.x + 1, y: agentCoordinate.y },
+    { x: agentCoordinate.x, y: agentCoordinate.y + 1 },
+    { x: agentCoordinate.x - 1, y: agentCoordinate.y },
+  ];
+  return candidates.find((candidate) => canPlaceActionLabel(rows, visibilityRows, hasVisibility, candidate)) ?? agentCoordinate;
+}
+
+function canPlaceActionLabel(rows, visibilityRows, hasVisibility, coordinate) {
+  const cell = rows[coordinate.y]?.[coordinate.x];
+  if (cell === undefined || cell !== ".") {
+    return false;
+  }
+  return !hasVisibility || visibilityRows[coordinate.y]?.[coordinate.x] !== false;
+}
+
+function actionLabelElement(label, isAgentTile) {
+  const element = document.createElement("span");
+  element.className = "action-label";
+  element.classList.toggle("is-on-agent", isAgentTile);
+  element.textContent = label;
+  return element;
 }
 
 function renderEscapeCelebration() {
@@ -1871,7 +1920,7 @@ function refreshSpritesWhenFontsLoad() {
       spriteCache.clear();
       renderPresets();
       renderEditor();
-      renderMap(lastMapText, lastAgentPosition, lastVisibilityText);
+      renderMap(lastMapText, lastAgentPosition, lastVisibilityText, lastActionLabel);
     })
     .catch(() => undefined);
 }

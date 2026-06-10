@@ -47,6 +47,7 @@ class EscapeRunFrame:
     transcript: str
     status: str
     delay_ms: int = 0
+    action_label: str = ""
     visibility_view: tuple[tuple[bool, ...], ...] = ()
 
 
@@ -78,6 +79,7 @@ class FramePresentation:
 
     delay_ms: int = 0
     agent_icon: str = "\U0001f642"
+    action_label: str = ""
 
 
 DEFAULT_FRAME_PRESENTATION = FramePresentation()
@@ -177,6 +179,7 @@ def run_model_escape_steps(
         action = EscapeRoomAction.model_validate(result.action.model_dump(mode="json"))
         applied = apply_agent_action(session, sanity, action)
         action_emotion = emotion_to_emoji(action.root.emotion)
+        action_label = _action_label(action)
         action_text = action.model_dump_json()
         transcript.append(
             "\n".join(
@@ -200,7 +203,11 @@ def run_model_escape_steps(
                     sanity,
                     transcript,
                     _status(escaped=applied.session.escaped, sanity=sanity),
-                    presentation=FramePresentation(delay_ms=150, agent_icon=action_emotion),
+                    presentation=FramePresentation(
+                        delay_ms=150,
+                        agent_icon=action_emotion,
+                        action_label=action_label if is_final_step else "",
+                    ),
                 )
             session = applied.session
             continue
@@ -211,7 +218,7 @@ def run_model_escape_steps(
             sanity,
             transcript,
             _status(escaped=session.escaped, sanity=sanity),
-            presentation=FramePresentation(agent_icon=action_emotion),
+            presentation=FramePresentation(agent_icon=action_emotion, action_label=action_label),
         )
 
     if not transcript:
@@ -237,6 +244,7 @@ def _frame(
         transcript="\n\n".join(transcript),
         status=status,
         delay_ms=presentation.delay_ms,
+        action_label=presentation.action_label,
         visibility_view=render_user_visibility_view(session),
     )
 
@@ -282,6 +290,17 @@ def _history_action_text(action: EscapeRoomAction) -> str:
     if root.action == "use_item":
         return f"use_item {root.item} on {root.target}"
     return f"{root.action} {root.target}"
+
+
+def _action_label(action: EscapeRoomAction) -> str:
+    action_name = action.root.action
+    labels = {
+        "pick_up": "pick up",
+        "talk_to": "talk",
+        "use_item": "use",
+        "write_note": "note",
+    }
+    return labels.get(action_name, action_name.replace("_", " "))
 
 
 def _run_escape_turn(

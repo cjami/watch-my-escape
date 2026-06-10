@@ -116,6 +116,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             visibility_view=((True, True), (False, True)),
             transcript="Turn 1 - sanity 100 -> 99",
             status="Still searching with 99 sanity remaining.",
+            action_label="open",
         )
 
     provider = object()
@@ -134,6 +135,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert "objective" not in seen
     assert "Still searching with 99 sanity remaining." in response.text
     assert "(8, 8)" in response.text
+    assert '"action_label": "open"' in response.text
     assert '"visibility": "1 1\\n0 1"' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
