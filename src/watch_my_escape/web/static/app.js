@@ -39,6 +39,8 @@ const exportMapButton = document.querySelector("#export-map");
 const undoEditorButton = document.querySelector("#undo-editor");
 const redoEditorButton = document.querySelector("#redo-editor");
 const editorGrid = document.querySelector("#editor-grid");
+const editorTray = document.querySelector("#editor-tray");
+const addTrayEntityButton = document.querySelector("#add-tray-entity");
 const entityPresets = document.querySelector("#entity-presets");
 const entityForm = document.querySelector("#entity-form");
 const behaviorList = document.querySelector("#behavior-list");
@@ -293,6 +295,7 @@ addBehaviorButton.addEventListener("click", () => {
   renderEditor();
   setEditorStatus("Behavior added.");
 });
+addTrayEntityButton.addEventListener("click", addSelectedPresetToTray);
 restartButton.addEventListener("click", () => {
   runEpoch += 1;
   stopStream();
@@ -940,6 +943,7 @@ function renderPresets() {
 function renderEditor() {
   renderEditorTabs();
   renderEditorGrid();
+  renderEditorTray();
   renderEntityForm();
   renderBehaviors();
   updateHistoryButtons();
@@ -962,7 +966,7 @@ function renderEditorGrid() {
       cell.classList.toggle("is-inactive", Boolean(entity && !entity.entity.active));
       applyDragClasses(cell, x, y);
       if (entity) {
-        cell.append(pixelSprite(entity.entity.icon, entity.entity.name));
+        cell.append(pixelSprite(entity.entity.icon, entity.entity.id));
       }
       cell.title = editorCellTitle(entity, isAgentStart, x, y);
       cell.setAttribute("aria-label", cell.title);
@@ -972,6 +976,29 @@ function renderEditorGrid() {
       editorGrid.append(cell);
     }
   }
+}
+
+function renderEditorTray() {
+  const items = editorState.unplacedEntities ?? [];
+  if (!items.length) {
+    editorTray.innerHTML = `<p class="selection-detail">No off-map entities.</p>`;
+    return;
+  }
+  editorTray.replaceChildren(
+    ...items.map((entity) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "tray-entity";
+      button.dataset.entityId = entity.id;
+      button.classList.toggle("is-selected", entity.id === selectedEntityId);
+      button.classList.toggle("is-inactive", !entity.active);
+      button.title = `${entity.id} - off-map`;
+      button.setAttribute("aria-label", button.title);
+      button.append(pixelSprite(entity.icon, entity.id));
+      button.addEventListener("pointerdown", (event) => handleEditorTrayPointerDown(event, entity));
+      return button;
+    }),
+  );
 }
 
 function handleEditorCellPointerDown(event, cell, x, y, placedEntity) {
@@ -997,6 +1024,7 @@ function handleEditorCellPointerDown(event, cell, x, y, placedEntity) {
   dragState = {
     tool: selectedTool,
     sourceId: placedEntity?.entity.id ?? null,
+    sourceKind: "grid",
     sourceX: x,
     sourceY: y,
     targetX: x,
@@ -1015,8 +1043,31 @@ function handleEditorCellPointerDown(event, cell, x, y, placedEntity) {
   }
   if (selectedTool === "select" && placedEntity) {
     updateDropPreview(cell, x, y);
-    setEditorStatus(`Dragging ${placedEntity.entity.name}. Release on an open tile to move it.`);
+    setEditorStatus(`Dragging ${placedEntity.entity.id}. Release on an open tile or the tray.`);
   }
+}
+
+function handleEditorTrayPointerDown(event, entity) {
+  if (event.button !== 0 || selectedTool !== "select") {
+    return;
+  }
+  event.preventDefault();
+  clearDropPreview();
+  dragState = {
+    tool: "select",
+    sourceId: entity.id,
+    sourceKind: "tray",
+    sourceX: null,
+    sourceY: null,
+    targetX: null,
+    targetY: null,
+    count: 0,
+    changed: false,
+    visited: new Set(),
+  };
+  editorTrayItem(entity.id)?.classList.add("is-drag-source");
+  editorTray.classList.add("is-dragging");
+  setEditorStatus(`Dragging ${entity.id}. Release on an open tile to place it.`);
 }
 
 function handleEditorCellPointerEnter(cell, x, y) {
@@ -1054,11 +1105,14 @@ function handleEditorCellPointerUp(x, y) {
 }
 
 document.addEventListener("pointerup", finishGridDrag);
+editorTray.addEventListener("pointerenter", handleEditorTrayPointerEnter);
+editorTray.addEventListener("pointerup", handleEditorTrayPointerUp);
 
 function beginStartDrag(cell, x, y) {
   dragState = {
     tool: "start",
     sourceId: null,
+    sourceKind: "grid",
     sourceX: editorState.agentStart.x,
     sourceY: editorState.agentStart.y,
     targetX: x,
@@ -1075,11 +1129,11 @@ function finishSelectDrag(x, y) {
   if (!dragState?.sourceId) {
     return;
   }
-  const source = editorState.entities.find((placed) => placed.entity.id === dragState.sourceId);
+  const source = selectedDragEntity();
   if (!source) {
     return;
   }
-  if (source.position.x === x && source.position.y === y) {
+  if (source.position && source.position.x === x && source.position.y === y) {
     selectedEntityId = source.entity.id;
     selectedEditorTab = "entity";
     renderEditor();
@@ -1088,15 +1142,54 @@ function finishSelectDrag(x, y) {
   const target = entityAt(x, y);
   if (target) {
     selectedEntityId = source.entity.id;
-    setEditorStatus(`${target.entity.name} already occupies that tile.`);
+    setEditorStatus(`${target.entity.id} already occupies that tile.`);
     renderEditor();
     return;
   }
   recordEditorHistory();
-  source.position = { x, y };
+  if (source.position) {
+    source.position = { x, y };
+  } else {
+    editorState.unplacedEntities = (editorState.unplacedEntities ?? []).filter((entity) => entity.id !== source.entity.id);
+    editorState.entities.push({ position: { x, y }, entity: source.entity });
+  }
   selectedEntityId = source.entity.id;
   selectedEditorTab = "entity";
-  setEditorStatus(`Moved ${source.entity.name} to (${x}, ${y}).`);
+  setEditorStatus(`Moved ${source.entity.id} to (${x}, ${y}).`);
+  renderEditor();
+}
+
+function handleEditorTrayPointerEnter() {
+  if (dragState?.tool === "select" && dragState.sourceId) {
+    updateTrayDropPreview();
+  }
+}
+
+function handleEditorTrayPointerUp() {
+  if (dragState?.tool !== "select" || !dragState.sourceId) {
+    return;
+  }
+  finishTrayDrop();
+  finishGridDrag();
+}
+
+function finishTrayDrop() {
+  const source = selectedDragEntity();
+  if (!source) {
+    return;
+  }
+  if (!source.position) {
+    selectedEntityId = source.entity.id;
+    selectedEditorTab = "entity";
+    renderEditor();
+    return;
+  }
+  recordEditorHistory();
+  editorState.entities = editorState.entities.filter((placed) => placed.entity.id !== source.entity.id);
+  editorState.unplacedEntities = [...(editorState.unplacedEntities ?? []), source.entity];
+  selectedEntityId = source.entity.id;
+  selectedEditorTab = "entity";
+  setEditorStatus(`Moved ${source.entity.id} to the tray.`);
   renderEditor();
 }
 
@@ -1137,7 +1230,7 @@ function paintPlace(x, y) {
   editorState.entities.push(entity);
   selectedEntityId = entity.entity.id;
   dragState.count += 1;
-  setEditorStatus(`Placed ${entity.entity.name}.`);
+  setEditorStatus(`Placed ${entity.entity.id}.`);
   renderEditor();
 }
 
@@ -1152,7 +1245,7 @@ function paintErase(x, y) {
     selectedEntityId = null;
   }
   dragState.count += 1;
-  setEditorStatus(`Removed ${placedEntity.entity.name}.`);
+  setEditorStatus(`Removed ${placedEntity.entity.id}.`);
   renderEditor();
 }
 
@@ -1175,8 +1268,12 @@ function recordDragHistory() {
 
 function clearDropPreview() {
   editorGrid.classList.remove("is-dragging");
+  editorTray.classList.remove("is-dragging", "is-drop-ok");
   editorGrid.querySelectorAll(".is-drag-source, .is-drop-ok, .is-drop-blocked").forEach((cell) => {
     cell.classList.remove("is-drag-source", "is-drop-ok", "is-drop-blocked");
+  });
+  editorTray.querySelectorAll(".is-drag-source").forEach((item) => {
+    item.classList.remove("is-drag-source");
   });
 }
 
@@ -1187,8 +1284,26 @@ function updateDropPreview(cell, x, y) {
   dragState.targetX = x;
   dragState.targetY = y;
   clearDropPreview();
-  applyDragClasses(editorGridCell(dragState.sourceX, dragState.sourceY), dragState.sourceX, dragState.sourceY);
+  if (dragState.sourceKind === "grid") {
+    applyDragClasses(editorGridCell(dragState.sourceX, dragState.sourceY), dragState.sourceX, dragState.sourceY);
+  } else {
+    editorTrayItem(dragState.sourceId)?.classList.add("is-drag-source");
+  }
   applyDragClasses(cell, x, y);
+}
+
+function updateTrayDropPreview() {
+  if (!dragState) {
+    return;
+  }
+  clearDropPreview();
+  editorGrid.classList.add("is-dragging");
+  editorTray.classList.add("is-dragging", "is-drop-ok");
+  if (dragState.sourceKind === "grid") {
+    applyDragClasses(editorGridCell(dragState.sourceX, dragState.sourceY), dragState.sourceX, dragState.sourceY);
+  } else {
+    editorTrayItem(dragState.sourceId)?.classList.add("is-drag-source");
+  }
 }
 
 function applyDragClasses(cell, x, y) {
@@ -1220,6 +1335,10 @@ function editorGridCell(x, y) {
   return editorGrid.querySelector(`[data-x="${x}"][data-y="${y}"]`);
 }
 
+function editorTrayItem(entityId) {
+  return [...editorTray.querySelectorAll("[data-entity-id]")].find((item) => item.dataset.entityId === entityId) ?? null;
+}
+
 function setEditorTool(tool) {
   selectedTool = tool;
   document.querySelectorAll("[data-editor-tool]").forEach((toolButton) => {
@@ -1238,7 +1357,7 @@ function editorToolHint(tool) {
 }
 
 function editorCellTitle(entity, isAgentStart, x, y) {
-  return [entity?.entity.name, isAgentStart ? "Agent start" : null, `(${x}, ${y})`].filter(Boolean).join(" - ");
+  return [entity?.entity.id, isAgentStart ? "Agent start" : null, `(${x}, ${y})`].filter(Boolean).join(" - ");
 }
 
 function setEditorTab(tab) {
@@ -1265,7 +1384,6 @@ function renderEntityForm() {
   const entity = placed.entity;
   entityForm.innerHTML = `
     <label><span>Id</span><input data-entity-field="id" type="text" value="${escapeAttribute(entity.id)}" /></label>
-    <label><span>Name</span><input data-entity-field="name" type="text" value="${escapeAttribute(entity.name)}" /></label>
     <div>
       <span class="field-label">Icon</span>
       <label class="icon-search-label">
@@ -1405,6 +1523,7 @@ function updateEntityField(input, placed) {
 
 function updateEditorAfterEntityFieldChange(field) {
   renderEditorGrid();
+  renderEditorTray();
   if (field === "id" || field === "notable") {
     renderBehaviors();
   }
@@ -1683,8 +1802,9 @@ function loadEditorDocument(document) {
       position: placed.position,
       entity: normalizeImportedEntity(placed.entity),
     })),
+    unplacedEntities: (document.map.unplaced_entities ?? []).map(normalizeImportedEntity),
   };
-  selectedEntityId = editorState.entities[0]?.entity.id ?? null;
+  selectedEntityId = editorState.entities[0]?.entity.id ?? editorState.unplacedEntities[0]?.id ?? null;
   selectedEditorTab = "entity";
   selectedBehaviorIndex = 0;
   renderEditor();
@@ -1693,7 +1813,6 @@ function loadEditorDocument(document) {
 function normalizeImportedEntity(entity) {
   return {
     id: entity.id,
-    name: entity.name,
     icon: entity.icon,
     description: entity.description,
     passable: entity.passable,
@@ -1717,6 +1836,7 @@ function buildEditorDocument() {
         position: placed.position,
         entity: normalizeEntity(placed.entity),
       })),
+      unplaced_entities: (editorState.unplacedEntities ?? []).map(normalizeEntity),
     },
   };
 }
@@ -1724,7 +1844,6 @@ function buildEditorDocument() {
 function normalizeEntity(entity) {
   return {
     id: entity.id.trim(),
-    name: entity.name.trim(),
     icon: entity.icon.trim(),
     description: entity.description.trim(),
     passable: entity.passable,
@@ -1797,11 +1916,10 @@ function effectToggleLabel(type) {
 function entitySelectHtml(selected, attributes, options = {}) {
   const allowEmpty = options.allowEmpty ?? true;
   const emptyLabel = options.emptyLabel ?? "Current entity";
-  const entityOptions = editorState.entities
-    .filter((placed) => placed.entity.notable)
-    .map((placed) => ({
-      value: placed.entity.id,
-      label: placed.entity.id,
+  const entityOptions = allEditorEntities()
+    .map((entity) => ({
+      value: entity.id,
+      label: entity.id,
     }));
   const optionHtml = [
     ...(allowEmpty ? [{ value: "", label: emptyLabel }] : []),
@@ -1915,7 +2033,7 @@ function editorValidationIssues() {
   if (!editorMapName.value.trim()) {
     issues.push("Map name is required.");
   }
-  const entityIds = editorState.entities.map((placed) => placed.entity.id.trim()).filter(Boolean);
+  const entityIds = allEditorEntities().map((entity) => entity.id.trim()).filter(Boolean);
   const entityIdSet = new Set(entityIds);
   if (entityIds.length !== new Set(entityIds).size) {
     issues.push("Entity ids must be unique.");
@@ -1924,25 +2042,25 @@ function editorValidationIssues() {
   if (positions.length !== new Set(positions).size) {
     issues.push("Only one entity may occupy each tile.");
   }
-  for (const placed of editorState.entities) {
-    for (const behavior of placed.entity.behaviors) {
+  for (const entity of allEditorEntities()) {
+    for (const behavior of entity.behaviors) {
       if (behavior.trigger.action === "use_item" && !behavior.trigger.item) {
-        issues.push(`${placed.entity.id} use item behavior needs an item.`);
+        issues.push(`${entity.id} use item behavior needs an item.`);
       }
       if (behavior.trigger.item && !entityIdSet.has(behavior.trigger.item)) {
-        issues.push(`${placed.entity.id} references missing item ${behavior.trigger.item}.`);
+        issues.push(`${entity.id} references missing item ${behavior.trigger.item}.`);
       }
       for (const condition of behavior.conditions) {
         if (condition.entity_id && !entityIdSet.has(condition.entity_id)) {
-          issues.push(`${placed.entity.id} condition references missing entity ${condition.entity_id}.`);
+          issues.push(`${entity.id} condition references missing entity ${condition.entity_id}.`);
         }
       }
       for (const effect of behavior.effects) {
         if ((effect.type === "add_inventory" || effect.type === "remove_inventory") && !effect.entity_id) {
-          issues.push(`${placed.entity.id} ${optionLabel(effectLabels, effect.type)} effect needs an entity.`);
+          issues.push(`${entity.id} ${optionLabel(effectLabels, effect.type)} effect needs an entity.`);
         }
         if (effect.entity_id && !entityIdSet.has(effect.entity_id)) {
-          issues.push(`${placed.entity.id} effect references missing entity ${effect.entity_id}.`);
+          issues.push(`${entity.id} effect references missing entity ${effect.entity_id}.`);
         }
       }
     }
@@ -1974,7 +2092,6 @@ function starterEditorState() {
     placedEntityFromDefinition(
       {
         id: "brass-key",
-        name: "Brass key",
         icon: "🔑",
         description: "A tarnished brass key.",
         passable: true,
@@ -1999,7 +2116,6 @@ function starterEditorState() {
     placedEntityFromDefinition(
       {
         id: "locked-door",
-        name: "Locked door",
         icon: "🚪",
         description: "A locked door bars the exit.",
         passable: false,
@@ -2026,13 +2142,13 @@ function starterEditorState() {
   return {
     agentStart: { x: 7, y: 8 },
     entities,
+    unplacedEntities: [],
   };
 }
 
 function wallDefinition(x, y) {
   return {
     id: `wall-${x}-${y}`,
-    name: "Wall",
     icon: "🧱",
     description: "A solid wall.",
     passable: false,
@@ -2054,18 +2170,33 @@ function createEntity(preset, x, y) {
   const id = uniqueEntityId(slugify(preset.name || preset.type));
   return {
     position: { x, y },
-    entity: {
-      id,
-      name: preset.name,
-      icon: preset.icon,
-      description: preset.description,
-      passable: preset.passable,
-      active: preset.active ?? true,
-      notable: preset.notable ?? true,
-      state: preset.state ?? "default",
-      behaviors: structuredClone(preset.behaviors ?? []),
-    },
+    entity: entityFromPreset(preset, id),
   };
+}
+
+function entityFromPreset(preset, id) {
+  return {
+    id,
+    icon: preset.icon,
+    description: preset.description,
+    passable: preset.passable,
+    active: preset.active ?? true,
+    notable: preset.notable ?? true,
+    state: preset.state ?? "default",
+    behaviors: structuredClone(preset.behaviors ?? []),
+  };
+}
+
+function addSelectedPresetToTray() {
+  recordEditorHistory();
+  const id = uniqueEntityId(slugify(selectedPreset.name || selectedPreset.type));
+  const entity = entityFromPreset(selectedPreset, id);
+  editorState.unplacedEntities = [...(editorState.unplacedEntities ?? []), entity];
+  selectedEntityId = entity.id;
+  selectedEditorTab = "entity";
+  setEditorTool("select");
+  setEditorStatus(`Added ${entity.id} to the tray.`);
+  renderEditor();
 }
 
 function defaultBehavior() {
@@ -2096,11 +2227,33 @@ function defaultEffect(type) {
 }
 
 function selectedPlacedEntity() {
-  return editorState.entities.find((placed) => placed.entity.id === selectedEntityId) ?? null;
+  return (
+    editorState.entities.find((placed) => placed.entity.id === selectedEntityId) ??
+    selectedUnplacedEntityRecord() ??
+    null
+  );
 }
 
 function selectedEntity() {
   return selectedPlacedEntity()?.entity ?? null;
+}
+
+function selectedUnplacedEntityRecord() {
+  const entity = (editorState.unplacedEntities ?? []).find((candidate) => candidate.id === selectedEntityId);
+  return entity ? { entity, position: null } : null;
+}
+
+function selectedDragEntity() {
+  const placed = editorState.entities.find((candidate) => candidate.entity.id === dragState.sourceId);
+  if (placed) {
+    return placed;
+  }
+  const entity = (editorState.unplacedEntities ?? []).find((candidate) => candidate.id === dragState.sourceId);
+  return entity ? { entity, position: null } : null;
+}
+
+function allEditorEntities() {
+  return [...editorState.entities.map((placed) => placed.entity), ...(editorState.unplacedEntities ?? [])];
 }
 
 function entityAt(x, y) {
@@ -2110,7 +2263,7 @@ function entityAt(x, y) {
 function uniqueEntityId(base) {
   let candidate = base || "entity";
   let suffix = 2;
-  const existing = new Set(editorState.entities.map((placed) => placed.entity.id));
+  const existing = new Set(allEditorEntities().map((entity) => entity.id));
   while (existing.has(candidate)) {
     candidate = `${base}-${suffix}`;
     suffix += 1;

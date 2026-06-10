@@ -86,24 +86,22 @@ def test_run_model_escape_stops_when_sanity_reaches_zero():
     assert len(provider.requests) == 2
 
 
-def test_run_model_escape_shows_journal_to_later_turns():
-    provider = ScriptedProvider(
-        (
-            f'{{"action":"write_note","text":"The key should open the door.","emotion":"{EMOTION_JSON}"}}',
-            f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
-            f'{{"action":"use_item","item":"brass-key","target":"locked-door","emotion":"{EMOTION_JSON}"}}',
-        )
+def test_run_model_escape_stops_when_no_actions_are_available():
+    game_map = GameMap.model_validate(
+        {
+            "id": "empty-room",
+            "name": "Empty Room",
+            "agent_start": {"x": 3, "y": 4},
+            "entities": [],
+        }
     )
+    provider = ScriptedProvider(())
 
-    result = run_model_escape(provider=provider)
+    result = run_model_escape(provider=provider, game_map=game_map)
 
-    second_turn_prompt = provider.requests[2].messages[-1].content
-    assert result.escaped is True
-    assert result.journal == ("The key should open the door.",)
-    assert result.frames[1].action_label == "note"
-    assert "Objective:" not in second_turn_prompt
-    assert "Your notes:\n- The key should open the door." in second_turn_prompt
-    assert "Journal:" not in second_turn_prompt
+    assert result.status == "No available actions remain before the model escaped."
+    assert provider.requests == []
+    assert "Action: none" in result.transcript
 
 
 def test_run_model_escape_offers_use_item_on_visible_distant_door_after_key_pickup():
@@ -138,7 +136,6 @@ def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_ite
     action_prompt = provider.requests[1].messages[-1].content
     assert "- pick_up(target)" in action_prompt
     assert "- open(target)" in action_prompt
-    assert "- write_note(text)" in action_prompt
     assert "target: one of brass-key" not in action_prompt
     assert result.frames[-1].position == "(8, 8)"
 

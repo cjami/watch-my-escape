@@ -7,7 +7,6 @@ from watch_my_escape.game.models import BehaviorContext, BehaviorResult, Entity,
 def test_entity_defaults_to_default_state_and_no_behaviors():
     entity = Entity(
         id="stone-wall",
-        name="Stone wall",
         icon="#",
         description="Cold stone blocks line this side of the room.",
         passable=False,
@@ -20,11 +19,10 @@ def test_entity_defaults_to_default_state_and_no_behaviors():
     assert entity.behaviors == ()
 
 
-@pytest.mark.parametrize("field", ["id", "name", "icon", "description"])
+@pytest.mark.parametrize("field", ["id", "icon", "description"])
 def test_entity_rejects_blank_required_text_fields(field):
     payload = {
         "id": "brass-key",
-        "name": "Brass key",
         "icon": "key",
         "description": "A tarnished brass key.",
         "passable": True,
@@ -40,7 +38,6 @@ def test_entity_rejects_extra_fields():
         Entity.model_validate(
             {
                 "id": "brass-key",
-                "name": "Brass key",
                 "icon": "key",
                 "description": "A tarnished brass key.",
                 "passable": True,
@@ -53,7 +50,6 @@ def test_entity_json_round_trip_with_behavior():
     entity = Entity.model_validate(
         {
             "id": "brass-key",
-            "name": "Brass key",
             "icon": "key",
             "description": "A tarnished brass key.",
             "passable": True,
@@ -75,7 +71,6 @@ def test_examine_behavior_returns_message_text():
     entity = Entity.model_validate(
         {
             "id": "clock",
-            "name": "Wall clock",
             "icon": "clock",
             "description": "A stopped wall clock.",
             "passable": False,
@@ -102,7 +97,6 @@ def test_pick_up_behavior_adds_item_to_inventory():
     entity = Entity.model_validate(
         {
             "id": "brass-key",
-            "name": "Brass key",
             "icon": "key",
             "description": "A tarnished brass key.",
             "passable": True,
@@ -134,7 +128,6 @@ def test_pick_up_behavior_adds_item_to_inventory():
 def test_lever_behavior_can_change_another_entity_when_condition_matches():
     door = Entity(
         id="north-door",
-        name="North door",
         icon="door",
         description="A heavy locked door.",
         passable=False,
@@ -143,7 +136,6 @@ def test_lever_behavior_can_change_another_entity_when_condition_matches():
     lever = Entity.model_validate(
         {
             "id": "brass-lever",
-            "name": "Brass lever",
             "icon": "lever",
             "description": "A lever set into the wall.",
             "passable": False,
@@ -179,7 +171,6 @@ def test_behavior_conditions_that_do_not_match_produce_no_effects():
     entity = Entity.model_validate(
         {
             "id": "brass-lever",
-            "name": "Brass lever",
             "icon": "lever",
             "description": "A lever set into the wall.",
             "passable": False,
@@ -207,7 +198,6 @@ def test_use_item_behavior_can_match_inventory_item():
     entity = Entity.model_validate(
         {
             "id": "locked-door",
-            "name": "Locked door",
             "icon": "door",
             "description": "A locked door.",
             "passable": False,
@@ -241,7 +231,6 @@ def test_talk_to_behavior_matches_normalized_phrase():
     entity = Entity.model_validate(
         {
             "id": "gatekeeper",
-            "name": "Gatekeeper",
             "icon": "guard",
             "description": "A guard waits for the password.",
             "passable": False,

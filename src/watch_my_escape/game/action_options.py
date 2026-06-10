@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, Field, RootModel, create_model
 
-from watch_my_escape.game.actions import ActionBase, NoteText, SpokenText
+from watch_my_escape.game.actions import ActionBase, SpokenText
 from watch_my_escape.game.emotions import Emotion
 from watch_my_escape.game.maps import visible_notable_entities
 
@@ -26,7 +26,6 @@ ACTION_DESCRIPTIONS = {
     "talk_to": "Say something to an object or character.",
     "use": "Use an object directly.",
     "use_item": "Use an inventory item on a target.",
-    "write_note": "Write a note for yourself.",
 }
 type ActionFilter = frozenset[str] | None
 type ActionFilterKey = tuple[str, ...] | None
@@ -36,7 +35,7 @@ def build_available_action_model(
     session: GameSessionState,
     *,
     actions: ActionFilter = None,
-) -> type[BaseModel]:
+) -> type[BaseModel] | None:
     """Return an action model constrained to currently possible actions."""
     visible_targets = tuple(placed.entity.id for placed in visible_notable_entities(session))
     items = tuple(dict.fromkeys(session.inventory))
@@ -53,16 +52,14 @@ def _build_available_action_model(
     items: tuple[str, ...],
     visible_targets: tuple[str, ...],
     actions: ActionFilterKey,
-) -> type[BaseModel]:
+) -> type[BaseModel] | None:
     models: list[type[BaseModel]] = []
-    models.extend(_entity_action_models(visible_targets=visible_targets, actions=actions))
+    models.extend(_entity_action_models(visible_targets=visible_targets, items=items, actions=actions))
     if _allows(actions, "use_item"):
         models.extend(_use_item_models(items=items, visible_targets=visible_targets))
-    if _allows(actions, "write_note"):
-        models.append(_write_note_model())
 
     if not models:
-        models.append(_write_note_model())
+        return None
 
     if len(models) == 1:
         return models[0]
@@ -75,16 +72,17 @@ def _build_available_action_model(
 def _entity_action_models(
     *,
     visible_targets: tuple[str, ...],
+    items: tuple[str, ...],
     actions: ActionFilterKey,
 ) -> list[type[BaseModel]]:
-    if not visible_targets:
-        return []
-
-    target_type = _literal(visible_targets)
     models: list[type[BaseModel]] = []
     for action in ENTITY_ACTIONS:
         if not _allows(actions, action):
             continue
+        targets = visible_targets if action == "pick_up" else _direct_action_targets(visible_targets, items)
+        if not targets:
+            continue
+        target_type = _literal(targets)
         if action == "talk_to":
             models.append(
                 create_model(
@@ -135,15 +133,8 @@ def _use_item_targets(*, visible_targets: tuple[str, ...], items: tuple[str, ...
     return tuple(dict.fromkeys((*visible_targets, *items)))
 
 
-def _write_note_model() -> type[BaseModel]:
-    return create_model(
-        "AvailableWriteNoteAction",
-        __base__=ActionBase,
-        __doc__=ACTION_DESCRIPTIONS["write_note"],
-        action=(Literal["write_note"], ...),
-        text=(NoteText, ...),
-        emotion=(Emotion, ...),
-    )
+def _direct_action_targets(visible_targets: tuple[str, ...], items: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys((*visible_targets, *items)))
 
 
 def _model_name(action: str) -> str:

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from watch_my_escape.llm.models import ChatMessage
 
 PROMPT_TEMPLATE_PACKAGE = "watch_my_escape.agent.prompt_templates"
+RECENT_ACTION_LIMIT = 5
 
 
 def build_deliberation_messages(
@@ -64,7 +65,8 @@ def _load_prompt_template(file_name: str) -> str:
 
 
 def _turn_context(*, game_state: str, history: tuple[str, ...]) -> str:
-    history_text = "\n".join(f"- {entry}" for entry in history) if history else "- No recent actions."
+    recent_history = history[-RECENT_ACTION_LIMIT:]
+    history_text = "\n".join(f"- {entry}" for entry in recent_history) if recent_history else "- No recent actions."
     return f"Game state:\n{game_state.strip()}\n\nRecent actions:\n{history_text}"
 
 

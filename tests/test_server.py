@@ -70,7 +70,6 @@ def test_escape_run_response_reports_model_configuration_error(monkeypatch):
     assert response["sanity"] == "100"
     assert response["visible_entities"] == "- None."
     assert response["inventory"] == "- Empty."
-    assert response["journal"] == "- No notes recorded."
     assert response["visibility"] == ""
     assert "Configure WME_MODEL_PATH" in response["transcript"]
 
@@ -79,9 +78,8 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
     class FakeResult:
         status = "Escaped with 98 sanity remaining."
         sanity = 98
-        visible_entities = ("locked-door: Locked door. A locked door bars the exit.",)
+        visible_entities = ("locked-door: A locked door bars the exit.",)
         inventory = ("brass-key",)
-        journal = ("The key should open the door.",)
         map_view = ((".", "door"), ("key", "."))
         visibility_view = ((True, False), (False, True))
         transcript = "Turn 1 - sanity 100 -> 99"
@@ -92,9 +90,8 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
 
     assert response["status"] == "Escaped with 98 sanity remaining."
     assert response["sanity"] == "98"
-    assert response["visible_entities"] == "- locked-door: Locked door. A locked door bars the exit."
+    assert response["visible_entities"] == "- locked-door: A locked door bars the exit."
     assert response["inventory"] == "- brass-key"
-    assert response["journal"] == "- The key should open the door."
     assert response["map"] == ". door\nkey ."
     assert response["visibility"] == "1 0\n0 1"
     assert response["transcript"] == "Turn 1 - sanity 100 -> 99"
@@ -109,9 +106,8 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             escaped=False,
             sanity=99,
             position="(8, 8)",
-            visible_entities=("locked-door: Locked door. A locked door bars the exit.",),
+            visible_entities=("locked-door: A locked door bars the exit.",),
             inventory=("brass-key",),
-            journal=("The key opens the door.",),
             map_view=((".", "\U0001f642"), ("\U0001f511", "\U0001f6aa")),
             visibility_view=((True, True), (False, True)),
             transcript="Turn 1 - sanity 100 -> 99",
@@ -176,7 +172,6 @@ def test_map_validation_accepts_export_document():
                         "position": {"x": 2, "y": 1},
                         "entity": {
                             "id": "exit",
-                            "name": "Exit",
                             "icon": "\U0001f3c1",
                             "description": "The way out.",
                             "passable": True,

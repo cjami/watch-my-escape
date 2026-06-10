@@ -1,3 +1,4 @@
+from watch_my_escape.agent.prompts import build_deliberation_messages
 from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
 from watch_my_escape.game.actions import EscapeRoomAction, ExamineAction
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
@@ -94,3 +95,16 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
     assert isinstance(result.action, EscapeRoomAction)
     assert isinstance(result.action.root, ExamineAction)
     assert result.action.root.target == "brass key"
+
+
+def test_recent_actions_are_limited_to_last_five_entries():
+    messages = build_deliberation_messages(
+        game_state="A brass key rests on a table.",
+        action_model=EscapeRoomAction,
+        history=tuple(f"Action {index}" for index in range(1, 7)),
+    )
+
+    prompt = messages[-1].content
+    assert "Action 1" not in prompt
+    assert "Action 2" in prompt
+    assert "Action 6" in prompt

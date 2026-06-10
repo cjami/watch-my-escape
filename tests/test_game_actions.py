@@ -12,7 +12,6 @@ from watch_my_escape.game.actions import (
     TalkToAction,
     UseAction,
     UseItemAction,
-    WriteNoteAction,
 )
 from watch_my_escape.game.emotions import EMOTION_TO_EMOJI, emotion_to_emoji
 
@@ -29,7 +28,6 @@ from watch_my_escape.game.emotions import EMOTION_TO_EMOJI, emotion_to_emoji
         (PushAction, {"action": "push", "target": "red button", "emotion": "worried"}),
         (PullAction, {"action": "pull", "target": "lever", "emotion": "frustrated"}),
         (TalkToAction, {"action": "talk_to", "target": "guard", "text": "silver moon", "emotion": "neutral"}),
-        (WriteNoteAction, {"action": "write_note", "text": "The dial stopped at 12.", "emotion": "confused"}),
     ],
 )
 def test_allowed_actions_require_known_emotion_word(model, payload):

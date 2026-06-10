@@ -114,7 +114,6 @@ class Entity(StrictModel):
     """A room object that can occupy a map spot and react to actions."""
 
     id: Annotated[str, Field(min_length=1)]
-    name: Annotated[str, Field(min_length=1)]
     icon: Annotated[str, Field(min_length=1)]
     description: Annotated[str, Field(min_length=1)]
     passable: bool

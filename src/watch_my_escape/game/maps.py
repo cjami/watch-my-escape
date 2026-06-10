@@ -58,6 +58,7 @@ class GameMap(StrictModel):
     id: Annotated[str, Field(min_length=1)]
     name: Annotated[str, Field(min_length=1)]
     entities: tuple[PlacedEntity, ...] = ()
+    unplaced_entities: tuple[Entity, ...] = ()
     agent_start: Coordinate
     width: Literal[16] = MAP_SIZE
     height: Literal[16] = MAP_SIZE
@@ -65,7 +66,7 @@ class GameMap(StrictModel):
     @model_validator(mode="after")
     def validate_map(self) -> Self:
         """Validate global ids and behavior references."""
-        entity_ids = [placed.entity.id for placed in self.entities]
+        entity_ids = [entity.id for entity in self.all_entities()]
         if len(set(entity_ids)) != len(entity_ids):
             msg = "entity ids must be unique across the map"
             raise ValueError(msg)
@@ -78,9 +79,13 @@ class GameMap(StrictModel):
         self._validate_behavior_references(self.entities_by_id())
         return self
 
+    def all_entities(self) -> tuple[Entity, ...]:
+        """Return placed and unplaced entities in authoring order."""
+        return (*tuple(placed.entity for placed in self.entities), *self.unplaced_entities)
+
     def entities_by_id(self) -> dict[str, Entity]:
         """Return all entities keyed by global id."""
-        return {placed.entity.id: placed.entity for placed in self.entities}
+        return {entity.id: entity for entity in self.all_entities()}
 
     def entities_at(self, position: Coordinate) -> tuple[PlacedEntity, ...]:
         """Return placed entities at one coordinate."""
@@ -120,7 +125,6 @@ class GameSessionState(StrictModel):
     map: GameMap
     agent_position: Coordinate | None = None
     inventory: tuple[str, ...] = ()
-    notes: tuple[str, ...] = ()
     escaped: bool = False
 
     @model_validator(mode="before")
@@ -157,7 +161,7 @@ class GameSessionState(StrictModel):
             if placed.entity.active and not placed.entity.passable
         ]
         if blockers:
-            blocker_names = ", ".join(blocker.name for blocker in blockers)
+            blocker_names = ", ".join(blocker.id for blocker in blockers)
             msg = f"cannot move {direction}: blocked by {blocker_names}"
             raise MoveBlockedError(msg)
 
@@ -377,7 +381,7 @@ def _render_visible_entity_lines(visible_entities: tuple[PlacedEntity, ...]) -> 
     if not notable_entities:
         return ["- None."]
     return [
-        f"- {placed.entity.id}: {placed.entity.name}. {_render_entity_description(placed.entity)}"
+        f"- {placed.entity.id}: {_render_entity_description(placed.entity)}"
         for placed in sorted(notable_entities, key=lambda item: (item.position.y, item.position.x, item.entity.id))
     ]
 
@@ -394,7 +398,11 @@ def _apply_entity_updates(game_map: GameMap, updates: dict[str, EntityUpdate]) -
         update={
             "entities": tuple(
                 _updated_placed_entity(placed, updates.get(placed.entity.id)) for placed in game_map.entities
-            )
+            ),
+            "unplaced_entities": tuple(
+                _updated_entity(entity, updates[entity.id]) if entity.id in updates else entity
+                for entity in game_map.unplaced_entities
+            ),
         }
     )
 

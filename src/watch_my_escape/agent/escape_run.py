@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from watch_my_escape.agent.emotions import emotion_to_emoji
 from watch_my_escape.agent.prompts import build_action_messages, build_deliberation_messages
@@ -42,7 +42,6 @@ class EscapeRunFrame:
     position: str
     visible_entities: tuple[str, ...]
     inventory: tuple[str, ...]
-    journal: tuple[str, ...]
     map_view: tuple[tuple[str, ...], ...]
     transcript: str
     status: str
@@ -59,18 +58,11 @@ class EscapeRunResult:
     sanity: int
     visible_entities: tuple[str, ...]
     inventory: tuple[str, ...]
-    journal: tuple[str, ...]
     map_view: tuple[tuple[str, ...], ...]
     transcript: str
+    status: str
     frames: tuple[EscapeRunFrame, ...] = ()
     visibility_view: tuple[tuple[bool, ...], ...] = ()
-
-    @property
-    def status(self) -> str:
-        """Return a concise user-facing final status."""
-        if self.escaped:
-            return f"Escaped with {self.sanity} sanity remaining."
-        return "Sanity reached 0 before the model escaped."
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,9 +105,9 @@ def run_model_escape(
         sanity=final_frame.sanity,
         visible_entities=final_frame.visible_entities,
         inventory=final_frame.inventory,
-        journal=final_frame.journal,
         map_view=final_frame.map_view,
         transcript=final_frame.transcript,
+        status=final_frame.status,
         frames=frames,
         visibility_view=final_frame.visibility_view,
     )
@@ -151,11 +143,26 @@ def run_model_escape_steps(
     while sanity > 0 and not session.escaped:
         turn_number = len(transcript) + 1
         game_state = render_game_state_for_agent(session, sanity)
+        action_model = build_available_action_model(session)
+        if action_model is None:
+            status = "No available actions remain before the model escaped."
+            transcript.append(
+                "\n".join(
+                    [
+                        f"Turn {turn_number} - sanity {sanity} -> {sanity}",
+                        "Action: none",
+                        f"Result: {status}",
+                        _position_line(session),
+                    ]
+                )
+            )
+            yield _frame(session, sanity, transcript, status)
+            break
         try:
             result = _run_escape_turn(
                 provider=resolved_provider,
-                session=session,
                 game_state=game_state,
+                action_model=action_model,
                 history=tuple(history),
             )
         except EscapeTurnActionError as exc:
@@ -239,7 +246,6 @@ def _frame(
         position=_position_text(session),
         visible_entities=_visible_entity_text(session),
         inventory=session.inventory,
-        journal=session.notes,
         map_view=render_user_map_view(session, agent_icon=presentation.agent_icon),
         transcript="\n\n".join(transcript),
         status=status,
@@ -278,13 +284,11 @@ def _visible_entity_text(session: GameSessionState) -> tuple[str, ...]:
 
 
 def _placed_entity_text(placed: PlacedEntity) -> str:
-    return f"{placed.entity.id}: {placed.entity.name}. {placed.entity.description}"
+    return f"{placed.entity.id}: {placed.entity.description}"
 
 
 def _history_action_text(action: EscapeRoomAction) -> str:
     root = action.root
-    if root.action == "write_note":
-        return f"write_note: {root.text}"
     if root.action == "talk_to":
         return f"talk_to {root.target}: {root.text}"
     if root.action == "use_item":
@@ -298,7 +302,6 @@ def _action_label(action: EscapeRoomAction) -> str:
         "pick_up": "pick up",
         "talk_to": "talk",
         "use_item": "use",
-        "write_note": "note",
     }
     return labels.get(action_name, action_name.replace("_", " "))
 
@@ -306,12 +309,11 @@ def _action_label(action: EscapeRoomAction) -> str:
 def _run_escape_turn(
     *,
     provider: InferenceProvider,
-    session: GameSessionState,
     game_state: str,
+    action_model: type[BaseModel],
     history: tuple[str, ...],
 ) -> ThinkActResult:
     settings = ThinkActSettings()
-    action_model = build_available_action_model(session)
     deliberation_response = provider.complete(
         InferenceRequest(
             messages=build_deliberation_messages(

@@ -10,7 +10,6 @@ from watch_my_escape.game.actions import (
     EscapeRoomAction,
     TalkToAction,
     UseItemAction,
-    WriteNoteAction,
 )
 from watch_my_escape.game.maps import (
     GameSessionState,
@@ -41,19 +40,26 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
     next_sanity = max(0, sanity - 1)
     root = action.root
 
-    if isinstance(root, WriteNoteAction):
-        updated_session = session.model_copy(update={"notes": (*session.notes, root.text)})
-        return AppliedAction(session=updated_session, sanity=next_sanity, message=f"Journal updated: {root.text}")
-
     if isinstance(root, UseItemAction):
         return _apply_use_item_action(session, next_sanity, root)
+
+    inventory_target = _resolve_inventory_target(session, root.target)
+    if inventory_target is not None and root.action != "pick_up":
+        text = root.text if isinstance(root, TalkToAction) else None
+        behavior_result = session.evaluate_entity_action(inventory_target.id, root.action, text=text)
+        updated_session = session.apply_behavior_result(behavior_result)
+        return AppliedAction(
+            session=updated_session,
+            sanity=next_sanity,
+            message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
+        )
 
     target = _resolve_visible_target(session, root.target)
     if target is None:
         return AppliedAction(
             session=session,
             sanity=next_sanity,
-            message=f"Cannot {root.action} {root.target!r}: no active target matches.",
+            message=f"Cannot {root.action} {root.target!r}: no active or inventory target matches.",
         )
 
     try:
@@ -87,7 +93,6 @@ def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
         [
             f"Sanity: {sanity}/100",
             _render_inventory(session),
-            _render_journal(session),
             render_agent_view(session),
         ]
     )
@@ -96,23 +101,7 @@ def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
 def _render_inventory(session: GameSessionState) -> str:
     if not session.inventory:
         return "Inventory (items you are carrying):\n- Empty."
-    entities = session.map.entities_by_id()
-    return "Inventory (items you are carrying):\n" + "\n".join(
-        f"- {_inventory_item_text(item, entities)}" for item in session.inventory
-    )
-
-
-def _inventory_item_text(item: str, entities: dict[str, Entity]) -> str:
-    entity = entities.get(item)
-    if entity is None:
-        return item
-    return f"{item}: {entity.name}"
-
-
-def _render_journal(session: GameSessionState) -> str:
-    if not session.notes:
-        return "Your notes:\n- You have not recorded any notes."
-    return "Your notes:\n" + "\n".join(f"- {note}" for note in session.notes)
+    return "Inventory (items you are carrying):\n" + "\n".join(f"- {item}" for item in session.inventory)
 
 
 def _session_after_path(session: GameSessionState, path: tuple[Coordinate, ...]) -> GameSessionState:
@@ -192,8 +181,7 @@ def _resolve_inventory_target(session: GameSessionState, target: str) -> Entity 
 
 
 def _target_matches(placed: PlacedEntity, target: str) -> bool:
-    normalized_target = target.casefold()
-    return placed.entity.id.casefold() == normalized_target or placed.entity.name.casefold() == normalized_target
+    return placed.entity.id.casefold() == target.casefold()
 
 
 def nearby_visible_entities(session: GameSessionState) -> tuple[PlacedEntity, ...]:

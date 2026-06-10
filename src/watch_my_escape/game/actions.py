@@ -15,7 +15,6 @@ type Target = Annotated[
     str,
     Field(min_length=1, description="Another inventory item or a visible object."),
 ]
-type NoteText = Annotated[str, Field(min_length=1, description="Text to record for later use.")]
 
 
 class ActionBase(BaseModel):
@@ -98,14 +97,6 @@ class TalkToAction(ActionBase):
     emotion: Emotion
 
 
-class WriteNoteAction(ActionBase):
-    """Keep track of important information in your journal."""
-
-    action: Literal["write_note"]
-    text: NoteText
-    emotion: Emotion
-
-
 class EscapeRoomAction(
     RootModel[
         Annotated[
@@ -117,8 +108,7 @@ class EscapeRoomAction(
             | ExamineAction
             | PushAction
             | PullAction
-            | TalkToAction
-            | WriteNoteAction,
+            | TalkToAction,
             Field(discriminator="action"),
         ]
     ]

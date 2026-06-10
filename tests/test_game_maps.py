@@ -33,6 +33,21 @@ def test_map_rejects_duplicate_entity_ids():
         GameMap.model_validate(payload)
 
 
+def test_map_rejects_duplicate_ids_across_placed_and_unplaced_entities():
+    payload = _map_payload()
+    payload["unplaced_entities"] = [
+        {
+            "id": "brass-key",
+            "icon": "key",
+            "description": "A duplicate key.",
+            "passable": True,
+        }
+    ]
+
+    with pytest.raises(ValidationError, match="entity ids"):
+        GameMap.model_validate(payload)
+
+
 def test_map_rejects_duplicate_entity_positions():
     payload = _map_payload()
     payload["entities"][1]["position"] = {"x": 1, "y": 2}
@@ -67,6 +82,49 @@ def test_map_rejects_unknown_inventory_entity_references():
         GameMap.model_validate(payload)
 
 
+def test_map_accepts_behavior_references_to_unplaced_entities():
+    payload = _map_payload()
+    payload["unplaced_entities"] = [
+        {
+            "id": "hidden-note",
+            "icon": "note",
+            "description": "A folded clue.",
+            "passable": True,
+            "state": "folded",
+        }
+    ]
+    payload["entities"][0]["entity"]["behaviors"] = [
+        {
+            "trigger": {"action": "open"},
+            "effects": [
+                {"type": "add_inventory", "entity_id": "hidden-note"},
+                {"type": "set_entity_state", "entity_id": "hidden-note", "state": "readable"},
+            ],
+        }
+    ]
+
+    game_map = GameMap.model_validate(payload)
+
+    assert game_map.entities_by_id()["hidden-note"].state == "folded"
+
+
+def test_map_json_round_trip_includes_unplaced_entities():
+    payload = _map_payload()
+    payload["unplaced_entities"] = [
+        {
+            "id": "hidden-note",
+            "icon": "note",
+            "description": "A folded clue.",
+            "passable": True,
+        }
+    ]
+
+    game_map = GameMap.model_validate(payload)
+    restored = GameMap.model_validate_json(game_map.model_dump_json())
+
+    assert restored.unplaced_entities[0].id == "hidden-note"
+
+
 def test_agent_view_uses_visibility_from_passable_cells_and_blockers():
     session = GameSessionState(map=GameMap.model_validate(_map_payload()))
 
@@ -74,8 +132,8 @@ def test_agent_view_uses_visibility_from_passable_cells_and_blockers():
 
     assert "Position:" not in view
     assert "(1, 1)" not in view
-    assert "- brass-key: Brass key." in view
-    assert "- locked-door: Locked door." in view
+    assert "- brass-key: A tarnished brass key." in view
+    assert "- locked-door: A heavy door." in view
     assert "target brass-key" not in view
     assert "secret-note" not in view
     assert "remote-hatch" not in view
@@ -104,7 +162,7 @@ def test_agent_view_can_interpolate_entity_state_in_descriptions():
 
     view = render_agent_view(session)
 
-    assert "- locked-door: Locked door. A heavy door. It is locked." in view
+    assert "- locked-door: A heavy door. It is locked." in view
     assert "{state}" not in view
 
 
@@ -196,7 +254,6 @@ def _map_payload():
                 "position": {"x": 1, "y": 2},
                 "entity": {
                     "id": "brass-key",
-                    "name": "Brass key",
                     "icon": "🔑",
                     "description": "A tarnished brass key.",
                     "passable": True,
@@ -219,7 +276,6 @@ def _map_payload():
                     "position": {"x": 2, "y": y},
                     "entity": {
                         "id": f"wall-{y}",
-                        "name": "Wall",
                         "icon": "🧱",
                         "description": "A solid wall.",
                         "passable": False,
@@ -232,7 +288,6 @@ def _map_payload():
                 "position": {"x": 1, "y": 3},
                 "entity": {
                     "id": "secret-note",
-                    "name": "Secret note",
                     "icon": "📝",
                     "description": "A hidden note.",
                     "passable": True,
@@ -243,7 +298,6 @@ def _map_payload():
                 "position": {"x": 2, "y": 1},
                 "entity": {
                     "id": "locked-door",
-                    "name": "Locked door",
                     "icon": "🚪",
                     "description": "A heavy door.",
                     "passable": False,
@@ -259,7 +313,6 @@ def _map_payload():
                 "position": {"x": 3, "y": 1},
                 "entity": {
                     "id": "remote-hatch",
-                    "name": "Remote hatch",
                     "icon": "🕳️",
                     "description": "A hatch out of the facility.",
                     "passable": True,
@@ -285,7 +338,6 @@ def _interior_corner_payload():
                 "position": {"x": x, "y": y},
                 "entity": {
                     "id": entity_id,
-                    "name": "Wall",
                     "icon": "#",
                     "description": "A wall.",
                     "passable": False,
