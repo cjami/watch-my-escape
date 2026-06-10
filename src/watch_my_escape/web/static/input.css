@@ -967,6 +967,7 @@
   }
 
   .map-view {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(16, minmax(0, 1fr));
     width: 100%;
@@ -988,7 +989,6 @@
 
   .map-tile {
     position: relative;
-    container-type: inline-size;
     display: grid;
     min-width: 0;
     aspect-ratio: 1;
@@ -1082,15 +1082,15 @@
   .action-label {
     position: absolute;
     z-index: 4;
-    top: 50%;
-    left: 50%;
+    top: 0;
+    left: 0;
     display: block;
-    max-width: 94%;
+    max-width: min(22%, 8rem);
     overflow: hidden;
     color: #fff7c2;
     font-family:
       "Silkscreen Local", "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: clamp(0.34rem, 19cqw, 0.52rem);
+    font-size: clamp(0.42rem, 1.35vw, 0.68rem);
     font-weight: 400;
     letter-spacing: 0;
     line-height: 1;
@@ -1104,16 +1104,28 @@
       0 0 6px rgb(255 212 71 / 46%),
       0 2px 0 rgb(0 0 0 / 72%);
     text-transform: uppercase;
-    transform: translate(-50%, -50%);
+    translate: -50% -100%;
     white-space: nowrap;
     animation: action-label-float 1.4s steps(12, end) both;
   }
 
-  .action-label.is-on-agent {
-    top: 9%;
-    max-width: 100%;
-    font-size: clamp(0.3rem, 17cqw, 0.44rem);
-    transform: translate(-50%, 0);
+  .action-label.is-below {
+    translate: -50% 0;
+  }
+
+  .action-label.is-right {
+    translate: 0 -50%;
+  }
+
+  .action-label.is-left {
+    text-align: right;
+    translate: -100% -50%;
+  }
+
+  .action-label.is-agent {
+    max-width: 6%;
+    font-size: clamp(0.34rem, 1vw, 0.5rem);
+    translate: -50% -50%;
   }
 
   .preset-icon .pixel-sprite,
@@ -1919,18 +1931,18 @@
   @keyframes action-label-float {
     0% {
       opacity: 0;
-      transform: translate(-50%, -34%) scale(0.94);
+      transform: translateY(0.18rem) scale(0.94);
     }
 
     18%,
     72% {
       opacity: 0.82;
-      transform: translate(-50%, -50%) scale(1);
+      transform: translateY(0) scale(1);
     }
 
     100% {
       opacity: 0;
-      transform: translate(-50%, -66%) scale(0.98);
+      transform: translateY(-0.18rem) scale(0.98);
     }
   }
 
