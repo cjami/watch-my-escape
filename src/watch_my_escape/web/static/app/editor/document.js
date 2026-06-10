@@ -1,0 +1,151 @@
+import { downloadJson } from "../shared/downloads.js";
+import { formatValidationError, slugify } from "../shared/strings.js";
+
+import { mapSize } from "./constants.js";
+
+export function createEditorDocuments({ context, recordHistory, renderEditor }) {
+  let validation = null;
+
+  function setValidation(validationApi) {
+    validation = validationApi;
+  }
+
+  async function exportEditorMap() {
+    const localIssues = validation.issues();
+    if (localIssues.length) {
+      const message = localIssues.slice(0, 3).join(" ");
+      validation.updateState("invalid", message);
+      context.setStatus(`Validation failed: ${message}`);
+      return;
+    }
+    const payload = buildEditorDocument();
+    const response = await fetch("/maps/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      context.setStatus(`Validation failed: ${formatValidationError(error)}`);
+      return;
+    }
+    const normalized = await response.json();
+    downloadJson(`${normalized.map.id}.json`, normalized);
+    validation.updateState("valid", "Map is valid.");
+    context.setStatus("Map validated and exported.");
+  }
+
+  async function importEditorMap() {
+    const [file] = context.dom.importMapFile.files;
+    context.dom.importMapFile.value = "";
+    if (!file) {
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(await file.text());
+    } catch {
+      context.setStatus("Import failed: JSON could not be parsed.");
+      return;
+    }
+
+    const response = await fetch("/maps/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      context.setStatus(`Import failed: ${formatValidationError(error)}`);
+      return;
+    }
+
+    const normalized = await response.json();
+    recordHistory();
+    loadEditorDocument(normalized);
+    context.setStatus(`Imported ${normalized.map.name}.`);
+  }
+
+  function loadEditorDocument(document) {
+    context.dom.editorDescription.value = document.description;
+    context.dom.editorMapName.value = document.map.name || document.map.id;
+    context.editorState = {
+      agentStart: document.map.agent_start,
+      entities: document.map.entities.map((placed) => ({
+        position: placed.position,
+        entity: normalizeImportedEntity(placed.entity),
+      })),
+      unplacedEntities: (document.map.unplaced_entities ?? []).map(normalizeImportedEntity),
+    };
+    context.selectedEntityId = context.editorState.entities[0]?.entity.id ?? context.editorState.unplacedEntities[0]?.id ?? null;
+    context.selectedEditorTab = "entity";
+    context.selectedBehaviorIndex = 0;
+    renderEditor();
+  }
+
+  function buildEditorDocument() {
+    return {
+      description: context.dom.editorDescription.value.trim(),
+      map: {
+        id: slugify(context.dom.editorMapName.value) || "new-escape-room",
+        name: context.dom.editorMapName.value.trim(),
+        agent_start: context.editorState.agentStart,
+        width: mapSize,
+        height: mapSize,
+        entities: context.editorState.entities.map((placed) => ({
+          position: placed.position,
+          entity: normalizeEntity(placed.entity),
+        })),
+        unplaced_entities: (context.editorState.unplacedEntities ?? []).map(normalizeEntity),
+      },
+    };
+  }
+
+  return {
+    buildEditorDocument,
+    exportEditorMap,
+    importEditorMap,
+    loadEditorDocument,
+    setValidation,
+  };
+}
+
+function normalizeImportedEntity(entity) {
+  return {
+    id: entity.id,
+    icon: entity.icon,
+    description: entity.description,
+    passable: entity.passable,
+    active: entity.active,
+    notable: entity.notable,
+    state: entity.state,
+    behaviors: entity.behaviors ?? [],
+  };
+}
+
+function normalizeEntity(entity) {
+  return {
+    id: entity.id.trim(),
+    icon: entity.icon.trim(),
+    description: entity.description.trim(),
+    passable: entity.passable,
+    active: entity.active,
+    notable: entity.notable,
+    state: entity.state.trim() || "default",
+    behaviors: entity.behaviors.map(normalizeBehavior),
+  };
+}
+
+function normalizeBehavior(behavior) {
+  return {
+    trigger: compactObject(behavior.trigger),
+    conditions: behavior.conditions.map(compactObject),
+    effects: behavior.effects.map(compactObject),
+  };
+}
+
+function compactObject(value) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null && entry !== ""),
+  );
+}
