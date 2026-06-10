@@ -3,6 +3,8 @@ import emojibaseCompactData from "emojibase-data/en/compact.json";
 const appData = JSON.parse(document.querySelector("#app-data").textContent);
 const screens = new Map([...document.querySelectorAll("[data-screen]")].map((screen) => [screen.dataset.screen, screen]));
 const modelOptions = document.querySelector("#model-options");
+const previousModelButton = document.querySelector("#previous-model");
+const nextModelButton = document.querySelector("#next-model");
 const chooseModelButton = document.querySelector("#choose-model");
 const modelMenuButton = document.querySelector("#model-menu");
 const modelLineup = document.querySelector("#model-lineup");
@@ -25,7 +27,6 @@ const escapeBanner = document.querySelector("#escape-banner");
 const escapeAgentIcon = document.querySelector("#escape-agent-icon");
 const visibleEntitiesOutput = document.querySelector("#visible-entities");
 const inventoryOutput = document.querySelector("#inventory");
-const journalOutput = document.querySelector("#journal");
 const transcriptOutput = document.querySelector("#transcript");
 const gameIntro = document.querySelector("#game-intro");
 const playGameButton = document.querySelector("#play-game");
@@ -224,6 +225,7 @@ let selectedMap = null;
 let selectedTool = "select";
 let selectedPreset = presets[0];
 let selectedMenuIndex = 0;
+let selectedMapIndex = 0;
 let selectedEntityId = null;
 let selectedEditorTab = "entity";
 let selectedBehaviorIndex = 0;
@@ -262,22 +264,12 @@ playGameButton.addEventListener("click", () => {
   showScreen("models");
   modelOptions.focus();
 });
+previousModelButton.addEventListener("click", () => changeModel(-1));
+nextModelButton.addEventListener("click", () => changeModel(1));
 chooseModelButton.addEventListener("click", chooseSelectedModel);
 modelMenuButton.addEventListener("click", showMainMenu);
-modelOptions.addEventListener("keydown", (event) => {
-  if (event.key === "ArrowLeft") {
-    event.preventDefault();
-    changeModel(-1);
-  }
-  if (event.key === "ArrowRight") {
-    event.preventDefault();
-    changeModel(1);
-  }
-  if ((event.key === "Enter" || event.key === " ") && event.target === modelOptions) {
-    event.preventDefault();
-    chooseSelectedModel();
-  }
-});
+modelOptions.addEventListener("keydown", handleModelSelectionKeydown);
+mapOptions.addEventListener("keydown", handleMapSelectionKeydown);
 openEditorButton.addEventListener("click", () => {
   selectMenuOption(1);
   showScreen("editor");
@@ -332,7 +324,7 @@ function renderModelOptions() {
   if (!appData.models.length) {
     return;
   }
-  selectedModelIndex = normalizeModelIndex(selectedModelIndex);
+  selectedModelIndex = clampModelIndex(selectedModelIndex);
   const model = appData.models[selectedModelIndex];
   const maxParameters = Math.max(...appData.models.map((candidate) => candidate.parameter_size_b));
   const sizeRatio = Math.sqrt(model.parameter_size_b / maxParameters);
@@ -348,6 +340,8 @@ function renderModelOptions() {
     modelStat("Active", model.active_parameter_size_b ? formatParameters(model.active_parameter_size_b) : "Dense"),
   );
   modelFile.textContent = model.filename;
+  previousModelButton.disabled = selectedModelIndex === 0;
+  nextModelButton.disabled = selectedModelIndex === appData.models.length - 1;
   modelLineup.replaceChildren(
     ...appData.models.map((candidate, index) => {
       const button = document.createElement("button");
@@ -369,7 +363,7 @@ function renderModelOptions() {
 }
 
 function changeModel(direction) {
-  selectedModelIndex = normalizeModelIndex(selectedModelIndex + direction);
+  selectedModelIndex = clampModelIndex(selectedModelIndex + direction);
   renderModelOptions();
 }
 
@@ -379,10 +373,11 @@ function chooseSelectedModel() {
   selectedModelLabel.textContent = `${model.company} / ${model.display_name}`;
   document.documentElement.style.setProperty("--agent-color", model.brand_color);
   showScreen("maps");
+  focusSelectedMapOption();
 }
 
-function normalizeModelIndex(index) {
-  return (index + appData.models.length) % appData.models.length;
+function clampModelIndex(index) {
+  return Math.min(Math.max(index, 0), appData.models.length - 1);
 }
 
 function modelStat(label, value) {
@@ -410,23 +405,69 @@ function modelClass(parameterSizeB) {
 }
 
 function renderMapOptions() {
+  if (!appData.maps.length) {
+    return;
+  }
+  selectedMapIndex = normalizeMapIndex(selectedMapIndex);
   mapOptions.replaceChildren(
-    ...appData.maps.map((gameMap) => {
+    ...appData.maps.map((gameMap, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "selection-card map-card";
+      button.classList.toggle("is-selected", index === selectedMapIndex);
       button.innerHTML = `
         <span class="selection-title">${escapeHtml(gameMap.name)}</span>
         <span class="selection-detail">${escapeHtml(gameMap.description)}</span>
       `;
+      button.addEventListener("focus", () => selectMapOption(index));
+      button.addEventListener("pointerenter", () => selectMapOption(index));
       button.addEventListener("click", () => {
-        selectedMap = gameMap;
-        gameSelectionLabel.textContent = `${selectedModel.display_name} / ${gameMap.name}`;
-        showScreen("game");
+        selectMapOption(index);
+        chooseSelectedMap();
       });
       return button;
     }),
   );
+}
+
+function moveMapSelection(direction) {
+  if (!appData.maps.length) {
+    return;
+  }
+  selectedMapIndex = normalizeMapIndex(selectedMapIndex + direction);
+  focusSelectedMapOption();
+}
+
+function focusSelectedMapOption() {
+  if (!appData.maps.length) {
+    return;
+  }
+  selectMapOption(selectedMapIndex);
+  mapOptions.children[selectedMapIndex]?.focus({ preventScroll: true });
+}
+
+function selectMapOption(index) {
+  if (!appData.maps.length) {
+    return;
+  }
+  selectedMapIndex = normalizeMapIndex(index);
+  [...mapOptions.children].forEach((button, optionIndex) => {
+    button.classList.toggle("is-selected", optionIndex === selectedMapIndex);
+  });
+}
+
+function chooseSelectedMap() {
+  if (!appData.maps.length) {
+    return;
+  }
+  const gameMap = appData.maps[selectedMapIndex];
+  selectedMap = gameMap;
+  gameSelectionLabel.textContent = `${selectedModel.display_name} / ${gameMap.name}`;
+  showScreen("game");
+}
+
+function normalizeMapIndex(index) {
+  return (index + appData.maps.length) % appData.maps.length;
 }
 
 async function runEscape() {
@@ -462,7 +503,6 @@ async function runEscape() {
     renderMap(frame.map, frame.position, frame.visibility, frame.action_label);
     visibleEntitiesOutput.textContent = frame.visible_entities;
     inventoryOutput.textContent = frame.inventory;
-    journalOutput.textContent = frame.journal;
     transcriptOutput.textContent = frame.transcript;
     if (frame.escaped) {
       scheduleEscapeCelebration(currentRunEpoch);
@@ -504,6 +544,20 @@ function handleGlobalKeydown(event) {
   }
   if (screens.get("menu").classList.contains("is-active")) {
     handleMainMenuKeydown(event);
+    return;
+  }
+  if (screens.get("models").classList.contains("is-active")) {
+    if (event.target === modelOptions || modelOptions.contains(event.target)) {
+      return;
+    }
+    handleModelSelectionKeydown(event);
+    return;
+  }
+  if (screens.get("maps").classList.contains("is-active")) {
+    if (event.target === mapOptions || mapOptions.contains(event.target)) {
+      return;
+    }
+    handleMapSelectionKeydown(event);
   }
 }
 
@@ -521,6 +575,40 @@ function handleMainMenuKeydown(event) {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     menuOptions[selectedMenuIndex].click();
+  }
+}
+
+function handleModelSelectionKeydown(event) {
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    changeModel(-1);
+    return;
+  }
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    changeModel(1);
+    return;
+  }
+  if ((event.key === "Enter" || event.key === " ") && event.target === modelOptions) {
+    event.preventDefault();
+    chooseSelectedModel();
+  }
+}
+
+function handleMapSelectionKeydown(event) {
+  if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+    event.preventDefault();
+    moveMapSelection(-1);
+    return;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+    event.preventDefault();
+    moveMapSelection(1);
+    return;
+  }
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    chooseSelectedMap();
   }
 }
 
@@ -606,7 +694,6 @@ function resetGame() {
   positionOutput.textContent = "Position: --";
   visibleEntitiesOutput.textContent = "- None.";
   inventoryOutput.textContent = "- Empty.";
-  journalOutput.textContent = "- No notes recorded.";
   transcriptOutput.textContent = "The model has not tried the room yet.";
   clearEscapeCelebrationTimer();
   escapeBanner.hidden = true;
