@@ -1,6 +1,6 @@
 import { formatValidationError, optionLabel } from "../shared/strings.js";
 
-import { editorValidationDelayMs, effectLabels } from "./constants.js";
+import { editorValidationDelayMs, effectLabels, simpleActionOptions } from "./constants.js";
 
 export function createEditorValidation({ buildEditorDocument, context }) {
   let validationTimer = null;
@@ -58,6 +58,20 @@ export function createEditorValidation({ buildEditorDocument, context }) {
     }
     for (const entity of context.allEditorEntities()) {
       for (const behavior of entity.behaviors) {
+        if (behavior.trigger.actions?.length) {
+          if (!simpleActionOptions.includes(behavior.trigger.action)) {
+            issues.push(`${entity.id} alternative actions must use a simple action.`);
+          }
+          if (!behavior.trigger.actions.includes(behavior.trigger.action)) {
+            issues.push(`${entity.id} alternative actions must include the primary action.`);
+          }
+          if (behavior.trigger.actions.some((action) => !simpleActionOptions.includes(action))) {
+            issues.push(`${entity.id} alternative actions can only use simple actions.`);
+          }
+          if (behavior.trigger.actions.length !== new Set(behavior.trigger.actions).size) {
+            issues.push(`${entity.id} alternative actions cannot repeat actions.`);
+          }
+        }
         if (behavior.trigger.action === "use_item" && !behavior.trigger.item) {
           issues.push(`${entity.id} use item behavior needs an item.`);
         }

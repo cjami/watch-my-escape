@@ -281,6 +281,67 @@ def test_use_item_behavior_can_match_inventory_item():
     assert matching_item_result.entity_updates["locked-door"].state == "unlocked"
 
 
+def test_simple_behavior_can_match_multiple_actions():
+    entity = Entity.model_validate(
+        {
+            "id": "control-button",
+            "icon": "button",
+            "description": "A broad button waits on the wall.",
+            "passable": False,
+            "behaviors": [
+                {
+                    "trigger": {"action": "push", "actions": ["push", "operate"]},
+                    "effects": [{"type": "message", "text": "A panel opens nearby."}],
+                }
+            ],
+        }
+    )
+
+    push_result = evaluate_entity_behavior(
+        entity,
+        action="push",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+    operate_result = evaluate_entity_behavior(
+        entity,
+        action="operate",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+    pull_result = evaluate_entity_behavior(
+        entity,
+        action="pull",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+
+    assert push_result.messages == ("A panel opens nearby.",)
+    assert operate_result.messages == ("A panel opens nearby.",)
+    assert pull_result == BehaviorResult()
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        {"action": "talk_to", "actions": ["push"]},
+        {"action": "use_item", "actions": ["operate"]},
+        {"action": "push", "actions": ["push", "push"]},
+        {"action": "push", "actions": ["operate"]},
+        {"action": "push", "actions": ["push"], "item": "brass-key"},
+        {"action": "push", "actions": ["push"], "phrase": "hello"},
+    ],
+)
+def test_multi_action_trigger_rejects_non_simple_shapes(trigger):
+    with pytest.raises(ValidationError):
+        Entity.model_validate(
+            {
+                "id": "control-button",
+                "icon": "button",
+                "description": "A broad button waits on the wall.",
+                "passable": False,
+                "behaviors": [{"trigger": trigger}],
+            }
+        )
+
+
 def test_talk_to_behavior_matches_normalized_phrase():
     entity = Entity.model_validate(
         {

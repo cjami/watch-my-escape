@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Protocol
+from typing import Annotated, Literal, Protocol, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 type ActionName = Literal["examine", "take", "open", "close", "push", "pull", "talk_to", "operate", "use_item"]
+type SimpleActionName = Literal["examine", "take", "open", "close", "push", "pull", "operate"]
 type HexColor = Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")]
 
 
@@ -29,8 +30,35 @@ class BehaviorTrigger(StrictModel):
     """Agent action that can trigger an entity behavior."""
 
     action: ActionName
+    actions: tuple[SimpleActionName, ...] = ()
     item: Annotated[str | None, Field(default=None, min_length=1)] = None
     phrase: Annotated[str | None, Field(default=None, min_length=1)] = None
+
+    @model_validator(mode="after")
+    def validate_trigger_shape(self) -> Self:
+        """Ensure expanded action lists are only used by simple triggers."""
+        if len(set(self.actions)) != len(self.actions):
+            msg = "trigger actions must not contain duplicates"
+            raise ValueError(msg)
+        if self.actions:
+            if self.action not in self.actions:
+                msg = "trigger action must be included in trigger actions"
+                raise ValueError(msg)
+            if self.item is not None or self.phrase is not None:
+                msg = "trigger actions cannot be combined with item or phrase matching"
+                raise ValueError(msg)
+        if self.item is not None and self.action != "use_item":
+            msg = "trigger item can only be used with use_item"
+            raise ValueError(msg)
+        if self.phrase is not None and self.action != "talk_to":
+            msg = "trigger phrase can only be used with talk_to"
+            raise ValueError(msg)
+        return self
+
+    @property
+    def action_names(self) -> tuple[ActionName, ...]:
+        """Return every action name that can activate this trigger."""
+        return self.actions or (self.action,)
 
 
 class BehaviorCondition(StrictModel):
@@ -214,7 +242,7 @@ def evaluate_entity_behavior(
 
 
 def _trigger_matches(trigger: BehaviorTrigger, *, action: ActionName, item: str | None, text: str | None) -> bool:
-    if trigger.action != action:
+    if action not in trigger.action_names:
         return False
     if trigger.item is not None and trigger.item != item:
         return False

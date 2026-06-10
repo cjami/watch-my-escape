@@ -3,6 +3,7 @@ export const historyLimit = 50;
 export const editorValidationDelayMs = 600;
 
 export const actionOptions = ["examine", "take", "open", "close", "push", "pull", "talk_to", "operate", "use_item"];
+export const simpleActionOptions = ["examine", "take", "open", "close", "push", "pull", "operate"];
 export const actionLabels = {
   examine: "examine",
   take: "take",

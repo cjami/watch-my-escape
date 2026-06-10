@@ -1,0 +1,2372 @@
+{
+  "description": "RED GREEN BLUE.",
+  "map": {
+    "id": "red-green-blue",
+    "name": "RED GREEN BLUE",
+    "entities": [
+      {
+        "entity": {
+          "id": "wall-0-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-1-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 1,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-2-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 2,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-3-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 3,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-4-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 4,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-5-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-6-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-7-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 7,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-8-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 8,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-9-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 9,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-10-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-11-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 11,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-12-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-13-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 13,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-14-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 14,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-0",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 0
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-1",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 1
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-1",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 1
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-2",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 2
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-2",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 2
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-3",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 3
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-3",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 3
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-4",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-4",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-5",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 5
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-5",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 5
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-6",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 6
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-6",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 6
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-7",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 7
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-7",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 7
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-8",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-9",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 9
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-9",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-10",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 10
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-10",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 9
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-11",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-11",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 10
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-12",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 12
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-12",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-13",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 13
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-13",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 13
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-14",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 14
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-14",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 14
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-0-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 0,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-1-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 1,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-2-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 2,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-3-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 3,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-4-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 4,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-5-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-6-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 6,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-7-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 7,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-8-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 8,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-9-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 9,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-10-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-11-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 11,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-12-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 12,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-13-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 13,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-14-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 14,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-15-15",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 15,
+          "y": 15
+        }
+      },
+      {
+        "entity": {
+          "id": "exit-door",
+          "icon": "🚪",
+          "color": null,
+          "description": "A door with a sign above it",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "locked",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "a solid metal door. An exit sign hangs above it."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": "exit-door",
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "escape_map"
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 15,
+          "y": 12
+        }
+      },
+      {
+        "entity": {
+          "id": "wall",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 1,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-2",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 2,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-3",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 3,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-4",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 4,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-5",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 11
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-6",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 12
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-7",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 14
+        }
+      },
+      {
+        "entity": {
+          "id": "door",
+          "icon": "🚪",
+          "color": null,
+          "description": "A closed door.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "closed",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "use_item",
+                "actions": [],
+                "item": "key",
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The brass key turns in the door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": null
+                },
+                {
+                  "type": "remove_inventory",
+                  "entity_id": "key"
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The door opens and disappears from the map."
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 5,
+          "y": 13
+        }
+      },
+      {
+        "entity": {
+          "id": "key",
+          "icon": "🔑",
+          "color": null,
+          "description": "A small brass key.",
+          "passable": true,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "take",
+                "actions": [
+                  "take",
+                  "pull"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You collect the brass key."
+                },
+                {
+                  "type": "add_inventory",
+                  "entity_id": "key"
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 3,
+          "y": 13
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-8",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 1,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-9",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 2,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-10",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 3,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-11",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 4,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-12",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 3
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-13",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 1
+        }
+      },
+      {
+        "entity": {
+          "id": "red-door",
+          "icon": "🚪",
+          "color": "#ff6b6b",
+          "description": "A closed door.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "closed",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "use_item",
+                "actions": [],
+                "item": "red-key",
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The red key unlocks the red door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": null
+                },
+                {
+                  "type": "remove_inventory",
+                  "entity_id": "red-key"
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The red door opens and disappears from the map."
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 5,
+          "y": 2
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-16",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 1
+        }
+      },
+      {
+        "entity": {
+          "id": "green-door",
+          "icon": "🚪",
+          "color": "#71f7b1",
+          "description": "A closed door.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "closed",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "use_item",
+                "actions": [],
+                "item": "green-key",
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The green key unlocks the green door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": null
+                },
+                {
+                  "type": "remove_inventory",
+                  "entity_id": "green-key"
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The green door opens and disappears from the map."
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 10,
+          "y": 2
+        }
+      },
+      {
+        "entity": {
+          "id": "blue-door",
+          "icon": "🚪",
+          "color": "#2563eb",
+          "description": "A closed door.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "closed",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "use_item",
+                "actions": [],
+                "item": "blue-key",
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The blue key unlocks the blue door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": null
+                },
+                {
+                  "type": "remove_inventory",
+                  "entity_id": "blue-key"
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": null,
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The blue door opens and disappears from the map."
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 10,
+          "y": 6
+        }
+      },
+      {
+        "entity": {
+          "id": "button-1",
+          "icon": "🖲️",
+          "color": null,
+          "description": "A switch that can trigger something.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "default"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A red light glows above the unpressed button."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "pushed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A green light glows above the pressed button."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "default"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The button clicks into place."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "pushed",
+                  "entity_id": null
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": "button-2",
+                  "state": "pushed"
+                },
+                {
+                  "entity_id": "button-3",
+                  "state": "pushed"
+                },
+                {
+                  "entity_id": "exit-door",
+                  "state": "locked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You hear a click at the exit door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": "exit-door"
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 14,
+          "y": 2
+        }
+      },
+      {
+        "entity": {
+          "id": "button-2",
+          "icon": "🖲️",
+          "color": null,
+          "description": "A switch that can trigger something.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "default"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A red light glows above the unpressed button."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "pushed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A green light glows above the pressed button."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "default"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The button clicks into place."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "pushed",
+                  "entity_id": null
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": "button-1",
+                  "state": "pushed"
+                },
+                {
+                  "entity_id": "button-3",
+                  "state": "pushed"
+                },
+                {
+                  "entity_id": "exit-door",
+                  "state": "locked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You hear a click at the exit door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": "exit-door"
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 14,
+          "y": 6
+        }
+      },
+      {
+        "entity": {
+          "id": "button-3",
+          "icon": "🖲️",
+          "color": null,
+          "description": "A switch that can trigger something.",
+          "passable": false,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "default"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A red light glows above the unpressed button."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "pushed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A green light glows above the pressed button."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "state": "default"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The button clicks into place."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "pushed",
+                  "entity_id": null
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": "button-1",
+                  "state": "pushed"
+                },
+                {
+                  "entity_id": "button-2",
+                  "state": "pushed"
+                },
+                {
+                  "entity_id": "exit-door",
+                  "state": "locked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You hear a click at the exit door."
+                },
+                {
+                  "type": "set_entity_state",
+                  "state": "unlocked",
+                  "entity_id": "exit-door"
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 1,
+          "y": 2
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-25",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 7
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-17",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 3
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-18",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-31",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 11,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-32",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 12,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-33",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 13,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-34",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 14,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-19",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 5
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-20",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-21",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 11,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-22",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-23",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 13,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-24",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 14,
+          "y": 8
+        }
+      },
+      {
+        "entity": {
+          "id": "wall-14",
+          "icon": "🧱",
+          "color": null,
+          "description": "A solid wall.",
+          "passable": false,
+          "active": true,
+          "notable": false,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 5,
+          "y": 4
+        }
+      },
+      {
+        "entity": {
+          "id": "green-key",
+          "icon": "🔑",
+          "color": "#71f7b1",
+          "description": "A small green key.",
+          "passable": true,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "take",
+                "actions": [
+                  "take",
+                  "pull"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You collect the green key."
+                },
+                {
+                  "type": "add_inventory",
+                  "entity_id": "green-key"
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 2,
+          "y": 6
+        }
+      },
+      {
+        "entity": {
+          "id": "blue-key",
+          "icon": "🔑",
+          "color": "#2563eb",
+          "description": "A small blue key.",
+          "passable": true,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "take",
+                "actions": [
+                  "take",
+                  "pull"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You collect the blue key."
+                },
+                {
+                  "type": "add_inventory",
+                  "entity_id": "blue-key"
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 2,
+          "y": 9
+        }
+      },
+      {
+        "entity": {
+          "id": "red-key",
+          "icon": "🔑",
+          "color": "#ff6b6b",
+          "description": "A small red key.",
+          "passable": true,
+          "active": true,
+          "notable": true,
+          "state": "default",
+          "behaviors": [
+            {
+              "trigger": {
+                "action": "take",
+                "actions": [
+                  "take",
+                  "pull"
+                ],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You collect the red key."
+                },
+                {
+                  "type": "add_inventory",
+                  "entity_id": "red-key"
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "position": {
+          "x": 13,
+          "y": 10
+        }
+      }
+    ],
+    "unplaced_entities": [],
+    "agent_start": {
+      "x": 2,
+      "y": 13
+    },
+    "width": 16,
+    "height": 16
+  }
+}

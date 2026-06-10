@@ -1,7 +1,14 @@
 import { escapeAttribute, escapeHtml } from "../shared/html.js";
 import { optionLabel, selectHtml } from "../shared/strings.js";
 
-import { actionLabels, actionOptions, booleanLabels, effectLabels, effectOptions } from "./constants.js";
+import {
+  actionLabels,
+  actionOptions,
+  booleanLabels,
+  effectLabels,
+  effectOptions,
+  simpleActionOptions,
+} from "./constants.js";
 import { defaultBehavior, defaultEffect } from "./state.js";
 
 export function createBehaviorEditor({ context, history, renderEditor, validation }) {
@@ -83,12 +90,20 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
         history.record();
         const value = input.value.trim();
         behavior.trigger[input.dataset.triggerField] = value || undefined;
-        normalizeTrigger(behavior.trigger);
         if (input.dataset.triggerField === "action") {
+          resetTriggerForAction(behavior.trigger);
           render();
         } else {
+          normalizeTrigger(behavior.trigger);
           renderEditor();
         }
+      });
+    });
+    block.querySelectorAll("[data-trigger-action-option]").forEach((input) => {
+      input.addEventListener("input", () => {
+        history.record();
+        updateTriggerActions(behavior.trigger, input.value, input.checked);
+        render();
       });
     });
     block.querySelector("[data-remove-behavior]").addEventListener("click", () => {
@@ -119,7 +134,75 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     if (trigger.action === "talk_to") {
       return `<label class="block-field block-wide">Phrase <input data-trigger-field="phrase" type="text" value="${escapeAttribute(trigger.phrase ?? "")}" /></label>`;
     }
-    return "";
+    return simpleActionCheckboxesHtml(trigger);
+  }
+
+  function simpleActionCheckboxesHtml(trigger) {
+    const selected = new Set(simpleTriggerActions(trigger));
+    return `
+      <fieldset class="block-field block-wide action-checkboxes">
+        <legend>Alternative actions</legend>
+        ${simpleActionOptions
+          .filter((action) => action !== trigger.action)
+          .map(
+            (action) => `
+              <label>
+                <input type="checkbox" data-trigger-action-option value="${escapeAttribute(action)}" ${selected.has(action) ? "checked" : ""} />
+                ${escapeHtml(optionLabel(actionLabels, action))}
+              </label>
+            `,
+          )
+          .join("")}
+      </fieldset>
+    `;
+  }
+
+  function resetTriggerForAction(trigger) {
+    delete trigger.item;
+    delete trigger.phrase;
+    delete trigger.actions;
+    if (trigger.action === "use_item") {
+      trigger.item = "";
+    }
+    if (trigger.action === "talk_to") {
+      trigger.phrase = "";
+    }
+  }
+
+  function updateTriggerActions(trigger, action, checked) {
+    const selected = new Set(simpleTriggerActions(trigger));
+    if (checked) {
+      selected.add(action);
+    } else {
+      selected.delete(action);
+    }
+    if (!selected.size) {
+      selected.add(trigger.action);
+    }
+    const actions = simpleActionOptions.filter((option) => selected.has(option));
+    trigger.action = actions[0];
+    if (actions.length > 1) {
+      trigger.actions = actions;
+    } else {
+      delete trigger.actions;
+    }
+    normalizeTrigger(trigger);
+  }
+
+  function simpleTriggerActions(trigger) {
+    const actions = Array.isArray(trigger.actions) && trigger.actions.length ? trigger.actions : [trigger.action];
+    const selected = actions.filter((action) => simpleActionOptions.includes(action));
+    return selected.length ? selected : [simpleActionOptions[0]];
+  }
+
+  function isSimpleAction(action) {
+    return simpleActionOptions.includes(action);
+  }
+
+  function normalizedSimpleActions(trigger) {
+    const selected = new Set(simpleTriggerActions(trigger));
+    selected.add(trigger.action);
+    return simpleActionOptions.filter((action) => selected.has(action));
   }
 
   function normalizeTrigger(trigger) {
@@ -128,6 +211,16 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     }
     if (trigger.action !== "talk_to") {
       delete trigger.phrase;
+    }
+    if (!isSimpleAction(trigger.action)) {
+      delete trigger.actions;
+      return;
+    }
+    const actions = normalizedSimpleActions(trigger);
+    if (actions.length > 1) {
+      trigger.actions = actions;
+    } else {
+      delete trigger.actions;
     }
   }
 
@@ -229,11 +322,20 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
   }
 
   function behaviorSummary(behavior) {
-    const trigger = behavior.trigger.item
-      ? `${optionLabel(actionLabels, behavior.trigger.action)} ${behavior.trigger.item}`
-      : behavior.trigger.phrase
+    let trigger;
+    if (behavior.trigger.action === "use_item") {
+      trigger = behavior.trigger.item
+        ? `${optionLabel(actionLabels, behavior.trigger.action)} ${behavior.trigger.item}`
+        : optionLabel(actionLabels, behavior.trigger.action);
+    } else if (behavior.trigger.action === "talk_to") {
+      trigger = behavior.trigger.phrase
         ? `${optionLabel(actionLabels, behavior.trigger.action)} "${behavior.trigger.phrase}"`
         : optionLabel(actionLabels, behavior.trigger.action);
+    } else {
+      trigger = simpleTriggerActions(behavior.trigger)
+        .map((action) => optionLabel(actionLabels, action))
+        .join(" or ");
+    }
     const effects = behavior.effects.map(effectSummary).filter(Boolean);
     return `${trigger} -> ${effects.length ? effects.join(", ") : "no effects"}`;
   }

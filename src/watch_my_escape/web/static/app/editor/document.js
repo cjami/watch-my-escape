@@ -1,7 +1,7 @@
 import { downloadJson } from "../shared/downloads.js";
 import { formatValidationError, slugify } from "../shared/strings.js";
 
-import { mapSize } from "./constants.js";
+import { mapSize, simpleActionOptions } from "./constants.js";
 
 export function createEditorDocuments({ context, recordHistory, renderEditor }) {
   let validation = null;
@@ -120,7 +120,7 @@ function normalizeImportedEntity(entity) {
     active: entity.active,
     notable: entity.notable,
     state: entity.state,
-    behaviors: entity.behaviors ?? [],
+    behaviors: (entity.behaviors ?? []).map(normalizeImportedBehavior),
   };
 }
 
@@ -140,10 +140,56 @@ function normalizeEntity(entity) {
 
 function normalizeBehavior(behavior) {
   return {
-    trigger: compactObject(behavior.trigger),
-    conditions: behavior.conditions.map(compactObject),
-    effects: behavior.effects.map(compactObject),
+    trigger: normalizeBehaviorTrigger(behavior.trigger),
+    conditions: (behavior.conditions ?? []).map(compactObject),
+    effects: (behavior.effects ?? []).map(compactObject),
   };
+}
+
+function normalizeImportedBehavior(behavior) {
+  return {
+    trigger: normalizeImportedTrigger(behavior.trigger ?? {}),
+    conditions: behavior.conditions ?? [],
+    effects: behavior.effects ?? [],
+  };
+}
+
+function normalizeImportedTrigger(trigger) {
+  const action = trigger.action ?? "examine";
+  const actions = simpleTriggerActions({ ...trigger, action });
+  return compactObject({
+    ...trigger,
+    action,
+    actions: actions.length > 1 ? actions : undefined,
+  });
+}
+
+function normalizeBehaviorTrigger(trigger) {
+  if (!isSimpleAction(trigger.action)) {
+    return compactObject({
+      action: trigger.action,
+      item: trigger.action === "use_item" ? trigger.item : undefined,
+      phrase: trigger.action === "talk_to" ? trigger.phrase : undefined,
+    });
+  }
+  const actions = simpleTriggerActions(trigger);
+  return compactObject({
+    action: actions[0] ?? trigger.action,
+    actions: actions.length > 1 ? actions : undefined,
+  });
+}
+
+function simpleTriggerActions(trigger) {
+  const actions = Array.isArray(trigger.actions) && trigger.actions.length ? trigger.actions : [trigger.action];
+  const selected = new Set(actions.filter(isSimpleAction));
+  if (isSimpleAction(trigger.action)) {
+    selected.add(trigger.action);
+  }
+  return simpleActionOptions.filter((action) => selected.has(action));
+}
+
+function isSimpleAction(action) {
+  return simpleActionOptions.includes(action);
 }
 
 function compactObject(value) {
