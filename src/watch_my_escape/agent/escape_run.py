@@ -29,8 +29,18 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from watch_my_escape.game.maps import GameMap
+    from watch_my_escape.game.models import Entity
 
 DEFAULT_MAP_ID = "key-door-room"
+
+
+@dataclass(frozen=True, slots=True)
+class EntityDisplay:
+    """Browser-facing display metadata for one visible or carried entity."""
+
+    id: str
+    icon: str
+    description: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +58,8 @@ class EscapeRunFrame:
     delay_ms: int = 0
     action_label: str = ""
     visibility_view: tuple[tuple[bool, ...], ...] = ()
+    visible_entity_details: tuple[EntityDisplay, ...] = ()
+    inventory_details: tuple[EntityDisplay, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +75,8 @@ class EscapeRunResult:
     status: str
     frames: tuple[EscapeRunFrame, ...] = ()
     visibility_view: tuple[tuple[bool, ...], ...] = ()
+    visible_entity_details: tuple[EntityDisplay, ...] = ()
+    inventory_details: tuple[EntityDisplay, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +124,8 @@ def run_model_escape(
         status=final_frame.status,
         frames=frames,
         visibility_view=final_frame.visibility_view,
+        visible_entity_details=final_frame.visible_entity_details,
+        inventory_details=final_frame.inventory_details,
     )
 
 
@@ -246,6 +262,8 @@ def _frame(
         position=_position_text(session),
         visible_entities=_visible_entity_text(session),
         inventory=session.inventory,
+        visible_entity_details=_visible_entity_details(session),
+        inventory_details=_inventory_details(session),
         map_view=render_user_map_view(session, agent_icon=presentation.agent_icon),
         transcript="\n\n".join(transcript),
         status=status,
@@ -284,7 +302,38 @@ def _visible_entity_text(session: GameSessionState) -> tuple[str, ...]:
 
 
 def _placed_entity_text(placed: PlacedEntity) -> str:
-    return f"{placed.entity.id}: {placed.entity.description}"
+    return f"{placed.entity.id}: {_entity_description(placed.entity)}"
+
+
+def _visible_entity_details(session: GameSessionState) -> tuple[EntityDisplay, ...]:
+    return tuple(_placed_entity_detail(placed) for placed in visible_notable_entities(session))
+
+
+def _placed_entity_detail(placed: PlacedEntity) -> EntityDisplay:
+    return _entity_detail(placed.entity)
+
+
+def _inventory_details(session: GameSessionState) -> tuple[EntityDisplay, ...]:
+    entities = session.map.entities_by_id()
+    return tuple(_inventory_detail(item, entities) for item in session.inventory)
+
+
+def _inventory_detail(entity_id: str, entities: dict[str, Entity]) -> EntityDisplay:
+    if entity_id not in entities:
+        return _unknown_entity_detail(entity_id)
+    return _entity_detail(entities[entity_id])
+
+
+def _entity_detail(entity: Entity) -> EntityDisplay:
+    return EntityDisplay(id=entity.id, icon=entity.icon, description=_entity_description(entity))
+
+
+def _unknown_entity_detail(entity_id: str) -> EntityDisplay:
+    return EntityDisplay(id=entity_id, icon="?", description="")
+
+
+def _entity_description(entity: Entity) -> str:
+    return entity.description.replace("{state}", entity.state)
 
 
 def _history_action_text(action: EscapeRoomAction) -> str:

@@ -45,6 +45,7 @@ const gameRunner = createGameRunner({
   getSelectedMap: () => appState.selectedMap,
   getSelectedModel: () => appState.selectedModel,
   mapRenderer,
+  pixelSprite: sprites.pixelSprite,
   showScreen: screens.showScreen,
 });
 const editor = createEditor({

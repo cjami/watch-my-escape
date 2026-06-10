@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from fastapi import HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from gradio import Server
 from pydantic import ValidationError
 
-from watch_my_escape.agent.escape_run import EscapeRunFrame, run_model_escape, run_model_escape_steps
+from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, run_model_escape, run_model_escape_steps
 from watch_my_escape.game.premade_maps import (
     PremadeMapDocument,
     PremadeMapError,
@@ -59,7 +59,7 @@ def create_app() -> Server:
         )
 
     @app.api(name="run_model_escape")
-    def run_escape_game() -> dict[str, str]:
+    def run_escape_game() -> dict[str, Any]:
         return build_escape_run_response()
 
     @app.get("/escape-stream")
@@ -95,7 +95,7 @@ def main() -> None:
     create_app().launch(show_error=True)
 
 
-def build_escape_run_response() -> dict[str, str]:
+def build_escape_run_response() -> dict[str, Any]:
     """Return the API payload for one model escape run."""
     try:
         result = run_model_escape()
@@ -105,6 +105,8 @@ def build_escape_run_response() -> dict[str, str]:
             "sanity": "100",
             "visible_entities": "- None.",
             "inventory": "- Empty.",
+            "visible_entity_details": (),
+            "inventory_details": (),
             "map": "",
             "visibility": "",
             "transcript": str(exc),
@@ -115,6 +117,8 @@ def build_escape_run_response() -> dict[str, str]:
         "sanity": str(result.sanity),
         "visible_entities": _format_list(result.visible_entities, empty="- None."),
         "inventory": _format_list(result.inventory, empty="- Empty."),
+        "visible_entity_details": _entity_details_payload(getattr(result, "visible_entity_details", ())),
+        "inventory_details": _entity_details_payload(getattr(result, "inventory_details", ())),
         "map": _format_map(result.map_view),
         "visibility": _format_visibility(result.visibility_view),
         "transcript": result.transcript or "No turns were run.",
@@ -177,6 +181,8 @@ def _escape_event_stream(
             "action_label": "",
             "visible_entities": "- None.",
             "inventory": "- Empty.",
+            "visible_entity_details": (),
+            "inventory_details": (),
             "map": "",
             "visibility": "",
             "transcript": str(exc),
@@ -185,7 +191,7 @@ def _escape_event_stream(
         yield f"data: {json.dumps(payload)}\n\n"
 
 
-def _frame_payload(frame: EscapeRunFrame) -> dict[str, str | bool]:
+def _frame_payload(frame: EscapeRunFrame) -> dict[str, object]:
     return {
         "status": frame.status,
         "sanity": str(frame.sanity),
@@ -193,8 +199,29 @@ def _frame_payload(frame: EscapeRunFrame) -> dict[str, str | bool]:
         "action_label": frame.action_label,
         "visible_entities": _format_list(frame.visible_entities, empty="- None."),
         "inventory": _format_list(frame.inventory, empty="- Empty."),
+        "visible_entity_details": _entity_details_payload(frame.visible_entity_details),
+        "inventory_details": _entity_details_payload(frame.inventory_details),
         "map": _format_map(frame.map_view),
         "visibility": _format_visibility(frame.visibility_view),
         "transcript": frame.transcript or "Waiting for the first turn.",
         "escaped": frame.escaped,
     }
+
+
+def _entity_details_payload(details: object) -> tuple[dict[str, str], ...]:
+    if not isinstance(details, tuple):
+        return ()
+    return tuple(_entity_detail_payload(detail) for detail in details)
+
+
+def _entity_detail_payload(detail: object) -> dict[str, str]:
+    if isinstance(detail, EntityDisplay):
+        return {"id": detail.id, "icon": detail.icon, "description": detail.description}
+    if isinstance(detail, dict):
+        values = cast("dict[object, object]", detail)
+        return {
+            "id": str(values.get("id", "")),
+            "icon": str(values.get("icon", "")),
+            "description": str(values.get("description", "")),
+        }
+    return {"id": str(detail), "icon": "", "description": ""}

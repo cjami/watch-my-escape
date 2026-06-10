@@ -1,6 +1,6 @@
 const escapeCelebrationDelayMs = 2000;
 
-export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRenderer, showScreen }) {
+export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRenderer, pixelSprite, showScreen }) {
   let activeStream = null;
   let gameIntroTimer = null;
   let escapeCelebrationTimer = null;
@@ -23,11 +23,9 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     resetGame();
     const currentRunEpoch = (runEpoch += 1);
     dom.runButton.disabled = true;
-    dom.statusOutput.textContent = "The CRT is warming up...";
     dom.transcriptOutput.textContent = "Waiting for the first turn...";
     const startupDelay = gameStartupDelay();
     void playGameIntro();
-    dom.statusOutput.textContent = "The model is trying to escape...";
 
     const params = new URLSearchParams({
       model_preset: selectedModel.id,
@@ -40,12 +38,11 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
         return;
       }
       const frame = JSON.parse(event.data);
-      dom.statusOutput.textContent = frame.status;
       dom.sanityOutput.textContent = `Sanity: ${frame.sanity}`;
       dom.positionOutput.textContent = frame.position ? `Position: ${frame.position}` : "Position: --";
       mapRenderer.renderMap(frame.map, frame.position, frame.visibility, frame.action_label);
-      dom.visibleEntitiesOutput.textContent = frame.visible_entities;
-      dom.inventoryOutput.textContent = frame.inventory;
+      renderEntityStrip(dom.visibleEntitiesOutput, frame.visible_entity_details, "None.", frame.visible_entities);
+      renderEntityStrip(dom.inventoryOutput, frame.inventory_details, "Empty.", frame.inventory);
       dom.transcriptOutput.textContent = frame.transcript;
       if (frame.escaped) {
         scheduleEscapeCelebration(currentRunEpoch);
@@ -62,7 +59,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
       if (currentRunEpoch !== runEpoch) {
         return;
       }
-      dom.statusOutput.textContent = "The room stream closed.";
+      dom.transcriptOutput.textContent = "The room stream closed.";
       stopStream();
       dom.runButton.disabled = false;
     };
@@ -135,11 +132,10 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
   }
 
   function resetGame() {
-    dom.statusOutput.textContent = "Ready.";
     dom.sanityOutput.textContent = "Sanity: 100";
     dom.positionOutput.textContent = "Position: --";
-    dom.visibleEntitiesOutput.textContent = "- None.";
-    dom.inventoryOutput.textContent = "- Empty.";
+    renderEntityStrip(dom.visibleEntitiesOutput, [], "None.");
+    renderEntityStrip(dom.inventoryOutput, [], "Empty.");
     dom.transcriptOutput.textContent = "The model has not tried the room yet.";
     clearEscapeCelebrationTimer();
     dom.escapeBanner.hidden = true;
@@ -148,5 +144,92 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     dom.runButton.disabled = false;
   }
 
+  function renderEntityStrip(element, details, emptyText, fallbackText = "") {
+    const items = entityDetails(details, fallbackText);
+    const signature = entityStripSignature(items, emptyText);
+    if (element.dataset.entitySignature === signature) {
+      return;
+    }
+
+    element.dataset.entitySignature = signature;
+    element.replaceChildren();
+    if (!items.length) {
+      const empty = document.createElement("span");
+      empty.className = "entity-strip-empty";
+      empty.textContent = emptyText;
+      element.append(empty);
+      return;
+    }
+
+    items.forEach((item) => {
+      element.append(entityToken(item));
+    });
+  }
+
+  function entityToken(item) {
+    const token = document.createElement("span");
+    token.className = "entity-token";
+    token.role = "listitem";
+    token.tabIndex = 0;
+    token.setAttribute("aria-label", entityLabel(item));
+    token.append(pixelSprite(item.icon || "?", item.id, null, 28));
+
+    const tooltip = document.createElement("span");
+    tooltip.className = "entity-tooltip";
+    tooltip.role = "tooltip";
+
+    const id = document.createElement("span");
+    id.className = "entity-tooltip-id";
+    id.textContent = item.id;
+    tooltip.append(id);
+
+    if (item.description) {
+      const description = document.createElement("span");
+      description.className = "entity-tooltip-description";
+      description.textContent = item.description;
+      tooltip.append(description);
+    }
+
+    token.append(tooltip);
+    return token;
+  }
+
   return { init, resetGame, runEscape, stopStream };
+}
+
+function entityDetails(details, fallbackText) {
+  if (Array.isArray(details) && details.length) {
+    return details.map((item) => ({
+      id: String(item.id ?? ""),
+      icon: String(item.icon ?? ""),
+      description: String(item.description ?? ""),
+    }));
+  }
+  return legacyEntityDetails(fallbackText);
+}
+
+function legacyEntityDetails(text) {
+  if (!text || text === "- None." || text === "- Empty.") {
+    return [];
+  }
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^- /, "").trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [id, ...descriptionParts] = line.split(": ");
+      return {
+        id,
+        icon: "?",
+        description: descriptionParts.join(": "),
+      };
+    });
+}
+
+function entityLabel(item) {
+  return [item.id, item.description].filter(Boolean).join(": ");
+}
+
+function entityStripSignature(items, emptyText) {
+  return JSON.stringify({ emptyText, items });
 }

@@ -37,7 +37,6 @@ export function getDomRefs() {
     gameSelectionLabel: query("#game-selection-label"),
     runButton: query("#run-escape"),
     restartButton: query("#restart-flow"),
-    statusOutput: query("#status"),
     sanityOutput: query("#sanity"),
     positionOutput: query("#position"),
     mapOutput: query("#map-view"),

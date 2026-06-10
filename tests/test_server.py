@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from gradio import Server
 
-from watch_my_escape.agent.escape_run import EscapeRunFrame
+from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame
 from watch_my_escape.app import server
 from watch_my_escape.app.server import (
     GENERATED_STATIC_DIR,
@@ -108,6 +108,10 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             position="(8, 8)",
             visible_entities=("locked-door: A locked door bars the exit.",),
             inventory=("brass-key",),
+            visible_entity_details=(
+                EntityDisplay(id="locked-door", icon="\U0001f6aa", description="A locked door bars the exit."),
+            ),
+            inventory_details=(EntityDisplay(id="brass-key", icon="\U0001f511", description="A brass key."),),
             map_view=((".", "\U0001f642"), ("\U0001f511", "\U0001f6aa")),
             visibility_view=((True, True), (False, True)),
             transcript="Turn 1 - sanity 100 -> 99",
@@ -133,6 +137,8 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert "(8, 8)" in response.text
     assert '"action_label": "open"' in response.text
     assert '"visibility": "1 1\\n0 1"' in response.text
+    assert '"visible_entity_details": [{"id": "locked-door"' in response.text
+    assert '"inventory_details": [{"id": "brass-key"' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
 

@@ -43,16 +43,19 @@
         <button id="run-escape" type="button" class="primary-button">Run Escape</button>
         <button id="restart-flow" type="button" class="secondary-button">Change Setup</button>
       </div>
-      <output id="status" class="min-h-14 border-l-3 border-mechanism bg-white/10 p-4 text-[#e8ece4]">Ready.</output>
 
       <section class="panel-section" aria-labelledby="visible-entities-title">
         <h2 id="visible-entities-title">Visible Entities</h2>
-        <pre id="visible-entities">- None.</pre>
+        <div id="visible-entities" class="entity-strip" role="list" aria-label="Visible entities">
+          <span class="entity-strip-empty">None.</span>
+        </div>
       </section>
 
       <section class="panel-section" aria-labelledby="inventory-title">
         <h2 id="inventory-title">Inventory</h2>
-        <pre id="inventory">- Empty.</pre>
+        <div id="inventory" class="entity-strip" role="list" aria-label="Inventory">
+          <span class="entity-strip-empty">Empty.</span>
+        </div>
       </section>
 
       <section class="panel-section transcript-section" aria-labelledby="transcript-title">
