@@ -232,7 +232,7 @@ def _condition_matches(
     entity = current_entity if condition.entity_id is None else entities.get(condition.entity_id)
     if entity is None:
         return False
-    return condition.state is None or entity.state == condition.state
+    return condition.state is None or entity.state.casefold() == condition.state.casefold()
 
 
 def _apply_effect(

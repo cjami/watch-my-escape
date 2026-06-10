@@ -118,7 +118,7 @@ def test_run_model_escape_offers_use_item_on_visible_distant_door_after_taking_k
     assert "- use_item(item, target)" in action_prompt
     assert "target: one of locked-door" not in action_prompt
     assert '"action":"take"' not in action_prompt
-    assert "take brass-key -> You take the brass key." in action_prompt
+    assert "You took brass-key -> You take the brass key." in action_prompt
 
 
 def test_run_model_escape_prompts_include_full_action_vocabulary():

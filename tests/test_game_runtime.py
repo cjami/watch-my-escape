@@ -4,7 +4,7 @@ from pydantic import BaseModel, ValidationError
 from watch_my_escape.game.action_options import build_available_action_model
 from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import GameMap, GameSessionState
-from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action
+from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
 
 EMOTION = "curious"
 
@@ -297,6 +297,41 @@ def test_available_action_model_requires_spoken_text_for_talk_to_targets():
     )
     with pytest.raises(ValidationError, match="text"):
         action_model.model_validate({"action": "talk_to", "target": "gatekeeper", "emotion": EMOTION})
+
+
+def test_render_game_state_for_agent_describes_inventory_items():
+    session = GameSessionState(
+        map=GameMap.model_validate(
+            {
+                "id": "inventory-description-map",
+                "name": "Inventory Description Map",
+                "agent_start": {"x": 1, "y": 1},
+                "unplaced_entities": [
+                    {
+                        "id": "folded-note",
+                        "icon": "\U0001f4dd",
+                        "description": "A folded note marked {state}.",
+                        "passable": True,
+                        "state": "unread",
+                    }
+                ],
+            }
+        ),
+        inventory=("folded-note",),
+    )
+
+    game_state = render_game_state_for_agent(session, STARTING_SANITY)
+
+    assert "Inventory (items you are carrying):" in game_state
+    assert "- folded-note: A folded note marked unread." in game_state
+
+
+def test_render_game_state_for_agent_keeps_unknown_inventory_items_readable():
+    session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()), inventory=("missing-item",))
+
+    game_state = render_game_state_for_agent(session, STARTING_SANITY)
+
+    assert "- missing-item" in game_state
 
 
 def _action(action: str, **values: object) -> EscapeRoomAction:

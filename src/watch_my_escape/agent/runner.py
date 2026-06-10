@@ -14,6 +14,13 @@ from watch_my_escape.llm.tracing import observe_if_enabled
 
 if TYPE_CHECKING:
     from watch_my_escape.llm.client import InferenceProvider
+    from watch_my_escape.llm.config import LlamaCppConfig
+
+DEFAULT_DELIBERATION_MAX_TOKENS = 4096
+DEFAULT_DELIBERATION_TEMPERATURE = 1.0
+DEFAULT_DELIBERATION_TOP_P = 0.95
+DEFAULT_ACTION_MAX_TOKENS = 256
+DEFAULT_ACTION_TEMPERATURE = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,9 +28,18 @@ class ThinkActSettings:
     """Generation settings for the two phases of an agent turn."""
 
     deliberation: InferenceSettings = field(
-        default_factory=lambda: InferenceSettings(max_tokens=4096, temperature=1.0, top_p=0.95)
+        default_factory=lambda: InferenceSettings(
+            max_tokens=DEFAULT_DELIBERATION_MAX_TOKENS,
+            temperature=DEFAULT_DELIBERATION_TEMPERATURE,
+            top_p=DEFAULT_DELIBERATION_TOP_P,
+        )
     )
-    action: InferenceSettings = field(default_factory=lambda: InferenceSettings(max_tokens=256, temperature=0.0))
+    action: InferenceSettings = field(
+        default_factory=lambda: InferenceSettings(
+            max_tokens=DEFAULT_ACTION_MAX_TOKENS,
+            temperature=DEFAULT_ACTION_TEMPERATURE,
+        )
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +58,18 @@ class ThinkActResult:
 
     deliberation: str
     action: BaseModel
+
+
+def think_act_settings_for_config(config: LlamaCppConfig) -> ThinkActSettings:
+    """Return turn settings with model-preset thinking overrides."""
+    return ThinkActSettings(
+        deliberation=InferenceSettings(
+            max_tokens=DEFAULT_DELIBERATION_MAX_TOKENS,
+            temperature=_first_configured(config.thinking_temperature, DEFAULT_DELIBERATION_TEMPERATURE),
+            top_p=_first_configured(config.thinking_top_p, DEFAULT_DELIBERATION_TOP_P),
+            top_k=config.thinking_top_k,
+        )
+    )
 
 
 def run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> ThinkActResult:
@@ -86,3 +114,7 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
         deliberation=deliberation,
         action=validate_structured_output(turn.action_model, action_response.content),
     )
+
+
+def _first_configured[T](override: T | None, fallback: T) -> T:
+    return override if override is not None else fallback

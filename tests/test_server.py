@@ -99,6 +99,8 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
 
 def test_escape_stream_returns_turn_frames(monkeypatch):
     seen = {}
+    preset_id = next(iter(MODEL_PRESETS))
+    preset = MODEL_PRESETS[preset_id]
 
     def fake_steps(**kwargs):
         seen.update(kwargs)
@@ -124,14 +126,16 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     monkeypatch.setattr(server, "run_model_escape_steps", fake_steps)
     client = TestClient(create_app())
 
-    response = client.get(
-        f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&map_id=key-door-room&startup_delay_ms=2000"
-    )
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&startup_delay_ms=2000")
 
     assert response.status_code == 200
     assert seen["provider"] is provider
     assert seen["game_map"].id == "key-door-room"
     assert seen["startup_delay_ms"] == 2000
+    assert seen["settings"].deliberation.temperature == preset.thinking_temperature
+    assert seen["settings"].deliberation.top_p == preset.thinking_top_p
+    assert seen["settings"].deliberation.top_k == preset.thinking_top_k
+    assert seen["settings"].action.temperature == 0.0
     assert "objective" not in seen
     assert "Still searching with 99 sanity remaining." in response.text
     assert "(8, 8)" in response.text

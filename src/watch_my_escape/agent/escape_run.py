@@ -104,6 +104,7 @@ def run_model_escape(
     provider: InferenceProvider | None = None,
     game_map: GameMap | None = None,
     starting_sanity: int = STARTING_SANITY,
+    settings: ThinkActSettings | None = None,
 ) -> EscapeRunResult:
     """Run the configured model through an escape-room map."""
     frames = tuple(
@@ -111,6 +112,7 @@ def run_model_escape(
             provider=provider,
             game_map=game_map,
             starting_sanity=starting_sanity,
+            settings=settings,
         )
     )
     final_frame = frames[-1]
@@ -135,6 +137,7 @@ def run_model_escape_steps(
     game_map: GameMap | None = None,
     starting_sanity: int = STARTING_SANITY,
     startup_delay_ms: int = 0,
+    settings: ThinkActSettings | None = None,
 ) -> Iterator[EscapeRunFrame]:
     """Yield visible state after each model turn in an escape-room map."""
     resolved_provider = create_provider() if provider is None else provider
@@ -180,6 +183,7 @@ def run_model_escape_steps(
                 game_state=game_state,
                 action_model=action_model,
                 history=tuple(history),
+                settings=settings,
             )
         except EscapeTurnActionError as exc:
             next_sanity = max(0, sanity - 1)
@@ -339,10 +343,19 @@ def _entity_description(entity: Entity) -> str:
 def _history_action_text(action: EscapeRoomAction) -> str:
     root = action.root
     if root.action == "talk_to":
-        return f"talk_to {root.target}: {root.text}"
+        return f'You said "{root.text}" to {root.target}'
     if root.action == "use_item":
-        return f"use_item {root.item} on {root.target}"
-    return f"{root.action} {root.target}"
+        return f"You used {root.item} on {root.target}"
+    past_tense_verbs = {
+        "close": "closed",
+        "examine": "examined",
+        "open": "opened",
+        "operate": "operated",
+        "pull": "pulled",
+        "push": "pushed",
+        "take": "took",
+    }
+    return f"You {past_tense_verbs[root.action]} {root.target}"
 
 
 def _action_label(action: EscapeRoomAction) -> str:
@@ -362,8 +375,9 @@ def _run_escape_turn(
     game_state: str,
     action_model: type[BaseModel],
     history: tuple[str, ...],
+    settings: ThinkActSettings | None,
 ) -> ThinkActResult:
-    settings = ThinkActSettings()
+    resolved_settings = ThinkActSettings() if settings is None else settings
     deliberation_response = provider.complete(
         InferenceRequest(
             messages=build_deliberation_messages(
@@ -371,7 +385,7 @@ def _run_escape_turn(
                 action_model=action_model,
                 history=history,
             ),
-            settings=settings.deliberation,
+            settings=resolved_settings.deliberation,
         )
     )
     deliberation = deliberation_response.content.strip()
@@ -385,7 +399,7 @@ def _run_escape_turn(
                 history=history,
             ),
             structured_output=StructuredOutputSpec.from_pydantic_model(action_model),
-            settings=settings.action,
+            settings=resolved_settings.action,
         )
     )
     try:

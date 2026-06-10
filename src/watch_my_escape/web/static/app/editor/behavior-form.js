@@ -276,10 +276,13 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
   function entitySelectHtml(selected, attributes, options = {}) {
     const allowEmpty = options.allowEmpty ?? true;
     const emptyLabel = options.emptyLabel ?? "Current entity";
-    const entityOptions = context.allEditorEntities().map((entity) => ({
-      value: entity.id,
-      label: entity.id,
-    }));
+    const entityOptions = context
+      .allEditorEntities()
+      .filter((entity) => entity.notable)
+      .map((entity) => ({
+        value: entity.id,
+        label: entity.id,
+      }));
     const optionHtml = [
       ...(allowEmpty ? [{ value: "", label: emptyLabel }] : []),
       ...entityOptions,

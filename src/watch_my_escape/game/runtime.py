@@ -101,7 +101,21 @@ def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
 def _render_inventory(session: GameSessionState) -> str:
     if not session.inventory:
         return "Inventory (items you are carrying):\n- Empty."
-    return "Inventory (items you are carrying):\n" + "\n".join(f"- {item}" for item in session.inventory)
+    entities = session.map.entities_by_id()
+    return "Inventory (items you are carrying):\n" + "\n".join(
+        _render_inventory_item(item, entities) for item in session.inventory
+    )
+
+
+def _render_inventory_item(item: str, entities: dict[str, Entity]) -> str:
+    entity = entities.get(item)
+    if entity is None:
+        return f"- {item}"
+    return f"- {item}: {_render_entity_description(entity)}"
+
+
+def _render_entity_description(entity: Entity) -> str:
+    return entity.description.replace("{state}", entity.state)
 
 
 def _session_after_path(session: GameSessionState, path: tuple[Coordinate, ...]) -> GameSessionState:

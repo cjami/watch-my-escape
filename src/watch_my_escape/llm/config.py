@@ -37,6 +37,9 @@ class ModelPreset:
     repo_id: str
     filename: str
     active_parameter_size_b: float | None = None
+    thinking_temperature: float | None = None
+    thinking_top_p: float | None = None
+    thinking_top_k: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +59,9 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             parameter_size_b=12,
             repo_id="ggml-org/gemma-4-12B-it-GGUF",
             filename="gemma-4-12B-it-Q4_K_M.gguf",
+            thinking_temperature=1.0,
+            thinking_top_p=0.95,
+            thinking_top_k=64,
         ),
         "nvidia-nemotron-3-nano-4b": ModelPreset(
             display_name="Nemotron 3 Nano 4B",
@@ -74,6 +80,8 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             parameter_size_b=1,
             repo_id="openbmb/MiniCPM5-1B-GGUF",
             filename="MiniCPM5-1B-Q4_K_M.gguf",
+            thinking_temperature=0.9,
+            thinking_top_p=0.95,
         ),
         "tiny-aya-global": ModelPreset(
             display_name="Tiny Aya",
@@ -83,6 +91,8 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             parameter_size_b=3.35,
             repo_id="CohereLabs/tiny-aya-global-GGUF",
             filename="tiny-aya-global-q4_k_m.gguf",
+            thinking_temperature=0.1,
+            thinking_top_p=0.95,
         ),
         "mellum2-12b-a2.5b-thinking": ModelPreset(
             display_name="Mellum2 12B",
@@ -93,6 +103,9 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             repo_id="JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M",
             filename="Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf",
             active_parameter_size_b=2.5,
+            thinking_temperature=0.6,
+            thinking_top_p=0.95,
+            thinking_top_k=20,
         ),
     }
 )
@@ -127,6 +140,9 @@ class LlamaCppConfig:
     top_k: int | None
     gpu_layers: int
     zerogpu_duration: int
+    thinking_temperature: float | None = None
+    thinking_top_p: float | None = None
+    thinking_top_k: int | None = None
     flash_attn: bool | None = None
     langfuse: LangfuseConfig = field(default_factory=LangfuseConfig)
 
@@ -172,6 +188,9 @@ def load_config(environ: dict[str, str] | None = None) -> LlamaCppConfig:
         temperature=_optional_float(env, "WME_TEMPERATURE"),
         top_p=_optional_float(env, "WME_TOP_P"),
         top_k=_optional_int(env, "WME_TOP_K"),
+        thinking_temperature=_optional_float(env, "WME_THINKING_TEMPERATURE"),
+        thinking_top_p=_optional_float(env, "WME_THINKING_TOP_P"),
+        thinking_top_k=_optional_int(env, "WME_THINKING_TOP_K"),
         gpu_layers=int(env.get("WME_GPU_LAYERS", DEFAULT_GPU_LAYERS)),
         zerogpu_duration=int(env.get("WME_ZEROGPU_DURATION", DEFAULT_ZEROGPU_DURATION)),
         flash_attn=_optional_bool(env, "WME_FLASH_ATTN"),
@@ -195,6 +214,9 @@ def config_for_model_preset(preset_name: str, base_config: LlamaCppConfig | None
         model_path=None,
         model_repo_id=preset.repo_id,
         model_filename=preset.filename,
+        thinking_temperature=_first_configured(config.thinking_temperature, preset.thinking_temperature),
+        thinking_top_p=_first_configured(config.thinking_top_p, preset.thinking_top_p),
+        thinking_top_k=_first_configured(config.thinking_top_k, preset.thinking_top_k),
     )
 
 
@@ -233,6 +255,10 @@ def _optional_bool(env: dict[str, str], key: str) -> bool | None:
 
     msg = f"{key} must be one of: 1, 0, true, false, yes, no, on, off."
     raise ValueError(msg)
+
+
+def _first_configured[T](override: T | None, fallback: T | None) -> T | None:
+    return override if override is not None else fallback
 
 
 def _load_langfuse_config(env: dict[str, str]) -> LangfuseConfig:

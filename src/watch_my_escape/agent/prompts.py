@@ -10,7 +10,7 @@ from watch_my_escape.game.action_options import ACTION_DESCRIPTIONS
 from watch_my_escape.llm.models import ChatMessage
 
 PROMPT_TEMPLATE_PACKAGE = "watch_my_escape.agent.prompt_templates"
-RECENT_ACTION_LIMIT = 5
+RECENT_ACTION_LIMIT = 10
 PROMPT_ACTION_SIGNATURES = {
     "close": "close(target)",
     "examine": "examine(target)",
@@ -78,7 +78,7 @@ def _load_prompt_template(file_name: str) -> str:
 def _turn_context(*, game_state: str, history: tuple[str, ...]) -> str:
     recent_history = history[-RECENT_ACTION_LIMIT:]
     history_text = "\n".join(f"- {entry}" for entry in recent_history) if recent_history else "- No recent actions."
-    return f"Game state:\n{game_state.strip()}\n\nRecent actions:\n{history_text}"
+    return f"Game state:\n{game_state.strip()}\n\nRecent actions, oldest to newest:\n{history_text}"
 
 
 def format_action_options(_action_model: type[BaseModel]) -> str:

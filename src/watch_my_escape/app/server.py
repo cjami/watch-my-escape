@@ -15,6 +15,7 @@ from gradio import Server
 from pydantic import ValidationError
 
 from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, run_model_escape, run_model_escape_steps
+from watch_my_escape.agent.runner import ThinkActSettings, think_act_settings_for_config
 from watch_my_escape.game.premade_maps import (
     PremadeMapDocument,
     PremadeMapError,
@@ -72,10 +73,16 @@ def create_app() -> Server:
             config = config_for_model_preset(model_preset)
             premade_map = get_premade_map(map_id)
             provider = create_provider(config)
+            settings = think_act_settings_for_config(config)
         except (ModelPresetError, PremadeMapError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return StreamingResponse(
-            _escape_event_stream(provider=provider, game_map=premade_map.map, startup_delay_ms=startup_delay_ms),
+            _escape_event_stream(
+                provider=provider,
+                game_map=premade_map.map,
+                startup_delay_ms=startup_delay_ms,
+                settings=settings,
+            ),
             media_type="text/event-stream",
         )
 
@@ -138,6 +145,9 @@ def model_preset_options() -> tuple[dict[str, object], ...]:
             "active_parameter_size_b": preset.active_parameter_size_b,
             "repo_id": preset.repo_id,
             "filename": preset.filename,
+            "thinking_temperature": preset.thinking_temperature,
+            "thinking_top_p": preset.thinking_top_p,
+            "thinking_top_k": preset.thinking_top_k,
         }
         for preset_id, preset in MODEL_PRESETS.items()
     )
@@ -167,9 +177,15 @@ def _escape_event_stream(
     provider: InferenceProvider | None = None,
     game_map: GameMap | None = None,
     startup_delay_ms: int = 0,
+    settings: ThinkActSettings | None = None,
 ) -> Iterator[str]:
     try:
-        for frame in run_model_escape_steps(provider=provider, game_map=game_map, startup_delay_ms=startup_delay_ms):
+        for frame in run_model_escape_steps(
+            provider=provider,
+            game_map=game_map,
+            startup_delay_ms=startup_delay_ms,
+            settings=settings,
+        ):
             yield f"data: {json.dumps(_frame_payload(frame))}\n\n"
             if frame.delay_ms:
                 time.sleep(frame.delay_ms / 1000)

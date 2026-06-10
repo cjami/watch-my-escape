@@ -52,7 +52,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "Game state:" in deliberation_prompt
     assert "Objective:" not in deliberation_prompt
     assert "Available actions:" in deliberation_prompt
-    assert "Recent actions:" in deliberation_prompt
+    assert "Recent actions, oldest to newest:" in deliberation_prompt
     assert "History:" not in deliberation_prompt
     assert "- examine(target)" in deliberation_prompt
     assert "- use_item(item, target)" in deliberation_prompt
@@ -97,14 +97,14 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
     assert result.action.root.target == "brass key"
 
 
-def test_recent_actions_are_limited_to_last_five_entries():
+def test_recent_actions_are_limited_to_last_ten_entries():
     messages = build_deliberation_messages(
         game_state="A brass key rests on a table.",
         action_model=EscapeRoomAction,
-        history=tuple(f"Action {index}" for index in range(1, 7)),
+        history=tuple(f"Action {index}" for index in range(1, 12)),
     )
 
     prompt = messages[-1].content
-    assert "Action 1" not in prompt
-    assert "Action 2" in prompt
-    assert "Action 6" in prompt
+    assert "- Action 1\n" not in prompt
+    assert "- Action 2\n" in prompt
+    assert "- Action 11" in prompt

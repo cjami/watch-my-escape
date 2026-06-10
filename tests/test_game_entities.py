@@ -194,6 +194,33 @@ def test_behavior_conditions_that_do_not_match_produce_no_effects():
     assert result == BehaviorResult()
 
 
+def test_behavior_state_conditions_are_case_insensitive():
+    entity = Entity.model_validate(
+        {
+            "id": "suspicious-shelf",
+            "icon": "shelf",
+            "description": "A shelf with a hidden note.",
+            "passable": False,
+            "state": "default",
+            "behaviors": [
+                {
+                    "trigger": {"action": "examine"},
+                    "conditions": [{"state": "DEFAULT"}],
+                    "effects": [{"type": "message", "text": "A note falls out."}],
+                }
+            ],
+        }
+    )
+
+    result = evaluate_entity_behavior(
+        entity,
+        action="examine",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+
+    assert result.messages == ("A note falls out.",)
+
+
 def test_use_item_behavior_can_match_inventory_item():
     entity = Entity.model_validate(
         {
