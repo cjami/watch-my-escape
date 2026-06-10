@@ -40,7 +40,7 @@ def test_homepage_renders_without_request_query_parameter():
 
     assert response.status_code == 200
     assert "WATCH" in response.text
-    assert "Main Menu" in response.text
+    assert "Play Game" in response.text
     assert "Map Editor" in response.text
     assert "Select Model" in response.text
     assert 'id="model-menu"' in response.text

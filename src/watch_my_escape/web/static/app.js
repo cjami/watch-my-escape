@@ -32,6 +32,7 @@ const transcriptOutput = document.querySelector("#transcript");
 const gameIntro = document.querySelector("#game-intro");
 const playGameButton = document.querySelector("#play-game");
 const openEditorButton = document.querySelector("#open-editor");
+const menuOptions = [playGameButton, openEditorButton];
 const editorBackButton = document.querySelector("#editor-back");
 const importMapButton = document.querySelector("#import-map");
 const importMapFile = document.querySelector("#import-map-file");
@@ -54,6 +55,7 @@ const behaviorsTabPanel = document.querySelector("#behaviors-tab-panel");
 const mapSize = 16;
 const historyLimit = 50;
 const editorValidationDelayMs = 600;
+const escapeCelebrationDelayMs = 2000;
 const actionLabelHeight = 0.52;
 const actionLabelPadding = 0.06;
 const actionLabelFallbackWidth = 0.9;
@@ -223,6 +225,7 @@ let selectedModel = null;
 let selectedMap = null;
 let selectedTool = "select";
 let selectedPreset = presets[0];
+let selectedMenuIndex = 0;
 let selectedEntityId = null;
 let selectedEditorTab = "entity";
 let selectedBehaviorIndex = 0;
@@ -239,6 +242,7 @@ let lastVisibilityText = "";
 let lastAgentPosition = "";
 let lastActionLabel = "";
 let gameIntroTimer = null;
+let escapeCelebrationTimer = null;
 let runEpoch = 0;
 
 renderModelOptions();
@@ -247,18 +251,15 @@ renderPresets();
 renderEditor();
 refreshSpritesWhenFontsLoad();
 
-screens.get("splash").addEventListener("click", () => showScreen("menu"), { once: true });
-window.addEventListener(
-  "keydown",
-  () => {
-    if (screens.get("splash").classList.contains("is-active")) {
-      showScreen("menu");
-    }
-  },
-  { once: true },
-);
+screens.get("splash").addEventListener("click", showMainMenu, { once: true });
+window.addEventListener("keydown", handleGlobalKeydown);
+menuOptions.forEach((button, index) => {
+  button.addEventListener("focus", () => selectMenuOption(index));
+  button.addEventListener("pointerenter", () => selectMenuOption(index));
+});
 
 playGameButton.addEventListener("click", () => {
+  selectMenuOption(0);
   renderModelOptions();
   showScreen("models");
   modelOptions.focus();
@@ -266,7 +267,7 @@ playGameButton.addEventListener("click", () => {
 previousModelButton.addEventListener("click", () => changeModel(-1));
 nextModelButton.addEventListener("click", () => changeModel(1));
 chooseModelButton.addEventListener("click", chooseSelectedModel);
-modelMenuButton.addEventListener("click", () => showScreen("menu"));
+modelMenuButton.addEventListener("click", showMainMenu);
 modelOptions.addEventListener("keydown", (event) => {
   if (event.key === "ArrowLeft") {
     event.preventDefault();
@@ -281,8 +282,11 @@ modelOptions.addEventListener("keydown", (event) => {
     chooseSelectedModel();
   }
 });
-openEditorButton.addEventListener("click", () => showScreen("editor"));
-editorBackButton.addEventListener("click", () => showScreen("menu"));
+openEditorButton.addEventListener("click", () => {
+  selectMenuOption(1);
+  showScreen("editor");
+});
+editorBackButton.addEventListener("click", showMainMenu);
 importMapButton.addEventListener("click", () => importMapFile.click());
 importMapFile.addEventListener("change", importEditorMap);
 exportMapButton.addEventListener("click", exportEditorMap);
@@ -465,9 +469,11 @@ async function runEscape() {
     journalOutput.textContent = frame.journal;
     transcriptOutput.textContent = frame.transcript;
     if (frame.escaped) {
-      renderEscapeCelebration();
+      scheduleEscapeCelebration(currentRunEpoch);
+    } else {
+      clearEscapeCelebrationTimer();
+      escapeBanner.hidden = true;
     }
-    escapeBanner.hidden = !frame.escaped;
     if (frame.escaped || frame.sanity === "0" || frame.status === "Model is not configured.") {
       stopStream();
       runButton.disabled = false;
@@ -487,6 +493,56 @@ function showScreen(name) {
   for (const screen of screens.values()) {
     screen.classList.toggle("is-active", screen.dataset.screen === name);
   }
+}
+
+function showMainMenu() {
+  showScreen("menu");
+  focusSelectedMenuOption();
+}
+
+function handleGlobalKeydown(event) {
+  if (screens.get("splash").classList.contains("is-active")) {
+    event.preventDefault();
+    showMainMenu();
+    return;
+  }
+  if (screens.get("menu").classList.contains("is-active")) {
+    handleMainMenuKeydown(event);
+  }
+}
+
+function handleMainMenuKeydown(event) {
+  if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+    event.preventDefault();
+    moveMenuSelection(-1);
+    return;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+    event.preventDefault();
+    moveMenuSelection(1);
+    return;
+  }
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    menuOptions[selectedMenuIndex].click();
+  }
+}
+
+function moveMenuSelection(direction) {
+  selectedMenuIndex = (selectedMenuIndex + direction + menuOptions.length) % menuOptions.length;
+  focusSelectedMenuOption();
+}
+
+function focusSelectedMenuOption() {
+  selectMenuOption(selectedMenuIndex);
+  menuOptions[selectedMenuIndex].focus({ preventScroll: true });
+}
+
+function selectMenuOption(index) {
+  selectedMenuIndex = index;
+  menuOptions.forEach((button, optionIndex) => {
+    button.classList.toggle("is-selected", optionIndex === selectedMenuIndex);
+  });
 }
 
 function gameIntroDuration() {
@@ -530,6 +586,24 @@ function stopStream() {
   activeStream = null;
 }
 
+function scheduleEscapeCelebration(currentRunEpoch) {
+  clearEscapeCelebrationTimer();
+  escapeBanner.hidden = true;
+  escapeCelebrationTimer = window.setTimeout(() => {
+    if (currentRunEpoch !== runEpoch) {
+      return;
+    }
+    renderEscapeCelebration();
+    escapeBanner.hidden = false;
+    escapeCelebrationTimer = null;
+  }, escapeCelebrationDelayMs);
+}
+
+function clearEscapeCelebrationTimer() {
+  window.clearTimeout(escapeCelebrationTimer);
+  escapeCelebrationTimer = null;
+}
+
 function resetGame() {
   statusOutput.textContent = "Ready.";
   sanityOutput.textContent = "Sanity: 100";
@@ -538,6 +612,7 @@ function resetGame() {
   inventoryOutput.textContent = "- Empty.";
   journalOutput.textContent = "- No notes recorded.";
   transcriptOutput.textContent = "The model has not tried the room yet.";
+  clearEscapeCelebrationTimer();
   escapeBanner.hidden = true;
   escapeAgentIcon.replaceChildren();
   renderMap("", "", "", "");
