@@ -40,7 +40,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
       const frame = JSON.parse(event.data);
       dom.sanityOutput.textContent = `Sanity: ${frame.sanity}`;
       dom.positionOutput.textContent = frame.position ? `Position: ${frame.position}` : "Position: --";
-      mapRenderer.renderMap(frame.map, frame.position, frame.visibility, frame.action_label);
+      mapRenderer.renderMap(frame.map, frame.position, frame.visibility, frame.action_label, frame.map_colors);
       renderEntityStrip(dom.visibleEntitiesOutput, frame.visible_entity_details, "None.", frame.visible_entities);
       renderEntityStrip(dom.inventoryOutput, frame.inventory_details, "Empty.", frame.inventory);
       dom.transcriptOutput.textContent = frame.transcript;
@@ -172,7 +172,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     token.role = "listitem";
     token.tabIndex = 0;
     token.setAttribute("aria-label", entityLabel(item));
-    token.append(pixelSprite(item.icon || "?", item.id, null, 28));
+    token.append(pixelSprite(item.icon || "?", item.id, item.color || null, 28));
 
     const tooltip = document.createElement("span");
     tooltip.className = "entity-tooltip";
@@ -202,6 +202,7 @@ function entityDetails(details, fallbackText) {
     return details.map((item) => ({
       id: String(item.id ?? ""),
       icon: String(item.icon ?? ""),
+      color: String(item.color ?? ""),
       description: String(item.description ?? ""),
     }));
   }
@@ -221,6 +222,7 @@ function legacyEntityDetails(text) {
       return {
         id,
         icon: "?",
+        color: "",
         description: descriptionParts.join(": "),
       };
     });

@@ -177,6 +177,7 @@ function entityFromPreset(preset, id) {
   return {
     id,
     icon: preset.icon,
+    color: preset.color ?? "",
     description: preset.description,
     passable: preset.passable,
     active: preset.active ?? true,

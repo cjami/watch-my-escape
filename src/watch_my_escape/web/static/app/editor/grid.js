@@ -22,7 +22,7 @@ export function createEditorGrid({ context, history, renderEditor }) {
         cell.classList.toggle("is-inactive", Boolean(entity && !entity.entity.active));
         applyDragClasses(cell, x, y);
         if (entity) {
-          cell.append(context.pixelSprite(entity.entity.icon, entity.entity.id));
+          cell.append(context.pixelSprite(entity.entity.icon, entity.entity.id, entity.entity.color || null));
         }
         cell.title = editorCellTitle(entity, isAgentStart, x, y);
         cell.setAttribute("aria-label", cell.title);
@@ -53,7 +53,7 @@ export function createEditorGrid({ context, history, renderEditor }) {
         button.classList.toggle("is-inactive", Boolean(entity && !entity.active));
         applyTrayDragClasses(button, index);
         if (entity) {
-          button.append(context.pixelSprite(entity.icon, entity.id));
+          button.append(context.pixelSprite(entity.icon, entity.id, entity.color || null));
         }
         button.title = editorTrayCellTitle(entity, index);
         button.setAttribute("aria-label", button.title);

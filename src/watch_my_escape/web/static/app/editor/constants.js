@@ -40,6 +40,17 @@ export const booleanLabels = {
 };
 
 export const maxVisibleIconOptions = 10;
+export const defaultIconColor = "#f8ffe8";
+export const iconColorOptions = [
+  { name: "White", color: "" },
+  { name: "Red", color: "#ff6b6b" },
+  { name: "Green", color: "#71f7b1" },
+  { name: "Blue", color: "#2563eb" },
+  { name: "Violet", color: "#a855f7" },
+  { name: "Yellow", color: "#ffd447" },
+  { name: "Brown", color: "#8b5a2b" },
+  { name: "Stone", color: "#8f9aa3" },
+];
 export const suggestedIconValues = [
   "\u{1F9F1}",
   "\u{1F6AA}",

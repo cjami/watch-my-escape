@@ -1,5 +1,7 @@
 import { escapeAttribute, escapeHtml } from "../shared/html.js";
 
+import { defaultIconColor, iconColorOptions } from "./constants.js";
+
 export function createEntityForm({
   context,
   history,
@@ -27,6 +29,10 @@ export function createEntityForm({
         </label>
         <div class="icon-picker" aria-label="Entity icon"></div>
       </div>
+      <div>
+        <span class="field-label">Icon Colour</span>
+        <div class="color-field" aria-label="Entity icon colour"></div>
+      </div>
       <label><span>Description</span><textarea data-entity-field="description" rows="3">${escapeHtml(entity.description)}</textarea></label>
       <label><span>State</span><input data-entity-field="state" type="text" value="${escapeAttribute(entity.state)}" /></label>
       <div class="checkbox-row">
@@ -39,12 +45,36 @@ export function createEntityForm({
       input.addEventListener("input", () => updateEntityField(input, placed));
     });
     const iconPicker = context.dom.entityForm.querySelector(".icon-picker");
+    const colorField = context.dom.entityForm.querySelector(".color-field");
     const iconSearch = context.dom.entityForm.querySelector("[data-icon-search]");
+    renderColorOptions(colorField, placed);
     renderIconOptions(iconPicker, placed);
     iconSearch.addEventListener("input", () => {
       context.iconSearchQuery = iconSearch.value;
       renderIconOptions(iconPicker, placed);
     });
+  }
+
+  function renderColorOptions(colorField, placed) {
+    const selectedColor = placed.entity.color || "";
+    colorField.replaceChildren(
+      ...iconColorOptions.map((option) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "color-option";
+        button.dataset.color = option.color;
+        button.style.setProperty("--swatch-color", option.color || defaultIconColor);
+        button.classList.toggle("is-selected", selectedColor === option.color);
+        button.title = option.name;
+        button.setAttribute("aria-label", `Choose ${option.name} icon colour`);
+        button.addEventListener("click", () => {
+          history.record();
+          placed.entity.color = button.dataset.color;
+          renderEditor();
+        });
+        return button;
+      }),
+    );
   }
 
   function renderIconOptions(iconPicker, placed) {
@@ -58,7 +88,7 @@ export function createEntityForm({
         button.classList.toggle("is-selected", entity.icon === option.icon);
         button.title = option.name;
         button.setAttribute("aria-label", `Choose ${option.name} icon`);
-        button.append(context.pixelSprite(option.icon, option.name));
+        button.append(context.pixelSprite(option.icon, option.name, entity.color || null));
         button.addEventListener("click", () => {
           history.record();
           placed.entity.icon = button.dataset.icon;

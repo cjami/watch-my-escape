@@ -81,6 +81,7 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
         visible_entities = ("locked-door: A locked door bars the exit.",)
         inventory = ("brass-key",)
         map_view = ((".", "door"), ("key", "."))
+        map_color_view = ((".", "#C8793A"), ("#FFD447", "."))
         visibility_view = ((True, False), (False, True))
         transcript = "Turn 1 - sanity 100 -> 99"
 
@@ -93,6 +94,7 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
     assert response["visible_entities"] == "- locked-door: A locked door bars the exit."
     assert response["inventory"] == "- brass-key"
     assert response["map"] == ". door\nkey ."
+    assert response["map_colors"] == ". #C8793A\n#FFD447 ."
     assert response["visibility"] == "1 0\n0 1"
     assert response["transcript"] == "Turn 1 - sanity 100 -> 99"
 
@@ -111,10 +113,18 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             visible_entities=("locked-door: A locked door bars the exit.",),
             inventory=("brass-key",),
             visible_entity_details=(
-                EntityDisplay(id="locked-door", icon="\U0001f6aa", description="A locked door bars the exit."),
+                EntityDisplay(
+                    id="locked-door",
+                    icon="\U0001f6aa",
+                    description="A locked door bars the exit.",
+                    color="#C8793A",
+                ),
             ),
-            inventory_details=(EntityDisplay(id="brass-key", icon="\U0001f511", description="A brass key."),),
+            inventory_details=(
+                EntityDisplay(id="brass-key", icon="\U0001f511", description="A brass key.", color="#FFD447"),
+            ),
             map_view=((".", "\U0001f642"), ("\U0001f511", "\U0001f6aa")),
+            map_color_view=((".", "."), ("#FFD447", "#C8793A")),
             visibility_view=((True, True), (False, True)),
             transcript="Turn 1 - sanity 100 -> 99",
             status="Still searching with 99 sanity remaining.",
@@ -141,7 +151,9 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert "(8, 8)" in response.text
     assert '"action_label": "open"' in response.text
     assert '"visibility": "1 1\\n0 1"' in response.text
+    assert '"map_colors": ". .\\n#FFD447 #C8793A"' in response.text
     assert '"visible_entity_details": [{"id": "locked-door"' in response.text
+    assert '"color": "#C8793A"' in response.text
     assert '"inventory_details": [{"id": "brass-key"' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text

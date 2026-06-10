@@ -7,6 +7,7 @@ from typing import Annotated, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 type ActionName = Literal["examine", "take", "open", "close", "push", "pull", "talk_to", "operate", "use_item"]
+type HexColor = Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")]
 
 
 class StrictModel(BaseModel):
@@ -115,6 +116,7 @@ class Entity(StrictModel):
 
     id: Annotated[str, Field(min_length=1)]
     icon: Annotated[str, Field(min_length=1)]
+    color: HexColor | None = None
     description: Annotated[str, Field(min_length=1)]
     passable: bool
     active: bool = True

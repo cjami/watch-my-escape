@@ -114,6 +114,7 @@ function normalizeImportedEntity(entity) {
   return {
     id: entity.id,
     icon: entity.icon,
+    color: normalizeColor(entity.color) ?? "",
     description: entity.description,
     passable: entity.passable,
     active: entity.active,
@@ -124,16 +125,17 @@ function normalizeImportedEntity(entity) {
 }
 
 function normalizeEntity(entity) {
-  return {
+  return compactObject({
     id: entity.id.trim(),
     icon: entity.icon.trim(),
+    color: normalizeColor(entity.color),
     description: entity.description.trim(),
     passable: entity.passable,
     active: entity.active,
     notable: entity.notable,
     state: entity.state.trim() || "default",
     behaviors: entity.behaviors.map(normalizeBehavior),
-  };
+  });
 }
 
 function normalizeBehavior(behavior) {
@@ -148,4 +150,9 @@ function compactObject(value) {
   return Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null && entry !== ""),
   );
+}
+
+function normalizeColor(value) {
+  const color = String(value ?? "").trim();
+  return /^#[0-9a-f]{6}$/iu.test(color) ? color : undefined;
 }

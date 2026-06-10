@@ -221,6 +221,17 @@ def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001
     return tuple(tuple(row) for row in cells)
 
 
+def render_user_map_color_view(session: GameSessionState) -> tuple[tuple[str, ...], ...]:
+    """Render the full active 16x16 map as CSS color cells for the user."""
+    cells = [["." for _ in range(session.map.width)] for _ in range(session.map.height)]
+    for placed in session.map.active_entities():
+        cells[placed.position.y][placed.position.x] = placed.entity.color or "."
+
+    position = session.current_position
+    cells[position.y][position.x] = "."
+    return tuple(tuple(row) for row in cells)
+
+
 def render_visibility_view(session: GameSessionState) -> tuple[tuple[bool, ...], ...]:
     """Render which full-map cells are currently visible to the agent."""
     return _render_coordinate_mask(session, visible_coordinates(session))

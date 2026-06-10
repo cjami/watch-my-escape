@@ -115,6 +115,7 @@ def build_escape_run_response() -> dict[str, Any]:
             "visible_entity_details": (),
             "inventory_details": (),
             "map": "",
+            "map_colors": "",
             "visibility": "",
             "transcript": str(exc),
         }
@@ -127,6 +128,7 @@ def build_escape_run_response() -> dict[str, Any]:
         "visible_entity_details": _entity_details_payload(getattr(result, "visible_entity_details", ())),
         "inventory_details": _entity_details_payload(getattr(result, "inventory_details", ())),
         "map": _format_map(result.map_view),
+        "map_colors": _format_map(getattr(result, "map_color_view", ())),
         "visibility": _format_visibility(result.visibility_view),
         "transcript": result.transcript or "No turns were run.",
     }
@@ -200,6 +202,7 @@ def _escape_event_stream(
             "visible_entity_details": (),
             "inventory_details": (),
             "map": "",
+            "map_colors": "",
             "visibility": "",
             "transcript": str(exc),
             "escaped": False,
@@ -218,6 +221,7 @@ def _frame_payload(frame: EscapeRunFrame) -> dict[str, object]:
         "visible_entity_details": _entity_details_payload(frame.visible_entity_details),
         "inventory_details": _entity_details_payload(frame.inventory_details),
         "map": _format_map(frame.map_view),
+        "map_colors": _format_map(frame.map_color_view),
         "visibility": _format_visibility(frame.visibility_view),
         "transcript": frame.transcript or "Waiting for the first turn.",
         "escaped": frame.escaped,
@@ -232,12 +236,13 @@ def _entity_details_payload(details: object) -> tuple[dict[str, str], ...]:
 
 def _entity_detail_payload(detail: object) -> dict[str, str]:
     if isinstance(detail, EntityDisplay):
-        return {"id": detail.id, "icon": detail.icon, "description": detail.description}
+        return {"id": detail.id, "icon": detail.icon, "description": detail.description, "color": detail.color or ""}
     if isinstance(detail, dict):
         values = cast("dict[object, object]", detail)
         return {
             "id": str(values.get("id", "")),
             "icon": str(values.get("icon", "")),
             "description": str(values.get("description", "")),
+            "color": str(values.get("color", "")),
         }
-    return {"id": str(detail), "icon": "", "description": ""}
+    return {"id": str(detail), "icon": "", "description": "", "color": ""}

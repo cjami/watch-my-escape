@@ -15,6 +15,7 @@ from watch_my_escape.game.actions import EscapeRoomAction
 from watch_my_escape.game.maps import (
     GameSessionState,
     PlacedEntity,
+    render_user_map_color_view,
     render_user_map_view,
     render_user_visibility_view,
     visible_notable_entities,
@@ -41,6 +42,7 @@ class EntityDisplay:
     id: str
     icon: str
     description: str
+    color: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +55,7 @@ class EscapeRunFrame:
     visible_entities: tuple[str, ...]
     inventory: tuple[str, ...]
     map_view: tuple[tuple[str, ...], ...]
+    map_color_view: tuple[tuple[str, ...], ...]
     transcript: str
     status: str
     delay_ms: int = 0
@@ -71,6 +74,7 @@ class EscapeRunResult:
     visible_entities: tuple[str, ...]
     inventory: tuple[str, ...]
     map_view: tuple[tuple[str, ...], ...]
+    map_color_view: tuple[tuple[str, ...], ...]
     transcript: str
     status: str
     frames: tuple[EscapeRunFrame, ...] = ()
@@ -122,6 +126,7 @@ def run_model_escape(
         visible_entities=final_frame.visible_entities,
         inventory=final_frame.inventory,
         map_view=final_frame.map_view,
+        map_color_view=final_frame.map_color_view,
         transcript=final_frame.transcript,
         status=final_frame.status,
         frames=frames,
@@ -269,6 +274,7 @@ def _frame(
         visible_entity_details=_visible_entity_details(session),
         inventory_details=_inventory_details(session),
         map_view=render_user_map_view(session, agent_icon=presentation.agent_icon),
+        map_color_view=render_user_map_color_view(session),
         transcript="\n\n".join(transcript),
         status=status,
         delay_ms=presentation.delay_ms,
@@ -329,7 +335,7 @@ def _inventory_detail(entity_id: str, entities: dict[str, Entity]) -> EntityDisp
 
 
 def _entity_detail(entity: Entity) -> EntityDisplay:
-    return EntityDisplay(id=entity.id, icon=entity.icon, description=_entity_description(entity))
+    return EntityDisplay(id=entity.id, icon=entity.icon, description=_entity_description(entity), color=entity.color)
 
 
 def _unknown_entity_detail(entity_id: str) -> EntityDisplay:

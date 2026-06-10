@@ -15,8 +15,35 @@ def test_entity_defaults_to_default_state_and_no_behaviors():
     assert entity.id == "stone-wall"
     assert entity.active is True
     assert entity.notable is True
+    assert entity.color is None
     assert entity.state == "default"
     assert entity.behaviors == ()
+
+
+def test_entity_accepts_hex_icon_color():
+    entity = Entity(
+        id="brass-key",
+        icon="key",
+        color="#FFD447",
+        description="A tarnished brass key.",
+        passable=True,
+    )
+
+    assert entity.color == "#FFD447"
+
+
+@pytest.mark.parametrize("color", ["yellow", "#fff", "#FFFFFG", "FFD447"])
+def test_entity_rejects_invalid_icon_color(color):
+    with pytest.raises(ValidationError):
+        Entity.model_validate(
+            {
+                "id": "brass-key",
+                "icon": "key",
+                "color": color,
+                "description": "A tarnished brass key.",
+                "passable": True,
+            }
+        )
 
 
 @pytest.mark.parametrize("field", ["id", "icon", "description"])

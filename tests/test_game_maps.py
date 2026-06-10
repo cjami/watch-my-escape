@@ -7,6 +7,7 @@ from watch_my_escape.game.maps import (
     GameSessionState,
     MoveBlockedError,
     render_agent_view,
+    render_user_map_color_view,
     render_user_map_view,
     render_user_visibility_view,
     render_visibility_view,
@@ -185,6 +186,22 @@ def test_user_map_view_uses_agent_icon():
     view = render_user_map_view(session, agent_icon="\U0001f914")
 
     assert view[1][1] == "\U0001f914"
+
+
+def test_user_map_color_view_shows_active_entity_colors_without_coloring_agent():
+    payload = _map_payload()
+    payload["entities"][0]["entity"]["color"] = "#FFD447"
+    payload["entities"][-2]["entity"]["color"] = "#C8793A"
+    session = GameSessionState(map=GameMap.model_validate(payload))
+
+    view = render_user_map_color_view(session)
+
+    assert len(view) == 16
+    assert all(len(row) == 16 for row in view)
+    assert view[1][1] == "."
+    assert view[1][2] == "#C8793A"
+    assert view[2][1] == "#FFD447"
+    assert view[1][3] == "."
 
 
 def test_visibility_view_marks_cells_visible_to_agent():

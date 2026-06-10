@@ -14,13 +14,15 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
   let lastVisibilityText = "";
   let lastAgentPosition = "";
   let lastActionLabel = "";
+  let lastColorText = "";
 
-  function renderMap(mapText, agentPosition, visibilityText = "", actionLabel = "") {
+  function renderMap(mapText, agentPosition, visibilityText = "", actionLabel = "", colorText = "") {
     const previousAgentPosition = lastAgentPosition;
     lastMapText = mapText;
     lastVisibilityText = visibilityText;
     lastAgentPosition = agentPosition;
     lastActionLabel = actionLabel;
+    lastColorText = colorText;
     dom.mapOutput.replaceChildren();
     const rows = parseMapRows(mapText);
     if (!rows.length) {
@@ -28,6 +30,7 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
     }
 
     const visibilityRows = parseVisibilityRows(visibilityText);
+    const colorRows = parseColorRows(colorText);
     const hasVisibility = visibilityRows.length === rows.length;
     const agentCoordinate = parsePosition(agentPosition);
     const agentMoved = Boolean(previousAgentPosition && agentPosition && previousAgentPosition !== agentPosition);
@@ -48,7 +51,7 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
           tile.classList.toggle("agent-just-moved", agentMoved);
         }
         if (cell !== ".") {
-          const tint = isAgentTile ? getSelectedModel()?.brand_color : null;
+          const tint = isAgentTile ? getSelectedModel()?.brand_color : entityColorAt(colorRows, x, y);
           tile.append(pixelSprite(cell, cell, tint));
         }
         dom.mapOutput.append(tile);
@@ -60,7 +63,7 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
   }
 
   function refresh() {
-    renderMap(lastMapText, lastAgentPosition, lastVisibilityText, lastActionLabel);
+    renderMap(lastMapText, lastAgentPosition, lastVisibilityText, lastActionLabel, lastColorText);
   }
 
   function renderEscapeCelebration() {
@@ -88,6 +91,21 @@ function parseVisibilityRows(visibilityText) {
     .trim()
     .split("\n")
     .map((row) => row.split(" ").map((cell) => cell === "1"));
+}
+
+function parseColorRows(colorText) {
+  if (!colorText?.trim()) {
+    return [];
+  }
+  return colorText
+    .trim()
+    .split("\n")
+    .map((row) => row.split(" "));
+}
+
+function entityColorAt(colorRows, x, y) {
+  const color = colorRows[y]?.[x];
+  return color && color !== "." ? color : null;
 }
 
 function actionLabelPosition(rows, visibilityRows, hasVisibility, agentCoordinate, label) {

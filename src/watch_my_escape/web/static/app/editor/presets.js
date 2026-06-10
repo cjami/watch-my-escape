@@ -11,7 +11,7 @@ export function createPresetPicker({ context }) {
         button.type = "button";
         button.className = "preset-button";
         icon.className = "preset-icon";
-        icon.append(context.pixelSprite(preset.icon, preset.name));
+        icon.append(context.pixelSprite(preset.icon, preset.name, preset.color ?? null));
         name.className = "preset-name";
         name.textContent = preset.name;
         button.append(icon, name);
