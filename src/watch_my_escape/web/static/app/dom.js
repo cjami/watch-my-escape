@@ -58,7 +58,6 @@ export function getDomRefs() {
     redoEditorButton: query("#redo-editor"),
     editorGrid: query("#editor-grid"),
     editorTray: query("#editor-tray"),
-    addTrayEntityButton: query("#add-tray-entity"),
     entityPresets: query("#entity-presets"),
     entityForm: query("#entity-form"),
     behaviorList: query("#behavior-list"),

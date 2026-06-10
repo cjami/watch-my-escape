@@ -80,7 +80,6 @@ export function createEditor({ dom, onBack, pixelSprite }) {
     dom.undoEditorButton.addEventListener("click", history.undo);
     dom.redoEditorButton.addEventListener("click", history.redo);
     dom.addBehaviorButton.addEventListener("click", behaviorEditor.addBehavior);
-    dom.addTrayEntityButton.addEventListener("click", grid.addSelectedPresetToTray);
     dom.editorMapName.addEventListener("input", () => {
       history.record();
       validation.schedule();
@@ -101,8 +100,6 @@ export function createEditor({ dom, onBack, pixelSprite }) {
       });
     });
     document.addEventListener("pointerup", grid.finishGridDrag);
-    dom.editorTray.addEventListener("pointerenter", grid.handleTrayPointerEnter);
-    dom.editorTray.addEventListener("pointerup", grid.handleTrayPointerUp);
   }
 
   return { init, refreshSprites };
