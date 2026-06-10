@@ -181,7 +181,7 @@ def test_map_validation_accepts_export_document():
                             "icon": "\U0001f3c1",
                             "description": "The way out.",
                             "passable": True,
-                            "behaviors": [{"trigger": {"action": "use"}, "effects": [{"type": "escape_map"}]}],
+                            "behaviors": [{"trigger": {"action": "operate"}, "effects": [{"type": "escape_map"}]}],
                         },
                     }
                 ],

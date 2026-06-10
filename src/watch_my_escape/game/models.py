@@ -6,7 +6,7 @@ from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-type ActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"]
+type ActionName = Literal["examine", "take", "open", "close", "push", "pull", "talk_to", "operate", "use_item"]
 
 
 class StrictModel(BaseModel):

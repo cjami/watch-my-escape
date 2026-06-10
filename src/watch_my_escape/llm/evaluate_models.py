@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel, ValidationError
 
 from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
-from watch_my_escape.game.actions import Emotion, ExamineAction, PickUpAction, UseItemAction
+from watch_my_escape.game.actions import Emotion, ExamineAction, TakeAction, UseItemAction
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, LlamaCppConfig, load_config
 from watch_my_escape.llm.structured import StructuredOutputError, parse_json_object, strip_thinking_sections
@@ -52,8 +52,8 @@ class EvalUseItemAction(UseItemAction):
     target: EvalUseItemTarget
 
 
-class EvalPickUpAction(PickUpAction):
-    """Pick up a visible object and add it to inventory."""
+class EvalTakeAction(TakeAction):
+    """Take a visible object and add it to inventory."""
 
     emotion: EvalEmotion
     target: EvalInteractableTarget
@@ -160,11 +160,11 @@ CASES: tuple[EvaluationCase, ...] = (
         ),
     ),
     EvaluationCase(
-        name="action_pick_up",
+        name="action_take",
         game_state=f"{EVAL_GAME_STATE}\nImmediate intent: Collect the brass key.",
         expected=ExpectedPydanticJson(
-            model=EvalPickUpAction,
-            value=EvalPickUpAction(action="pick_up", target="brass key", emotion="confident"),
+            model=EvalTakeAction,
+            value=EvalTakeAction(action="take", target="brass key", emotion="confident"),
         ),
     ),
 )

@@ -14,12 +14,12 @@ RECENT_ACTION_LIMIT = 5
 PROMPT_ACTION_SIGNATURES = {
     "close": "close(target)",
     "examine": "examine(target)",
+    "operate": "operate(target)",
     "open": "open(target)",
-    "pick_up": "pick_up(target)",
+    "take": "take(target)",
     "pull": "pull(target)",
     "push": "push(target)",
     "talk_to": "talk_to(target, text)",
-    "use": "use(target)",
     "use_item": "use_item(item, target)",
 }
 

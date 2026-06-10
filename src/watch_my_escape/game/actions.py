@@ -24,7 +24,7 @@ class ActionBase(BaseModel):
 
 
 class UseItemAction(ActionBase):
-    """Use an inventory item on a target."""
+    """Use an object from your inventory on another object."""
 
     action: Literal["use_item"]
     item: InventoryItem
@@ -32,18 +32,18 @@ class UseItemAction(ActionBase):
     emotion: Emotion
 
 
-class UseAction(ActionBase):
-    """Use an object directly."""
+class OperateAction(ActionBase):
+    """Operate a device, mechanism, or control."""
 
-    action: Literal["use"]
+    action: Literal["operate"]
     target: VisibleTarget
     emotion: Emotion
 
 
-class PickUpAction(ActionBase):
-    """Pick up an object and add it to inventory."""
+class TakeAction(ActionBase):
+    """Take an object and add it to your inventory."""
 
-    action: Literal["pick_up"]
+    action: Literal["take"]
     target: VisibleTarget
     emotion: Emotion
 
@@ -101,8 +101,8 @@ class EscapeRoomAction(
     RootModel[
         Annotated[
             UseItemAction
-            | UseAction
-            | PickUpAction
+            | OperateAction
+            | TakeAction
             | OpenAction
             | CloseAction
             | ExamineAction

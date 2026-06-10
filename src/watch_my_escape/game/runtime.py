@@ -44,7 +44,7 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
         return _apply_use_item_action(session, next_sanity, root)
 
     inventory_target = _resolve_inventory_target(session, root.target)
-    if inventory_target is not None and root.action != "pick_up":
+    if inventory_target is not None and root.action != "take":
         text = root.text if isinstance(root, TalkToAction) else None
         behavior_result = session.evaluate_entity_action(inventory_target.id, root.action, text=text)
         updated_session = session.apply_behavior_result(behavior_result)

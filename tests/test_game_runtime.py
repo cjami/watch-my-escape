@@ -182,12 +182,12 @@ def test_inventory_entity_can_be_opened_without_movement():
     assert result.session.map.entities_by_id()["small-box"].state == "open"
 
 
-def test_pick_up_does_not_target_inventory_items():
+def test_take_does_not_target_inventory_items():
     session = GameSessionState(
         map=GameMap.model_validate(
             {
-                "id": "inventory-pick-up-map",
-                "name": "Inventory Pick Up Map",
+                "id": "inventory-take-map",
+                "name": "Inventory Take Map",
                 "agent_start": {"x": 1, "y": 1},
                 "unplaced_entities": [
                     {
@@ -203,7 +203,7 @@ def test_pick_up_does_not_target_inventory_items():
     )
     schema = _available_action_model(session).model_json_schema()
 
-    assert "AvailablePickUpAction" not in schema.get("$defs", {})
+    assert "AvailableTakeAction" not in schema.get("$defs", {})
 
 
 def test_add_inventory_can_add_unplaced_entity():
@@ -255,8 +255,8 @@ def test_available_action_model_schema_requires_action_discriminator():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
     schema = _available_action_model(session).model_json_schema()
 
-    assert "action" in schema["$defs"]["AvailablePickUpAction"]["required"]
-    assert list(schema["$defs"]["AvailablePickUpAction"]["properties"]) == ["action", "target", "emotion"]
+    assert "action" in schema["$defs"]["AvailableTakeAction"]["required"]
+    assert list(schema["$defs"]["AvailableTakeAction"]["properties"]) == ["action", "target", "emotion"]
 
 
 def test_available_action_model_builds_fresh_schema_for_matching_action_contexts():

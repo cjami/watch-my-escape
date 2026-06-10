@@ -93,7 +93,7 @@ def test_examine_behavior_returns_message_text():
     assert result.text == "The clock is frozen at twelve."
 
 
-def test_pick_up_behavior_adds_item_to_inventory():
+def test_take_behavior_adds_item_to_inventory():
     entity = Entity.model_validate(
         {
             "id": "brass-key",
@@ -102,9 +102,9 @@ def test_pick_up_behavior_adds_item_to_inventory():
             "passable": True,
             "behaviors": [
                 {
-                    "trigger": {"action": "pick_up"},
+                    "trigger": {"action": "take"},
                     "effects": [
-                        {"type": "message", "text": "You pick up the brass key."},
+                        {"type": "message", "text": "You take the brass key."},
                         {"type": "add_inventory", "entity_id": "brass-key"},
                         {"type": "set_entity_active", "active": False},
                     ],
@@ -115,11 +115,11 @@ def test_pick_up_behavior_adds_item_to_inventory():
 
     result = evaluate_entity_behavior(
         entity,
-        action="pick_up",
+        action="take",
         context=BehaviorContext(entities={entity.id: entity}),
     )
 
-    assert result.messages == ("You pick up the brass key.",)
+    assert result.messages == ("You take the brass key.",)
     assert result.add_inventory == ("brass-key",)
     assert result.entity_updates["brass-key"].active is False
     assert result.entity_updates["brass-key"].state is None

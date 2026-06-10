@@ -2,16 +2,16 @@ export const mapSize = 16;
 export const historyLimit = 50;
 export const editorValidationDelayMs = 600;
 
-export const actionOptions = ["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use", "use_item"];
+export const actionOptions = ["examine", "take", "open", "close", "push", "pull", "talk_to", "operate", "use_item"];
 export const actionLabels = {
   examine: "examine",
-  pick_up: "pick up",
+  take: "take",
   open: "open",
   close: "close",
   push: "push",
   pull: "pull",
   talk_to: "talk to",
-  use: "use",
+  operate: "operate",
   use_item: "use item",
 };
 
@@ -135,7 +135,7 @@ export const presets = [
     passable: true,
     behaviors: [
       {
-        trigger: { action: "use" },
+        trigger: { action: "operate" },
         conditions: [],
         effects: [
           { type: "message", text: "You escape the room." },

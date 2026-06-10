@@ -348,9 +348,10 @@ def _history_action_text(action: EscapeRoomAction) -> str:
 def _action_label(action: EscapeRoomAction) -> str:
     action_name = action.root.action
     labels = {
-        "pick_up": "pick up",
+        "take": "take",
         "talk_to": "talk",
         "use_item": "use",
+        "operate": "operate",
     }
     return labels.get(action_name, action_name.replace("_", " "))
 

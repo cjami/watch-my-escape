@@ -56,7 +56,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "History:" not in deliberation_prompt
     assert "- examine(target)" in deliberation_prompt
     assert "- use_item(item, target)" in deliberation_prompt
-    assert "- pick_up(target): Pick up an object and add it to inventory." in deliberation_prompt
+    assert "- take(target): Take an object and add it to your inventory." in deliberation_prompt
     assert "- open(target): Open an object." in deliberation_prompt
     assert "entity" not in deliberation_prompt.casefold()
     assert "target: a visible object" not in deliberation_prompt

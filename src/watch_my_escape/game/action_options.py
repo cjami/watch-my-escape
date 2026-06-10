@@ -8,25 +8,38 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, Field, RootModel, create_model
 
-from watch_my_escape.game.actions import ActionBase, SpokenText
+from watch_my_escape.game.actions import (
+    ActionBase,
+    CloseAction,
+    ExamineAction,
+    OpenAction,
+    OperateAction,
+    PullAction,
+    PushAction,
+    SpokenText,
+    TakeAction,
+    TalkToAction,
+    UseItemAction,
+)
 from watch_my_escape.game.emotions import Emotion
 from watch_my_escape.game.maps import visible_notable_entities
 
 if TYPE_CHECKING:
     from watch_my_escape.game.maps import GameSessionState
 
-ENTITY_ACTIONS = ("examine", "pick_up", "open", "close", "push", "pull", "talk_to", "use")
-ACTION_DESCRIPTIONS = {
-    "close": "Close an object.",
-    "examine": "Look closely at an object.",
-    "open": "Open an object.",
-    "pick_up": "Pick up an object and add it to inventory.",
-    "pull": "Pull an object.",
-    "push": "Push an object.",
-    "talk_to": "Say something to an object or character.",
-    "use": "Use an object directly.",
-    "use_item": "Use an inventory item on a target.",
+ENTITY_ACTIONS = ("examine", "take", "open", "close", "push", "pull", "talk_to", "operate")
+ACTION_MODELS = {
+    "close": CloseAction,
+    "examine": ExamineAction,
+    "open": OpenAction,
+    "operate": OperateAction,
+    "take": TakeAction,
+    "pull": PullAction,
+    "push": PushAction,
+    "talk_to": TalkToAction,
+    "use_item": UseItemAction,
 }
+ACTION_DESCRIPTIONS = {action: model.__doc__ or action for action, model in ACTION_MODELS.items()}
 type ActionFilter = frozenset[str] | None
 type ActionFilterKey = tuple[str, ...] | None
 
@@ -79,7 +92,7 @@ def _entity_action_models(
     for action in ENTITY_ACTIONS:
         if not _allows(actions, action):
             continue
-        targets = visible_targets if action == "pick_up" else _direct_action_targets(visible_targets, items)
+        targets = visible_targets if action == "take" else _direct_action_targets(visible_targets, items)
         if not targets:
             continue
         target_type = _literal(targets)
