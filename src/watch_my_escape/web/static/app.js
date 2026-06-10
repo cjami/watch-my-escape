@@ -3,8 +3,6 @@ import emojibaseCompactData from "emojibase-data/en/compact.json";
 const appData = JSON.parse(document.querySelector("#app-data").textContent);
 const screens = new Map([...document.querySelectorAll("[data-screen]")].map((screen) => [screen.dataset.screen, screen]));
 const modelOptions = document.querySelector("#model-options");
-const previousModelButton = document.querySelector("#previous-model");
-const nextModelButton = document.querySelector("#next-model");
 const chooseModelButton = document.querySelector("#choose-model");
 const modelMenuButton = document.querySelector("#model-menu");
 const modelLineup = document.querySelector("#model-lineup");
@@ -264,8 +262,6 @@ playGameButton.addEventListener("click", () => {
   showScreen("models");
   modelOptions.focus();
 });
-previousModelButton.addEventListener("click", () => changeModel(-1));
-nextModelButton.addEventListener("click", () => changeModel(1));
 chooseModelButton.addEventListener("click", chooseSelectedModel);
 modelMenuButton.addEventListener("click", showMainMenu);
 modelOptions.addEventListener("keydown", (event) => {

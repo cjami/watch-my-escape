@@ -53,7 +53,6 @@ def create_app() -> Server:
             name="index.html.jinja",
             context={
                 "app_name": "Watch My Escape",
-                "project_description": "An LLM tries to escape a man-made puzzle room.",
                 "model_presets": model_preset_options(),
                 "premade_maps": premade_map_options(),
             },
