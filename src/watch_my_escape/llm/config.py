@@ -49,7 +49,7 @@ class LangfuseConfig:
 MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
     {
         "gemma-4-12b-it": ModelPreset(
-            display_name="Gemma 4 12B IT",
+            display_name="Gemma 4 12B",
             company="Google",
             brand_color="#4285F4",
             agent_icon="🤓",
@@ -76,7 +76,7 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             filename="MiniCPM5-1B-Q4_K_M.gguf",
         ),
         "tiny-aya-global": ModelPreset(
-            display_name="Tiny Aya Global",
+            display_name="Tiny Aya",
             company="Cohere",
             brand_color="#639C87",
             agent_icon="🥰",
@@ -85,7 +85,7 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             filename="tiny-aya-global-q4_k_m.gguf",
         ),
         "mellum2-12b-a2.5b-thinking": ModelPreset(
-            display_name="Mellum2 12B Thinking",
+            display_name="Mellum2 12B",
             company="JetBrains",
             brand_color="#A855F7",
             agent_icon="🤔",
