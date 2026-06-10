@@ -12,7 +12,13 @@ from watch_my_escape.agent.prompts import build_action_messages, build_deliberat
 from watch_my_escape.agent.runner import ThinkActResult, ThinkActSettings
 from watch_my_escape.game.action_options import build_available_action_model
 from watch_my_escape.game.actions import EscapeRoomAction
-from watch_my_escape.game.maps import GameSessionState, PlacedEntity, render_user_map_view, visible_notable_entities
+from watch_my_escape.game.maps import (
+    GameSessionState,
+    PlacedEntity,
+    render_user_map_view,
+    render_user_visibility_view,
+    visible_notable_entities,
+)
 from watch_my_escape.game.premade_maps import get_premade_map
 from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
 from watch_my_escape.llm.client import InferenceProvider, create_provider
@@ -41,6 +47,7 @@ class EscapeRunFrame:
     transcript: str
     status: str
     delay_ms: int = 0
+    visibility_view: tuple[tuple[bool, ...], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +62,7 @@ class EscapeRunResult:
     map_view: tuple[tuple[str, ...], ...]
     transcript: str
     frames: tuple[EscapeRunFrame, ...] = ()
+    visibility_view: tuple[tuple[bool, ...], ...] = ()
 
     @property
     def status(self) -> str:
@@ -107,6 +115,7 @@ def run_model_escape(
         map_view=final_frame.map_view,
         transcript=final_frame.transcript,
         frames=frames,
+        visibility_view=final_frame.visibility_view,
     )
 
 
@@ -228,6 +237,7 @@ def _frame(
         transcript="\n\n".join(transcript),
         status=status,
         delay_ms=presentation.delay_ms,
+        visibility_view=render_user_visibility_view(session),
     )
 
 

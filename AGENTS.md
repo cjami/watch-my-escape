@@ -24,6 +24,7 @@
 - Run `make lint` and `make test` after changes.
 - Use `uv run` for Python commands.
 - Do not commit changes unless instructed.
+- Do not start the web server unless instructed.
 
 ## Comments
 

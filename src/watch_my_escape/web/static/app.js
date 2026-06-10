@@ -227,6 +227,7 @@ let validationTimer = null;
 let validationEpoch = 0;
 let selectedModelIndex = 0;
 let lastMapText = "";
+let lastVisibilityText = "";
 let lastAgentPosition = "";
 let gameIntroTimer = null;
 let runEpoch = 0;
@@ -449,7 +450,7 @@ async function runEscape() {
     statusOutput.textContent = frame.status;
     sanityOutput.textContent = `Sanity: ${frame.sanity}`;
     positionOutput.textContent = frame.position ? `Position: ${frame.position}` : "Position: --";
-    renderMap(frame.map, frame.position);
+    renderMap(frame.map, frame.position, frame.visibility);
     visibleEntitiesOutput.textContent = frame.visible_entities;
     inventoryOutput.textContent = frame.inventory;
     journalOutput.textContent = frame.journal;
@@ -530,13 +531,14 @@ function resetGame() {
   transcriptOutput.textContent = "The model has not tried the room yet.";
   escapeBanner.hidden = true;
   escapeAgentIcon.replaceChildren();
-  renderMap("", "");
+  renderMap("", "", "");
   runButton.disabled = false;
 }
 
-function renderMap(mapText, agentPosition) {
+function renderMap(mapText, agentPosition, visibilityText = "") {
   const previousAgentPosition = lastAgentPosition;
   lastMapText = mapText;
+  lastVisibilityText = visibilityText;
   lastAgentPosition = agentPosition;
   mapOutput.replaceChildren();
   const rows = mapText.trim() ? mapText.trim().split("\n") : [];
@@ -544,12 +546,18 @@ function renderMap(mapText, agentPosition) {
     return;
   }
 
+  const visibilityRows = parseVisibilityRows(visibilityText);
+  const hasVisibility = visibilityRows.length === rows.length;
   const agentCoordinate = parsePosition(agentPosition);
   const agentMoved = Boolean(previousAgentPosition && agentPosition && previousAgentPosition !== agentPosition);
   rows.forEach((row, y) => {
     row.split(" ").forEach((cell, x) => {
       const tile = document.createElement("span");
       tile.className = "map-tile";
+      const visibleToAgent = !hasVisibility || visibilityRows[y]?.[x] !== false;
+      tile.classList.toggle("visible-tile", visibleToAgent);
+      tile.classList.toggle("hidden-tile", !visibleToAgent);
+      tile.setAttribute("aria-label", visibleToAgent ? "visible to agent" : "not visible to agent");
       if (agentCoordinate?.x === x && agentCoordinate.y === y) {
         tile.classList.add("agent-tile");
         tile.classList.toggle("agent-just-moved", agentMoved);
@@ -561,6 +569,16 @@ function renderMap(mapText, agentPosition) {
       mapOutput.append(tile);
     });
   });
+}
+
+function parseVisibilityRows(visibilityText) {
+  if (!visibilityText?.trim()) {
+    return [];
+  }
+  return visibilityText
+    .trim()
+    .split("\n")
+    .map((row) => row.split(" ").map((cell) => cell === "1"));
 }
 
 function renderEscapeCelebration() {
@@ -1853,7 +1871,7 @@ function refreshSpritesWhenFontsLoad() {
       spriteCache.clear();
       renderPresets();
       renderEditor();
-      renderMap(lastMapText, lastAgentPosition);
+      renderMap(lastMapText, lastAgentPosition, lastVisibilityText);
     })
     .catch(() => undefined);
 }

@@ -8,6 +8,8 @@ from watch_my_escape.game.maps import (
     MoveBlockedError,
     render_agent_view,
     render_user_map_view,
+    render_user_visibility_view,
+    render_visibility_view,
     visible_coordinates,
 )
 from watch_my_escape.game.models import Coordinate
@@ -125,6 +127,29 @@ def test_user_map_view_uses_agent_icon():
     view = render_user_map_view(session, agent_icon="\U0001f914")
 
     assert view[1][1] == "\U0001f914"
+
+
+def test_visibility_view_marks_cells_visible_to_agent():
+    session = GameSessionState(map=GameMap.model_validate(_map_payload()))
+
+    view = render_visibility_view(session)
+
+    assert len(view) == 16
+    assert all(len(row) == 16 for row in view)
+    assert view[1][1] is True
+    assert view[1][2] is True
+    assert view[1][3] is False
+
+
+def test_user_visibility_view_styles_non_notable_corner_entities_as_visible():
+    payload = _interior_corner_payload()
+    session = GameSessionState(map=GameMap.model_validate(payload))
+
+    agent_view = render_visibility_view(session)
+    user_view = render_user_visibility_view(session)
+
+    assert agent_view[2][2] is False
+    assert user_view[2][2] is True
 
 
 def test_movement_is_blocked_by_closed_door_until_cross_map_effect_opens_it():
@@ -246,5 +271,33 @@ def _map_payload():
                     ],
                 },
             },
+        ],
+    }
+
+
+def _interior_corner_payload():
+    return {
+        "id": "interior-corner",
+        "name": "Interior Corner",
+        "agent_start": {"x": 1, "y": 1},
+        "entities": [
+            {
+                "position": {"x": x, "y": y},
+                "entity": {
+                    "id": entity_id,
+                    "name": "Wall",
+                    "icon": "#",
+                    "description": "A wall.",
+                    "passable": False,
+                    "notable": False,
+                },
+            }
+            for entity_id, x, y in (
+                ("west-wall", 0, 1),
+                ("north-wall", 1, 0),
+                ("east-wall", 2, 1),
+                ("south-wall", 1, 2),
+                ("interior-corner-wall", 2, 2),
+            )
         ],
     }

@@ -217,6 +217,53 @@ def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001
     return tuple(tuple(row) for row in cells)
 
 
+def render_visibility_view(session: GameSessionState) -> tuple[tuple[bool, ...], ...]:
+    """Render which full-map cells are currently visible to the agent."""
+    return _render_coordinate_mask(session, visible_coordinates(session))
+
+
+def render_user_visibility_view(session: GameSessionState) -> tuple[tuple[bool, ...], ...]:
+    """Render the visibility mask used for the spectator map."""
+    agent_visible_tiles = visible_coordinates(session)
+    visible_tiles = set(agent_visible_tiles)
+    visible_tiles.update(
+        placed.position
+        for placed in session.map.active_entities()
+        if not placed.entity.notable and _completes_visible_corner(placed.position, agent_visible_tiles)
+    )
+    return _render_coordinate_mask(session, visible_tiles)
+
+
+def _render_coordinate_mask(
+    session: GameSessionState, coordinates: frozenset[Coordinate] | set[Coordinate]
+) -> tuple[tuple[bool, ...], ...]:
+    return tuple(
+        tuple(Coordinate(x=x, y=y) in coordinates for x in range(session.map.width)) for y in range(session.map.height)
+    )
+
+
+def _completes_visible_corner(position: Coordinate, visible_tiles: frozenset[Coordinate]) -> bool:
+    corner_pairs = (
+        (Direction.NORTH, Direction.EAST),
+        (Direction.EAST, Direction.SOUTH),
+        (Direction.SOUTH, Direction.WEST),
+        (Direction.WEST, Direction.NORTH),
+    )
+    for first_direction, second_direction in corner_pairs:
+        first_neighbor = _optional_move_coordinate(position, first_direction)
+        second_neighbor = _optional_move_coordinate(position, second_direction)
+        if first_neighbor in visible_tiles and second_neighbor in visible_tiles:
+            return True
+    return False
+
+
+def _optional_move_coordinate(position: Coordinate, direction: Direction) -> Coordinate | None:
+    try:
+        return _move_coordinate(position, direction)
+    except ValidationError:
+        return None
+
+
 def visible_coordinates(session: GameSessionState) -> frozenset[Coordinate]:
     """Return coordinates active from the agent through passable cells."""
     reachable_tiles = reachable_coordinates(session)

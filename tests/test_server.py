@@ -71,6 +71,7 @@ def test_escape_run_response_reports_model_configuration_error(monkeypatch):
     assert response["visible_entities"] == "- None."
     assert response["inventory"] == "- Empty."
     assert response["journal"] == "- No notes recorded."
+    assert response["visibility"] == ""
     assert "Configure WME_MODEL_PATH" in response["transcript"]
 
 
@@ -82,6 +83,7 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
         inventory = ("brass-key",)
         journal = ("The key should open the door.",)
         map_view = ((".", "door"), ("key", "."))
+        visibility_view = ((True, False), (False, True))
         transcript = "Turn 1 - sanity 100 -> 99"
 
     monkeypatch.setattr(server, "run_model_escape", FakeResult)
@@ -94,6 +96,7 @@ def test_escape_run_response_formats_successful_run(monkeypatch):
     assert response["inventory"] == "- brass-key"
     assert response["journal"] == "- The key should open the door."
     assert response["map"] == ". door\nkey ."
+    assert response["visibility"] == "1 0\n0 1"
     assert response["transcript"] == "Turn 1 - sanity 100 -> 99"
 
 
@@ -110,6 +113,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             inventory=("brass-key",),
             journal=("The key opens the door.",),
             map_view=((".", "\U0001f642"), ("\U0001f511", "\U0001f6aa")),
+            visibility_view=((True, True), (False, True)),
             transcript="Turn 1 - sanity 100 -> 99",
             status="Still searching with 99 sanity remaining.",
         )
@@ -130,6 +134,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert "objective" not in seen
     assert "Still searching with 99 sanity remaining." in response.text
     assert "(8, 8)" in response.text
+    assert '"visibility": "1 1\\n0 1"' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
 

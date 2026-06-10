@@ -108,6 +108,7 @@ def build_escape_run_response() -> dict[str, str]:
             "inventory": "- Empty.",
             "journal": "- No notes recorded.",
             "map": "",
+            "visibility": "",
             "transcript": str(exc),
         }
 
@@ -118,6 +119,7 @@ def build_escape_run_response() -> dict[str, str]:
         "inventory": _format_list(result.inventory, empty="- Empty."),
         "journal": _format_list(result.journal, empty="- No notes recorded."),
         "map": _format_map(result.map_view),
+        "visibility": _format_visibility(result.visibility_view),
         "transcript": result.transcript or "No turns were run.",
     }
 
@@ -155,6 +157,10 @@ def _format_map(map_view: tuple[tuple[str, ...], ...]) -> str:
     return "\n".join(" ".join(row) for row in map_view)
 
 
+def _format_visibility(visibility_view: tuple[tuple[bool, ...], ...]) -> str:
+    return "\n".join(" ".join("1" if cell else "0" for cell in row) for row in visibility_view)
+
+
 def _escape_event_stream(
     *,
     provider: InferenceProvider | None = None,
@@ -175,6 +181,7 @@ def _escape_event_stream(
             "inventory": "- Empty.",
             "journal": "- No notes recorded.",
             "map": "",
+            "visibility": "",
             "transcript": str(exc),
             "escaped": False,
         }
@@ -190,6 +197,7 @@ def _frame_payload(frame: EscapeRunFrame) -> dict[str, str | bool]:
         "inventory": _format_list(frame.inventory, empty="- Empty."),
         "journal": _format_list(frame.journal, empty="- No notes recorded."),
         "map": _format_map(frame.map_view),
+        "visibility": _format_visibility(frame.visibility_view),
         "transcript": frame.transcript or "Waiting for the first turn.",
         "escaped": frame.escaped,
     }
