@@ -91,7 +91,7 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             parameter_size_b=3.35,
             repo_id="CohereLabs/tiny-aya-global-GGUF",
             filename="tiny-aya-global-q4_k_m.gguf",
-            thinking_temperature=0.1,
+            thinking_temperature=0.6,
             thinking_top_p=0.95,
         ),
         "mellum2-12b-a2.5b-thinking": ModelPreset(
