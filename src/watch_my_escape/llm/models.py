@@ -88,6 +88,7 @@ class InferenceRequest:
     tools: tuple[ToolSpec, ...] = ()
     structured_output: StructuredOutputSpec | None = None
     settings: InferenceSettings = field(default_factory=InferenceSettings)
+    enable_thinking: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)

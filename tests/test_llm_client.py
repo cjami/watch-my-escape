@@ -239,6 +239,75 @@ def test_embedded_provider_passes_structured_output_grammar(monkeypatch, tmp_pat
     assert '"title": "StructuredProbe"' in FakeGrammar.schema
 
 
+def test_embedded_provider_passes_enable_thinking_to_compatible_chat_template(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        handler_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.metadata = {"tokenizer.chat_template": "{% if enable_thinking %}<|think|>{% endif %}"}
+            self.chat_handler = None
+            self.chat_format = "chat_template.default"
+            self._chat_handlers = {"chat_template.default": self._handler}
+
+        def _handler(self, **kwargs):
+            type(self).handler_kwargs = kwargs
+            return {"choices": [{"message": {"content": "thinking"}}]}
+
+        def create_chat_completion(self, **_kwargs):
+            pytest.fail("compatible templates should receive enable_thinking through the chat handler")
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+    response = provider.complete(
+        InferenceRequest(
+            messages=(ChatMessage(role="user", content="Think."),),
+            enable_thinking=True,
+        )
+    )
+
+    assert response.content == "thinking"
+    assert FakeLlama.handler_kwargs["enable_thinking"] is True
+    assert FakeLlama.handler_kwargs["llama"] is provider._llama  # noqa: SLF001
+
+
+def test_embedded_provider_ignores_enable_thinking_for_unsupported_chat_template(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("stub", encoding="utf-8")
+
+    class FakeLlama:
+        completion_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.metadata = {"tokenizer.chat_template": "{{ messages[0]['content'] }}"}
+
+        def create_chat_completion(self, **kwargs):
+            type(self).completion_kwargs = kwargs
+            return {"choices": [{"message": {"content": "plain"}}]}
+
+    fake_module = ModuleType("llama_cpp")
+    fake_module.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_module)
+
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+    response = provider.complete(
+        InferenceRequest(
+            messages=(ChatMessage(role="user", content="Think."),),
+            enable_thinking=True,
+        )
+    )
+
+    assert response.content == "plain"
+    assert "enable_thinking" not in FakeLlama.completion_kwargs
+
+
 def test_structured_output_spec_is_reused_for_matching_pydantic_model():
     assert StructuredOutputSpec.from_pydantic_model(StructuredProbe) is StructuredOutputSpec.from_pydantic_model(
         StructuredProbe

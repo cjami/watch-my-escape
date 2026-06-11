@@ -141,6 +141,23 @@ def test_score_case_strips_thinking_sections_before_parsing_json():
     assert result.passed
 
 
+def test_score_case_strips_gemma_thought_channel_before_parsing_json():
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
+
+    result = score_case(
+        json_case,
+        InferenceResponse(
+            content=(
+                '<|channel>thought\nThe answer is {"action":"pick_up","target":"brass key","emotion":"confident"}.\n'
+                "<channel|>\n"
+                '{"action":"pick_up","target":"brass key","emotion":"confident"}'
+            )
+        ),
+    )
+
+    assert result.passed
+
+
 def test_score_case_strips_dangling_thinking_close_before_parsing_json():
     json_case = next(case for case in CASES if case.name == "action_pick_up")
 

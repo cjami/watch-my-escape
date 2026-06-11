@@ -392,6 +392,7 @@ def _run_escape_turn(
                 history=history,
             ),
             settings=resolved_settings.deliberation,
+            enable_thinking=True,
         )
     )
     deliberation = deliberation_response.content.strip()
@@ -406,6 +407,7 @@ def _run_escape_turn(
             ),
             structured_output=StructuredOutputSpec.from_pydantic_model(action_model),
             settings=resolved_settings.action,
+            enable_thinking=False,
         )
     )
     try:

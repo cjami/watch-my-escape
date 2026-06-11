@@ -40,7 +40,10 @@ def validate_structured_output(model: type[BaseModel], content: str) -> BaseMode
 
 def strip_thinking_sections(content: str) -> str:
     """Remove common visible thinking wrappers from model output."""
-    stripped = re.sub(r"<think\b[^>]*>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
+    stripped = re.sub(r"<\|channel\>\s*thought\s*.*?<channel\|>", "", content, flags=re.DOTALL | re.IGNORECASE)
+    stripped = re.sub(r"^.*?<channel\|>", "", stripped, count=1, flags=re.DOTALL | re.IGNORECASE)
+    stripped = re.sub(r"<\|channel\>\s*thought\s*.*$", "", stripped, count=1, flags=re.DOTALL | re.IGNORECASE)
+    stripped = re.sub(r"<think\b[^>]*>.*?</think>", "", stripped, flags=re.DOTALL | re.IGNORECASE)
     stripped = re.sub(r"^.*?</think>", "", stripped, count=1, flags=re.DOTALL | re.IGNORECASE)
     stripped = re.sub(r"<think\b[^>]*>.*$", "", stripped, count=1, flags=re.DOTALL | re.IGNORECASE)
     return stripped.strip()

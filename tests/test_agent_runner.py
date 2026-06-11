@@ -41,6 +41,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
         root=ExamineAction(action="examine", target="brass key", emotion="curious")
     )
     assert provider.requests[0].structured_output is None
+    assert provider.requests[0].enable_thinking is True
     assert provider.requests[0].settings.temperature == 1.0
     assert provider.requests[0].settings.max_tokens == 4096
     deliberation_system_prompt = provider.requests[0].messages[0].content
@@ -62,6 +63,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "target: a visible object" not in deliberation_prompt
     assert "item: an item currently in inventory" not in deliberation_prompt
     assert provider.requests[1].structured_output is not None
+    assert provider.requests[1].enable_thinking is False
     assert provider.requests[1].settings.temperature == 0.0
     assert provider.requests[1].settings.max_tokens == 256
     action_prompt = provider.requests[1].messages[-1].content
@@ -95,6 +97,40 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
     assert isinstance(result.action, EscapeRoomAction)
     assert isinstance(result.action.root, ExamineAction)
     assert result.action.root.target == "brass key"
+
+
+def test_run_think_act_turn_strips_gemma_thought_channel_from_action_prompt():
+    class GemmaThinkingProvider(FakeProvider):
+        def complete(self, request: InferenceRequest) -> InferenceResponse:
+            self.requests.append(request)
+            if len(self.requests) == 1:
+                return InferenceResponse(
+                    content=(
+                        "<|channel>thought\n"
+                        "I should not show this in the action prompt.\n"
+                        "<channel|>"
+                        "Intended action: examine the brass key."
+                    )
+                )
+            return InferenceResponse(content='{"action":"examine","target":"brass key","emotion":"curious"}')
+
+    provider = GemmaThinkingProvider()
+
+    result = run_think_act_turn(
+        provider,
+        ThinkActTurn(
+            game_state="A brass key rests on a table.",
+            action_model=EscapeRoomAction,
+        ),
+    )
+
+    action_prompt = provider.requests[1].messages[-1].content
+    assert "<|channel>thought" not in action_prompt
+    assert "<channel|>" not in action_prompt
+    assert "I should not show this in the action prompt." not in action_prompt
+    assert "Intended action: examine the brass key." in action_prompt
+    assert isinstance(result.action, EscapeRoomAction)
+    assert isinstance(result.action.root, ExamineAction)
 
 
 def test_recent_actions_are_limited_to_last_ten_entries():

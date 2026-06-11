@@ -79,7 +79,7 @@ class EmbeddedLlamaCppProvider:
                 msg = "Structured output requires llama-cpp-python with LlamaGrammar.from_json_schema."
                 raise LlmConfigurationError(msg) from exc
 
-        raw_response = self._llama.create_chat_completion(**payload)
+        raw_response = self._create_chat_completion(payload, request)
         choice_message = raw_response["choices"][0]["message"]
         return InferenceResponse(
             content=choice_message.get("content") or "",
@@ -159,6 +159,46 @@ class EmbeddedLlamaCppProvider:
                 DEFAULT_TOP_K,
             ),
         }
+
+    def _create_chat_completion(self, payload: dict[str, Any], request: InferenceRequest) -> dict[str, Any]:
+        if request.enable_thinking is None or not self._template_supports_enable_thinking():
+            return self._llama.create_chat_completion(**payload)
+
+        handler = self._chat_completion_handler()
+        if handler is None:
+            return self._llama.create_chat_completion(**payload)
+
+        return handler(
+            llama=self._llama,
+            **payload,
+            enable_thinking=request.enable_thinking,
+        )
+
+    def _template_supports_enable_thinking(self) -> bool:
+        metadata = getattr(self._llama, "metadata", {})
+        if not isinstance(metadata, dict):
+            return False
+        template = metadata.get("tokenizer.chat_template")
+        return isinstance(template, str) and "enable_thinking" in template
+
+    def _chat_completion_handler(self) -> Any | None:
+        llama = self._llama
+        handler = getattr(llama, "chat_handler", None)
+        if handler is not None:
+            return handler
+
+        chat_format = getattr(llama, "chat_format", None)
+        chat_handlers = getattr(llama, "_chat_handlers", {})
+        if isinstance(chat_handlers, dict) and chat_format in chat_handlers:
+            return chat_handlers[chat_format]
+        if chat_format is None:
+            return None
+
+        try:
+            chat_format_module = import_module("llama_cpp.llama_chat_format")
+            return chat_format_module.get_chat_completion_handler(chat_format)
+        except (ImportError, KeyError, TypeError, ValueError):
+            return None
 
 
 class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):

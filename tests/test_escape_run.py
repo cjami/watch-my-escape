@@ -200,6 +200,24 @@ def test_run_model_escape_omits_thinking_sections_from_transcript():
     assert "Deliberation: I will pick up the key." in result.transcript
 
 
+def test_run_model_escape_omits_gemma_thought_channel_from_transcript():
+    provider = PairedProvider(
+        (
+            (
+                "<|channel>thought\nI should quietly reason through the password.\n<channel|>\nI will pick up the key.",
+                f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+            ),
+        )
+    )
+
+    result = run_model_escape(provider=provider, starting_sanity=1)
+
+    assert "<|channel>thought" not in result.transcript
+    assert "<channel|>" not in result.transcript
+    assert "quietly reason" not in result.transcript
+    assert "Deliberation: I will pick up the key." in result.transcript
+
+
 def test_run_model_escape_renders_action_emotion_as_agent_icon():
     provider = ScriptedProvider((f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',))
 
