@@ -108,11 +108,6 @@
     gap: 0.45rem;
   }
 
-  .map-option-row.is-custom {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: stretch;
-  }
-
   .map-preview-panel {
     display: grid;
     min-width: 0;
@@ -611,23 +606,6 @@
       auto,
       100% 4px,
       auto;
-  }
-
-  .map-card-badge {
-    width: max-content;
-    border: 1px solid rgb(113 247 177 / 62%);
-    background: rgb(113 247 177 / 12%);
-    color: #d9ffe9;
-    font-size: 0.62rem;
-    line-height: 1;
-    padding: 0.22rem 0.35rem;
-    text-transform: uppercase;
-  }
-
-  .map-delete-button {
-    align-self: stretch;
-    padding-inline: 0.5rem;
-    font-size: 0.66rem;
   }
 
   .map-card::after {

@@ -28,11 +28,6 @@ const mapSelector = createMapSelector({
   dom,
   getSelectedModel: () => appState.selectedModel,
   premadeMaps: appData.maps,
-  onCustomMapDeleted: (gameMap) => {
-    if (appState.selectedMap?.source === "custom" && appState.selectedMap.id === gameMap.id) {
-      appState.selectedMap = null;
-    }
-  },
   onSelected: (gameMap) => {
     appState.selectedMap = gameMap;
     screens.showScreen("game");

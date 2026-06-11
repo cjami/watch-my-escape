@@ -7,7 +7,6 @@ export function createMapSelector({
   dom,
   getSelectedModel,
   maps = [],
-  onCustomMapDeleted = () => {},
   onSelected,
   pixelSprite,
   premadeMaps = maps,
@@ -90,9 +89,6 @@ export function createMapSelector({
   }
 
   function handleKeydown(event) {
-    if (event.target?.matches("[data-map-delete]") && (event.key === "Enter" || event.key === " ")) {
-      return;
-    }
     if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
       event.preventDefault();
       moveMapSelection(-1);
@@ -144,9 +140,6 @@ export function createMapSelector({
     const row = document.createElement("div");
     row.className = `map-option-row is-${gameMap.source}`;
     row.append(mapOptionButton(gameMap, index));
-    if (gameMap.source === "custom") {
-      row.append(deleteMapButton(gameMap, index));
-    }
     return row;
   }
 
@@ -158,7 +151,6 @@ export function createMapSelector({
     button.classList.toggle("is-selected", index === selectedMapIndex);
     button.innerHTML = `
       <span class="selection-title">${escapeHtml(gameMap.name)}</span>
-      ${gameMap.source === "custom" ? '<span class="map-card-badge">Custom</span>' : ""}
     `;
     button.addEventListener("focus", () => selectMapOption(index));
     button.addEventListener("pointerenter", () => selectMapOption(index));
@@ -167,31 +159,6 @@ export function createMapSelector({
       chooseSelectedMap();
     });
     return button;
-  }
-
-  function deleteMapButton(gameMap, index) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "mini-button map-delete-button";
-    button.dataset.mapDelete = "true";
-    button.textContent = "Delete";
-    button.setAttribute("aria-label", `Delete custom map ${gameMap.name}`);
-    button.addEventListener("focus", () => selectMapOption(index));
-    button.addEventListener("pointerenter", () => selectMapOption(index));
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      deleteCustomMap(gameMap);
-    });
-    return button;
-  }
-
-  function deleteCustomMap(gameMap) {
-    if (!window.confirm(`Delete custom map "${gameMap.name}"?`)) {
-      return;
-    }
-    customMapStore.remove(gameMap.id);
-    onCustomMapDeleted(gameMap);
-    renderMapOptions();
   }
 
   function selectedMapOptionButton() {
@@ -203,7 +170,7 @@ export function createMapSelector({
   }
 
   function mapDisplayName(gameMap) {
-    return gameMap.source === "custom" ? `${gameMap.name} (Custom)` : gameMap.name;
+    return gameMap.name;
   }
 
   return {
