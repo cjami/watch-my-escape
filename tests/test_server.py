@@ -10,6 +10,7 @@ from watch_my_escape.app.server import (
     build_escape_run_response,
     create_app,
     model_preset_options,
+    premade_map_options,
 )
 from watch_my_escape.llm.client import LlmConfigurationError
 from watch_my_escape.llm.config import MODEL_PRESETS
@@ -55,6 +56,19 @@ def test_model_preset_options_include_selector_metadata():
     assert {option["id"] for option in options} == set(MODEL_PRESETS)
     assert all(option["agent_icon"] for option in options)
     assert all(isinstance(option["parameter_size_b"], int | float) for option in options)
+
+
+def test_premade_map_options_include_preview_metadata():
+    options = premade_map_options()
+    key_door_room = next(option for option in options if option["id"] == "key-door-room")
+
+    assert key_door_room["name"] == "Key Door Room"
+    assert key_door_room["description"]
+    assert key_door_room["agent_position"] == "(7, 7)"
+    assert len(key_door_room["preview_map"].splitlines()) == 15
+    assert len(key_door_room["preview_map_colors"].splitlines()) == 15
+    assert all(len(row.split(" ")) == 15 for row in key_door_room["preview_map"].splitlines())
+    assert all(len(row.split(" ")) == 15 for row in key_door_room["preview_map_colors"].splitlines())
 
 
 def test_escape_run_response_reports_model_configuration_error(monkeypatch):

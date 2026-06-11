@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, run_model_escape, run_model_escape_steps
 from watch_my_escape.agent.runner import ThinkActSettings, think_act_settings_for_config
+from watch_my_escape.game.maps import GameSessionState, render_user_map_color_view, render_user_map_view
 from watch_my_escape.game.premade_maps import (
     PremadeMapDocument,
     PremadeMapError,
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
     from fastapi.responses import Response
 
     from watch_my_escape.game.maps import GameMap
+    from watch_my_escape.game.premade_maps import PremadeMap
     from watch_my_escape.llm.client import InferenceProvider
 
 PACKAGE_DIR: Final = Path(__file__).resolve().parents[1]
@@ -157,7 +159,18 @@ def model_preset_options() -> tuple[dict[str, object], ...]:
 
 def premade_map_options() -> tuple[dict[str, str], ...]:
     """Return JSON-safe map selector metadata."""
-    return tuple(premade_map.as_selection_option() for premade_map in list_premade_maps())
+    return tuple(_premade_map_option(premade_map) for premade_map in list_premade_maps())
+
+
+def _premade_map_option(premade_map: PremadeMap) -> dict[str, str]:
+    session = GameSessionState(map=premade_map.map)
+    position = session.current_position
+    return {
+        **premade_map.as_selection_option(),
+        "preview_map": _format_map(render_user_map_view(session)),
+        "preview_map_colors": _format_map(render_user_map_color_view(session)),
+        "agent_position": f"({position.x}, {position.y})",
+    }
 
 
 def _format_list(values: tuple[str, ...], *, empty: str) -> str:

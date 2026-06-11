@@ -260,8 +260,6 @@
     opacity: 0.46;
   }
 
-  .main-menu-option:hover,
-  .main-menu-option:focus-visible,
   .main-menu-option.is-selected {
     color: #fff7c2;
     opacity: 0.88;
@@ -337,10 +335,94 @@
     text-transform: uppercase;
   }
 
-  .option-grid {
+  .map-select-shell {
+    width: min(1120px, 100%);
+  }
+
+  .map-selector {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-    gap: clamp(1rem, 2vw, 1.25rem);
+    grid-template-columns: minmax(16rem, 24rem) minmax(0, 1fr);
+    gap: clamp(1rem, 2.5vw, 1.5rem);
+    align-items: stretch;
+  }
+
+  .map-option-list {
+    display: grid;
+    max-height: min(58vh, 36rem);
+    align-content: start;
+    gap: 0.65rem;
+    overflow: auto;
+    padding: 0.15rem;
+    scrollbar-width: thin;
+  }
+
+  .map-preview-panel {
+    display: grid;
+    min-width: 0;
+    gap: clamp(0.85rem, 2vw, 1.1rem);
+    align-content: start;
+    padding: clamp(0.75rem, 2vw, 1rem);
+    border: 2px solid rgb(89 228 255 / 28%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 4%) 50%, rgb(0 0 0 / 10%) 50%),
+      radial-gradient(ellipse at 50% 0%, rgb(102 217 232 / 9%), transparent 58%),
+      linear-gradient(180deg, #101928, #080c14 62%, #020204);
+    background-size:
+      100% 4px,
+      auto,
+      auto;
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 78%),
+      inset 0 -42px 70px rgb(0 0 0 / 34%),
+      0 6px 0 rgb(0 0 0 / 64%),
+      0 18px 42px rgb(0 0 0 / 34%);
+  }
+
+  .map-preview {
+    width: min(100%, 31rem);
+    justify-self: center;
+    border-radius: 2px;
+    transform: none;
+  }
+
+  .map-preview .map-tile {
+    font-size: clamp(0.58rem, 1.6vw, 1.35rem);
+  }
+
+  .map-preview-copy {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .map-preview-copy h2,
+  .map-preview-copy p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .map-preview-copy h2 {
+    color: #fff7c2;
+    font-size: clamp(1.25rem, 3vw, 2rem);
+    font-weight: 400;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .map-preview-copy p {
+    color: #d4d7c6;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 760px) {
+    .map-selector {
+      grid-template-columns: 1fr;
+    }
+
+    .map-option-list {
+      max-height: 15rem;
+    }
   }
 
   .model-select-shell {
@@ -708,8 +790,6 @@
       box-shadow 120ms steps(2);
   }
 
-  .selection-card:hover,
-  .selection-card:focus-visible,
   .selection-card.is-selected {
     border-color: rgb(255 212 71 / 78%);
     background:
@@ -725,23 +805,12 @@
     transform: translateY(-3px);
   }
 
-  .selection-card:hover::after,
-  .selection-card:focus-visible::after,
   .selection-card.is-selected::after {
     border-color: rgb(255 212 71 / 22%);
     box-shadow: inset 0 0 24px rgb(255 212 71 / 8%);
   }
 
-  .selection-chip {
-    width: 2.2rem;
-    height: 0.55rem;
-    border-radius: 0;
-    background: var(--arcade-amber);
-    box-shadow: 0 0 16px rgb(255 212 71 / 42%);
-  }
-
   .selection-title,
-  .selection-meta,
   .selection-detail {
     overflow-wrap: anywhere;
   }
@@ -754,12 +823,6 @@
     text-transform: uppercase;
   }
 
-  .selection-meta {
-    color: var(--arcade-cyan);
-    font-size: 0.9rem;
-    font-weight: 400;
-  }
-
   .selection-detail {
     color: #d4d7c6;
     font-size: 0.84rem;
@@ -767,8 +830,11 @@
   }
 
   .map-card {
-    min-height: 10rem;
+    width: 100%;
+    min-height: 3.7rem;
+    align-content: center;
     border-color: rgb(255 212 71 / 42%);
+    padding: 0.85rem 0.9rem;
   }
 
   .map-card::after {
@@ -776,8 +842,10 @@
     border: 0;
   }
 
-  .map-card:hover,
-  .map-card:focus-visible,
+  .map-card:focus-visible {
+    outline: none;
+  }
+
   .map-card.is-selected {
     background:
       linear-gradient(rgb(255 212 71 / 10%), rgb(255 212 71 / 10%)),
@@ -789,8 +857,6 @@
       auto;
   }
 
-  .map-card:hover::after,
-  .map-card:focus-visible::after,
   .map-card.is-selected::after {
     box-shadow:
       inset 0 0 0 2px rgb(255 212 71 / 28%),
@@ -799,8 +865,8 @@
 
   .game-screen {
     position: relative;
-    align-items: start;
-    padding: clamp(1rem, 3vw, 3rem);
+    align-items: center;
+    padding: clamp(1rem, 4vw, 4rem);
   }
 
   .game-intro {
@@ -912,7 +978,7 @@
     align-items: start;
     gap: 1.5rem;
     margin: 0 auto;
-    transform: translateY(clamp(-1.4rem, -2.4vh, -0.3rem));
+    transform: translateY(clamp(-2.2rem, -4vh, -0.6rem));
   }
 
   @media (min-width: 1024px) {

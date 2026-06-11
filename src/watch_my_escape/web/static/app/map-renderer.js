@@ -23,43 +23,17 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
     lastAgentPosition = agentPosition;
     lastActionLabel = actionLabel;
     lastColorText = colorText;
-    dom.mapOutput.replaceChildren();
-    const rows = parseMapRows(mapText);
-    if (!rows.length) {
-      return;
-    }
-
-    const visibilityRows = parseVisibilityRows(visibilityText);
-    const colorRows = parseColorRows(colorText);
-    const hasVisibility = visibilityRows.length === rows.length;
-    const agentCoordinate = parsePosition(agentPosition);
-    const agentMoved = Boolean(previousAgentPosition && agentPosition && previousAgentPosition !== agentPosition);
-    const labelPosition = actionLabel
-      ? actionLabelPosition(rows, visibilityRows, hasVisibility, agentCoordinate, actionLabel)
-      : null;
-    rows.forEach((row, y) => {
-      row.forEach((cell, x) => {
-        const tile = document.createElement("span");
-        tile.className = "map-tile";
-        const visibleToAgent = !hasVisibility || visibilityRows[y]?.[x] !== false;
-        tile.classList.toggle("visible-tile", visibleToAgent);
-        tile.classList.toggle("hidden-tile", !visibleToAgent);
-        tile.setAttribute("aria-label", visibleToAgent ? "visible to agent" : "not visible to agent");
-        const isAgentTile = agentCoordinate?.x === x && agentCoordinate.y === y;
-        if (agentCoordinate?.x === x && agentCoordinate.y === y) {
-          tile.classList.add("agent-tile");
-          tile.classList.toggle("agent-just-moved", agentMoved);
-        }
-        if (cell !== ".") {
-          const tint = isAgentTile ? getSelectedModel()?.brand_color : entityColorAt(colorRows, x, y);
-          tile.append(pixelSprite(cell, cell, tint));
-        }
-        dom.mapOutput.append(tile);
-      });
+    renderMapInto({
+      actionLabel,
+      agentPosition,
+      colorText,
+      container: dom.mapOutput,
+      getAgentColor: () => getSelectedModel()?.brand_color,
+      mapText,
+      pixelSprite,
+      previousAgentPosition,
+      visibilityText,
     });
-    if (labelPosition) {
-      dom.mapOutput.append(actionLabelElement(actionLabel, labelPosition));
-    }
   }
 
   function refresh() {
@@ -71,6 +45,56 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
   }
 
   return { refresh, renderEscapeCelebration, renderMap };
+}
+
+export function renderMapInto({
+  actionLabel = "",
+  agentPosition,
+  colorText = "",
+  container,
+  getAgentColor = () => null,
+  mapText,
+  pixelSprite,
+  previousAgentPosition = "",
+  visibilityText = "",
+}) {
+  container.replaceChildren();
+  const rows = parseMapRows(mapText);
+  if (!rows.length) {
+    return;
+  }
+
+  const visibilityRows = parseVisibilityRows(visibilityText);
+  const colorRows = parseColorRows(colorText);
+  const hasVisibility = visibilityRows.length === rows.length;
+  const agentCoordinate = parsePosition(agentPosition);
+  const agentMoved = Boolean(previousAgentPosition && agentPosition && previousAgentPosition !== agentPosition);
+  const labelPosition = actionLabel
+    ? actionLabelPosition(rows, visibilityRows, hasVisibility, agentCoordinate, actionLabel)
+    : null;
+  rows.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      const tile = document.createElement("span");
+      tile.className = "map-tile";
+      const visibleToAgent = !hasVisibility || visibilityRows[y]?.[x] !== false;
+      tile.classList.toggle("visible-tile", visibleToAgent);
+      tile.classList.toggle("hidden-tile", !visibleToAgent);
+      tile.setAttribute("aria-label", visibleToAgent ? "visible to agent" : "not visible to agent");
+      const isAgentTile = agentCoordinate?.x === x && agentCoordinate.y === y;
+      if (isAgentTile) {
+        tile.classList.add("agent-tile");
+        tile.classList.toggle("agent-just-moved", agentMoved);
+      }
+      if (cell !== ".") {
+        const tint = isAgentTile ? getAgentColor() : entityColorAt(colorRows, x, y);
+        tile.append(pixelSprite(cell, cell, tint));
+      }
+      container.append(tile);
+    });
+  });
+  if (labelPosition) {
+    container.append(actionLabelElement(actionLabel, labelPosition));
+  }
 }
 
 function parseMapRows(mapText) {

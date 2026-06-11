@@ -29,6 +29,7 @@ const mapSelector = createMapSelector({
     appState.selectedMap = gameMap;
     screens.showScreen("game");
   },
+  pixelSprite: sprites.pixelSprite,
 });
 const modelSelector = createModelSelector({
   dom,
@@ -58,7 +59,7 @@ modelSelector.render();
 mapSelector.render();
 editor.init();
 gameRunner.init();
-sprites.refreshWhenFontsLoad([editor.refreshSprites, mapRenderer.refresh]);
+sprites.refreshWhenFontsLoad([editor.refreshSprites, mapSelector.refresh, mapRenderer.refresh]);
 
 dom.screens.get("splash").addEventListener("click", screens.showMainMenu, { once: true });
 window.addEventListener("keydown", handleGlobalKeydown);
