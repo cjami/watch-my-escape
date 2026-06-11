@@ -16,17 +16,30 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
       const message = localIssues.slice(0, 3).join(" ");
       validation.updateState("invalid", message);
       context.setStatus(`Validation failed: ${message}`);
+      showValidationErrorPopup(localIssues);
       return;
     }
     const payload = buildEditorDocument();
-    const response = await fetch("/maps/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    let response;
+    try {
+      response = await fetch("/maps/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      const message = "Validation unavailable while the app is offline.";
+      validation.updateState("pending", message);
+      context.setStatus(message);
+      showValidationErrorPopup([message]);
+      return;
+    }
     if (!response.ok) {
       const error = await response.json();
-      context.setStatus(`Validation failed: ${formatValidationError(error)}`);
+      const message = formatValidationError(error);
+      validation.updateState("invalid", message);
+      context.setStatus(`Validation failed: ${message}`);
+      showValidationErrorPopup([message]);
       return;
     }
     const normalized = await response.json();
@@ -79,7 +92,7 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
     };
     context.selectedEntityId = context.editorState.entities[0]?.entity.id ?? context.editorState.unplacedEntities[0]?.id ?? null;
     context.selectedEditorTab = "entity";
-    context.selectedBehaviorIndex = 0;
+    context.openBehaviorEditor = null;
     renderEditor();
   }
 
@@ -101,9 +114,43 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
     };
   }
 
+  function showValidationErrorPopup(issues) {
+    context.dom.editorValidationPopupList.replaceChildren(
+      ...issues.map((issue) => {
+        const item = document.createElement("li");
+        item.textContent = issue;
+        return item;
+      }),
+    );
+    context.dom.editorValidationPopup.hidden = false;
+    context.dom.editorValidationPopupClose.focus();
+  }
+
+  function hideValidationErrorPopup() {
+    context.dom.editorValidationPopup.hidden = true;
+  }
+
+  function handleValidationPopupClick(event) {
+    if (
+      event.target === context.dom.editorValidationPopup ||
+      context.dom.editorValidationPopupClose.contains(event.target)
+    ) {
+      hideValidationErrorPopup();
+    }
+  }
+
+  function handleValidationPopupKeydown(event) {
+    if (context.dom.editorValidationPopup.hidden || event.key !== "Escape") {
+      return;
+    }
+    hideValidationErrorPopup();
+  }
+
   return {
     buildEditorDocument,
     exportEditorMap,
+    handleValidationPopupClick,
+    handleValidationPopupKeydown,
     importEditorMap,
     loadEditorDocument,
     setValidation,

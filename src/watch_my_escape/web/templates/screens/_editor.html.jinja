@@ -38,8 +38,8 @@
           <span class="field-label">Presets</span>
           <div id="entity-presets" class="preset-grid" aria-label="Entity presets"></div>
         </div>
-        <output id="editor-status" class="editor-status">Ready.</output>
-        <div id="editor-validation" class="editor-validation is-pending">Validation pending.</div>
+        <output id="editor-status" class="editor-status" hidden>Ready.</output>
+        <div id="editor-validation" class="editor-validation is-pending" hidden>Validation pending.</div>
       </div>
 
       <div class="editor-map-shell">
@@ -48,6 +48,15 @@
           <span class="editor-tray-label">Off-map</span>
           <div id="editor-tray" class="editor-tray-list" aria-label="Off-map entity cells"></div>
         </section>
+        <div id="behavior-editor-overlay" class="behavior-editor-overlay" hidden>
+          <div
+            id="behavior-editor-panel"
+            class="behavior-editor-panel"
+            role="dialog"
+            aria-modal="false"
+            aria-label="Behavior rule editor"
+          ></div>
+        </div>
       </div>
 
       <aside class="entity-panel" aria-label="Selected entity">
@@ -93,5 +102,20 @@
         </section>
       </aside>
     </section>
+
+    <div id="editor-validation-popup" class="editor-popup-overlay" hidden>
+      <section
+        class="editor-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editor-validation-popup-title"
+      >
+        <div class="panel-heading">
+          <h2 id="editor-validation-popup-title">Export Blocked</h2>
+          <button id="editor-validation-popup-close" type="button" class="mini-button">Close</button>
+        </div>
+        <ul id="editor-validation-popup-list" class="editor-popup-list"></ul>
+      </section>
+    </div>
   </div>
 </section>

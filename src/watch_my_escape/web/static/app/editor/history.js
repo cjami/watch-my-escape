@@ -43,7 +43,7 @@ export function createEditorHistory({ context, renderEditor, renderPresets }) {
       selectedTool: context.selectedTool,
       selectedPresetType: context.selectedPreset.type,
       selectedEditorTab: context.selectedEditorTab,
-      selectedBehaviorIndex: context.selectedBehaviorIndex,
+      openBehaviorEditor: structuredClone(context.openBehaviorEditor),
       mapName: context.dom.editorMapName.value,
       description: context.dom.editorDescription.value,
     };
@@ -55,7 +55,7 @@ export function createEditorHistory({ context, renderEditor, renderPresets }) {
     context.selectedTool = snapshot.selectedTool;
     context.selectedPreset = presets.find((preset) => preset.type === snapshot.selectedPresetType) ?? context.selectedPreset;
     context.selectedEditorTab = snapshot.selectedEditorTab;
-    context.selectedBehaviorIndex = snapshot.selectedBehaviorIndex;
+    context.openBehaviorEditor = structuredClone(snapshot.openBehaviorEditor ?? null);
     context.dom.editorMapName.value = snapshot.mapName;
     context.dom.editorDescription.value = snapshot.description;
     context.setEditorTool(context.selectedTool);

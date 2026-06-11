@@ -77,6 +77,7 @@ export function createEditor({ dom, onBack, pixelSprite }) {
     dom.importMapButton.addEventListener("click", () => dom.importMapFile.click());
     dom.importMapFile.addEventListener("change", documents.importEditorMap);
     dom.exportMapButton.addEventListener("click", documents.exportEditorMap);
+    dom.editorValidationPopup.addEventListener("click", documents.handleValidationPopupClick);
     dom.undoEditorButton.addEventListener("click", history.undo);
     dom.redoEditorButton.addEventListener("click", history.redo);
     dom.addBehaviorButton.addEventListener("click", behaviorEditor.addBehavior);
@@ -99,6 +100,8 @@ export function createEditor({ dom, onBack, pixelSprite }) {
         tabs.set(button.dataset.editorTab);
       });
     });
+    document.addEventListener("keydown", documents.handleValidationPopupKeydown);
+    document.addEventListener("click", behaviorEditor.handleDocumentClick);
     document.addEventListener("pointerup", grid.finishGridDrag);
   }
 

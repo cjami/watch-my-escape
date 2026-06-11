@@ -10,7 +10,7 @@ export function createEditorContext({ dom, pixelSprite }) {
     selectedPreset: presets[0],
     selectedEntityId: null,
     selectedEditorTab: "entity",
-    selectedBehaviorIndex: 0,
+    openBehaviorEditor: null,
     iconSearchQuery: "",
     editorState: starterEditorState(),
     dragState: null,

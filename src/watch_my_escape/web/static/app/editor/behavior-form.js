@@ -20,7 +20,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     }
     history.record();
     entity.behaviors.push(defaultBehavior());
-    context.selectedBehaviorIndex = entity.behaviors.length - 1;
+    context.openBehaviorEditor = { entityId: entity.id, index: entity.behaviors.length - 1 };
     context.selectedEditorTab = "behaviors";
     renderEditor();
     context.setStatus("Behavior added.");
@@ -29,37 +29,103 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
   function render() {
     const placed = context.selectedPlacedEntity();
     context.dom.behaviorList.replaceChildren();
+    const openRule = openBehaviorRule();
     if (!placed) {
       context.dom.behaviorList.innerHTML = `<p class="selection-detail">No entity selected.</p>`;
+      renderBehaviorOverlay(openRule);
       return;
     }
     if (!placed.entity.behaviors.length) {
       context.dom.behaviorList.innerHTML = `<p class="selection-detail">No behaviors configured.</p>`;
-      context.selectedBehaviorIndex = 0;
+      renderBehaviorOverlay(openRule);
       return;
     }
-    context.selectedBehaviorIndex = Math.min(context.selectedBehaviorIndex, placed.entity.behaviors.length - 1);
     const ruleList = document.createElement("div");
     ruleList.className = "behavior-rule-list";
     placed.entity.behaviors.forEach((behavior, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "behavior-summary";
-      button.classList.toggle("is-selected", index === context.selectedBehaviorIndex);
+      button.classList.toggle("is-selected", openRule?.entity.id === placed.entity.id && openRule.index === index);
+      button.setAttribute("aria-expanded", String(openRule?.entity.id === placed.entity.id && openRule.index === index));
       button.innerHTML = `
         <span>Rule ${index + 1}</span>
         <strong>${escapeHtml(behaviorSummary(behavior))}</strong>
       `;
       button.addEventListener("click", () => {
-        context.selectedBehaviorIndex = index;
+        toggleBehaviorEditor(placed.entity.id, index);
         render();
       });
       ruleList.append(button);
     });
-    context.dom.behaviorList.append(
-      ruleList,
-      behaviorBlock(placed.entity.behaviors[context.selectedBehaviorIndex], context.selectedBehaviorIndex),
-    );
+    context.dom.behaviorList.append(ruleList);
+    renderBehaviorOverlay(openRule);
+  }
+
+  function handleDocumentClick(event) {
+    if (!context.openBehaviorEditor) {
+      return;
+    }
+    if (eventStartedInside(event, context.dom.behaviorEditorPanel, context.dom.behaviorList, context.dom.addBehaviorButton)) {
+      return;
+    }
+    closeBehaviorEditor();
+  }
+
+  function eventStartedInside(event, ...elements) {
+    const path = event.composedPath();
+    return elements.some((element) => path.includes(element) || element.contains(event.target));
+  }
+
+  function toggleBehaviorEditor(entityId, index) {
+    if (isBehaviorEditorOpenFor(entityId, index)) {
+      context.openBehaviorEditor = null;
+      return;
+    }
+    context.openBehaviorEditor = { entityId, index };
+  }
+
+  function closeBehaviorEditor() {
+    context.openBehaviorEditor = null;
+    render();
+  }
+
+  function openBehaviorRule() {
+    const { openBehaviorEditor } = context;
+    const placed = context.selectedPlacedEntity();
+    if (
+      !openBehaviorEditor ||
+      !placed ||
+      placed.entity.id !== openBehaviorEditor.entityId ||
+      context.selectedEditorTab !== "behaviors"
+    ) {
+      context.openBehaviorEditor = null;
+      return null;
+    }
+    const behavior = placed.entity.behaviors[openBehaviorEditor.index];
+    if (!behavior) {
+      context.openBehaviorEditor = null;
+      return null;
+    }
+    return {
+      behavior,
+      entity: placed.entity,
+      index: openBehaviorEditor.index,
+    };
+  }
+
+  function isBehaviorEditorOpenFor(entityId, index) {
+    return context.openBehaviorEditor?.entityId === entityId && context.openBehaviorEditor.index === index;
+  }
+
+  function renderBehaviorOverlay(openRule) {
+    context.dom.behaviorEditorPanel.replaceChildren();
+    if (!openRule) {
+      context.dom.behaviorEditorOverlay.hidden = true;
+      return;
+    }
+    context.dom.behaviorEditorOverlay.hidden = false;
+    context.dom.behaviorEditorPanel.append(behaviorBlock(openRule.behavior, openRule.index));
   }
 
   function behaviorBlock(behavior, index) {
@@ -109,7 +175,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     block.querySelector("[data-remove-behavior]").addEventListener("click", () => {
       history.record();
       context.selectedPlacedEntity().entity.behaviors.splice(index, 1);
-      context.selectedBehaviorIndex = Math.max(0, index - 1);
+      context.openBehaviorEditor = null;
       renderEditor();
     });
     block.querySelector("[data-add-condition]").addEventListener("click", () => {
@@ -397,5 +463,5 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     return `<select ${attributes}>${optionHtml}</select>`;
   }
 
-  return { addBehavior, render };
+  return { addBehavior, handleDocumentClick, render };
 }
