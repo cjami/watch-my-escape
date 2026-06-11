@@ -1,0 +1,90 @@
+name: Deploy Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Space
+    runs-on: ubuntu-latest
+    environment: huggingface-space
+    env:
+      DEPLOY_DIR: dist/huggingface-space
+      HF_SPACE_REPO: https://huggingface.co/spaces/cjami/watch-my-escape
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: make assets
+
+      - name: Run tests
+        run: uv run pytest
+
+      - name: Assemble Space artifact
+        run: |
+          mkdir -p "$DEPLOY_DIR"
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.venv' \
+            --exclude '.pytest_cache' \
+            --exclude '.ruff_cache' \
+            --exclude '.ty_cache' \
+            --exclude 'node_modules' \
+            --exclude 'dist' \
+            --exclude 'build' \
+            --exclude 'space' \
+            ./ "$DEPLOY_DIR"/
+          mkdir -p "$DEPLOY_DIR/build/web"
+          cp -R build/web/static "$DEPLOY_DIR/build/web/static"
+          cp space/app.py "$DEPLOY_DIR/app.py"
+          cp space/requirements.txt "$DEPLOY_DIR/requirements.txt"
+          cp space/.gitattributes "$DEPLOY_DIR/.gitattributes"
+          {
+            echo "---"
+            cat space/README.frontmatter.yml
+            echo "---"
+            echo
+            cat README.md
+          } > "$DEPLOY_DIR/README.md"
+
+      - name: Push Space artifact
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          cd "$DEPLOY_DIR"
+          git init
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Deploy Space"
+          git branch -M main
+          git remote add origin "https://cjami:${HF_TOKEN}@huggingface.co/spaces/cjami/watch-my-escape"
+          git push --force origin main
