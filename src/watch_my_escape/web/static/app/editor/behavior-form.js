@@ -23,7 +23,6 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     context.openBehaviorEditor = { entityId: entity.id, index: entity.behaviors.length - 1 };
     context.selectedEditorTab = "behaviors";
     renderEditor();
-    scrollBehaviorEditorToBottom();
     context.setStatus("Behavior added.");
   }
 
@@ -56,7 +55,6 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       button.addEventListener("click", () => {
         toggleBehaviorEditor(placed.entity.id, index);
         render();
-        scrollBehaviorEditorToBottom();
       });
       ruleList.append(button);
     });
@@ -184,7 +182,6 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       history.record();
       behavior.conditions.push({ entity_id: "", state: "" });
       renderEditor();
-      scrollBehaviorEditorToBottom();
     });
     block.querySelector("[data-add-effect]").addEventListener("click", () => {
       history.record();
