@@ -4,6 +4,9 @@ import { mapSize } from "./constants.js";
 
 const offMapLabelColumnSpan = 2;
 const minimumOffMapCellCount = mapSize - offMapLabelColumnSpan;
+const entityDragActivationCellRatio = 0.4;
+const entityDragActivationMinPx = 12;
+const entityDragActivationMaxPx = 28;
 
 export function createEditorGrid({ context, history, renderEditor }) {
   function renderGrid() {
@@ -114,6 +117,10 @@ export function createEditorGrid({ context, history, renderEditor }) {
       targetY: y,
       count: 0,
       changed: false,
+      dragActive: false,
+      pointerStartX: event.clientX,
+      pointerStartY: event.clientY,
+      activationDistance: entityDragActivationDistance(cell),
       visited: new Set(),
     };
     if (context.selectedTool === "erase") {
@@ -123,10 +130,6 @@ export function createEditorGrid({ context, history, renderEditor }) {
     if (context.selectedTool === "place") {
       paintPlace(x, y);
       return;
-    }
-    if (context.selectedTool === "select" && placedEntity) {
-      updateDropPreview(cell, x, y);
-      context.setStatus(`Dragging ${placedEntity.entity.id}. Release on an open tile or the tray.`);
     }
   }
 
@@ -186,10 +189,12 @@ export function createEditorGrid({ context, history, renderEditor }) {
       targetY: null,
       count: 0,
       changed: false,
+      dragActive: false,
+      pointerStartX: event.clientX,
+      pointerStartY: event.clientY,
+      activationDistance: entityDragActivationDistance(cell),
       visited: new Set(),
     };
-    updateTrayCellDropPreview(cell, index);
-    context.setStatus(`Dragging ${entity.id}. Release on an open tile to place it.`);
   }
 
   function handleEditorCellPointerEnter(cell, x, y) {
@@ -208,7 +213,7 @@ export function createEditorGrid({ context, history, renderEditor }) {
       updateDropPreview(cell, x, y);
       return;
     }
-    if (context.dragState.tool === "select" && context.dragState.sourceId) {
+    if (context.dragState.tool === "select" && context.dragState.sourceId && context.dragState.dragActive) {
       updateDropPreview(cell, x, y);
     }
   }
@@ -218,6 +223,11 @@ export function createEditorGrid({ context, history, renderEditor }) {
       return;
     }
     if (context.dragState.tool === "select") {
+      if (!context.dragState.dragActive) {
+        selectDragSource();
+        finishGridDrag();
+        return;
+      }
       finishSelectDrag(x, y);
     }
     if (context.dragState.tool === "start") {
@@ -238,7 +248,7 @@ export function createEditorGrid({ context, history, renderEditor }) {
       paintTrayErase(index);
       return;
     }
-    if (context.dragState.tool === "select" && context.dragState.sourceId) {
+    if (context.dragState.tool === "select" && context.dragState.sourceId && context.dragState.dragActive) {
       updateTrayCellDropPreview(cell, index);
     }
   }
@@ -248,9 +258,28 @@ export function createEditorGrid({ context, history, renderEditor }) {
       return;
     }
     if (context.dragState.tool === "select") {
+      if (!context.dragState.dragActive) {
+        selectDragSource();
+        finishGridDrag();
+        return;
+      }
       finishTraySelectDrag(index);
     }
     finishGridDrag();
+  }
+
+  function handleDragPointerMove(event) {
+    if (!context.dragState || context.dragState.tool !== "select" || !context.dragState.sourceId) {
+      return;
+    }
+    if (!context.dragState.dragActive) {
+      if (!isEntityDragActivationMove(event)) {
+        return;
+      }
+      context.dragState.dragActive = true;
+      context.setStatus(entityDragStatusMessage());
+    }
+    updateSelectDragPreviewFromPoint(event.clientX, event.clientY);
   }
 
   function beginStartDrag(cell, x, y) {
@@ -304,6 +333,16 @@ export function createEditorGrid({ context, history, renderEditor }) {
     context.selectedEntityId = source.entity.id;
     context.selectedEditorTab = "entity";
     context.setStatus(`Moved ${source.entity.id} to (${x}, ${y}).`);
+    renderEditor();
+  }
+
+  function selectDragSource() {
+    const source = context.selectedDragEntity();
+    if (!source) {
+      return;
+    }
+    context.selectedEntityId = source.entity.id;
+    context.selectedEditorTab = "entity";
     renderEditor();
   }
 
@@ -450,6 +489,37 @@ export function createEditorGrid({ context, history, renderEditor }) {
     });
   }
 
+  function updateSelectDragPreviewFromPoint(clientX, clientY) {
+    const target = document.elementFromPoint(clientX, clientY);
+    const gridCell = target?.closest("[data-x][data-y]");
+    if (gridCell && context.dom.editorGrid.contains(gridCell)) {
+      updateDropPreview(gridCell, Number(gridCell.dataset.x), Number(gridCell.dataset.y));
+      return;
+    }
+    const trayCell = target?.closest("[data-tray-index]");
+    if (trayCell && context.dom.editorTray.contains(trayCell)) {
+      updateTrayCellDropPreview(trayCell, Number(trayCell.dataset.trayIndex));
+      return;
+    }
+    clearDropPreview();
+    applyDragSourcePreview();
+  }
+
+  function applyDragSourcePreview() {
+    if (!context.dragState) {
+      return;
+    }
+    if (context.dragState.sourceKind === "grid") {
+      applyDragClasses(
+        editorGridCell(context.dragState.sourceX, context.dragState.sourceY),
+        context.dragState.sourceX,
+        context.dragState.sourceY,
+      );
+      return;
+    }
+    applyTrayDragClasses(editorTrayCell(context.dragState.sourceIndex), context.dragState.sourceIndex);
+  }
+
   function updateDropPreview(cell, x, y) {
     if (!context.dragState) {
       return;
@@ -486,6 +556,9 @@ export function createEditorGrid({ context, history, renderEditor }) {
     if (context.dragState.tool !== "select") {
       return;
     }
+    if (!context.dragState.dragActive) {
+      return;
+    }
     context.dom.editorTray.classList.add("is-dragging");
     if (context.dragState.sourceKind === "tray" && context.dragState.sourceIndex === index) {
       cell.classList.add("is-drag-source");
@@ -502,6 +575,9 @@ export function createEditorGrid({ context, history, renderEditor }) {
       return;
     }
     if (context.dragState.tool !== "select" && context.dragState.tool !== "start") {
+      return;
+    }
+    if (context.dragState.tool === "select" && !context.dragState.dragActive) {
       return;
     }
     context.dom.editorGrid.classList.add("is-dragging");
@@ -531,6 +607,34 @@ export function createEditorGrid({ context, history, renderEditor }) {
       [...context.dom.editorTray.querySelectorAll("[data-entity-id]")].find((item) => item.dataset.entityId === entityId) ??
       null
     );
+  }
+
+  function editorTrayCell(index) {
+    return context.dom.editorTray.querySelector(`[data-tray-index="${index}"]`);
+  }
+
+  function isEntityDragActivationMove(event) {
+    const distance = Math.hypot(
+      event.clientX - context.dragState.pointerStartX,
+      event.clientY - context.dragState.pointerStartY,
+    );
+    return distance >= context.dragState.activationDistance;
+  }
+
+  function entityDragActivationDistance(cell) {
+    const rect = cell.getBoundingClientRect();
+    const cellSize = Math.min(rect.width, rect.height);
+    return Math.min(
+      entityDragActivationMaxPx,
+      Math.max(entityDragActivationMinPx, cellSize * entityDragActivationCellRatio),
+    );
+  }
+
+  function entityDragStatusMessage() {
+    if (context.dragState.sourceKind === "grid") {
+      return `Dragging ${context.dragState.sourceId}. Release on an open tile or the tray.`;
+    }
+    return `Dragging ${context.dragState.sourceId}. Release on an open tile to place it.`;
   }
 
   function trayEntityAt(index) {
@@ -565,6 +669,7 @@ export function createEditorGrid({ context, history, renderEditor }) {
 
   return {
     finishGridDrag,
+    handleDragPointerMove,
     renderGrid,
     renderTray,
   };

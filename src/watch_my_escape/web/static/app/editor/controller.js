@@ -102,6 +102,7 @@ export function createEditor({ dom, onBack, pixelSprite }) {
     });
     document.addEventListener("keydown", documents.handleValidationPopupKeydown);
     document.addEventListener("click", behaviorEditor.handleDocumentClick);
+    document.addEventListener("pointermove", grid.handleDragPointerMove);
     document.addEventListener("pointerup", grid.finishGridDrag);
   }
 
