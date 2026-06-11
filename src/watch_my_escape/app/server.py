@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import secrets
 import time
+from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 from typing import TYPE_CHECKING, Any, Final, cast
 
 from fastapi import HTTPException, Query, Request
@@ -42,6 +45,60 @@ SOURCE_STATIC_DIR: Final = WEB_DIR / "static"
 GENERATED_STATIC_DIR: Final = PROJECT_DIR / "build" / "web" / "static"
 TEMPLATES_DIR: Final = WEB_DIR / "templates"
 templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
+CUSTOM_MAP_TOKEN_TTL_SECONDS: Final = 15 * 60
+
+
+@dataclass(frozen=True, slots=True)
+class CustomMapRun:
+    """A validated custom map available to a pending stream."""
+
+    game_map: GameMap
+    expires_at: float
+
+
+class CustomMapTokenError(ValueError):
+    """Raised when a custom map run token cannot be used."""
+
+
+class CustomMapRunStore:
+    """Short-lived in-memory storage for validated custom map runs."""
+
+    def __init__(self, *, ttl_seconds: int = CUSTOM_MAP_TOKEN_TTL_SECONDS) -> None:
+        self._ttl_seconds = ttl_seconds
+        self._runs: dict[str, CustomMapRun] = {}
+        self._lock = Lock()
+
+    def add(self, game_map: GameMap) -> str:
+        """Store a custom map and return its opaque run token."""
+        self._prune_expired()
+        token = secrets.token_urlsafe(32)
+        with self._lock:
+            self._runs[token] = CustomMapRun(game_map=game_map, expires_at=time.monotonic() + self._ttl_seconds)
+        return token
+
+    def get(self, token: str) -> GameMap:
+        """Return the map for a token if it is known and still fresh."""
+        self._prune_expired()
+        with self._lock:
+            run = self._runs.get(token)
+        if run is None:
+            msg = "Unknown or expired custom map token."
+            raise CustomMapTokenError(msg)
+        if run.expires_at <= time.monotonic():
+            self._prune_expired()
+            msg = "Unknown or expired custom map token."
+            raise CustomMapTokenError(msg)
+        return run.game_map
+
+    def _prune_expired(self) -> None:
+        now = time.monotonic()
+        with self._lock:
+            expired_tokens = [token for token, run in self._runs.items() if run.expires_at <= now]
+            for token in expired_tokens:
+                del self._runs[token]
+
+
+custom_map_run_store: Final = CustomMapRunStore()
 
 
 def create_app() -> Server:
@@ -68,25 +125,34 @@ def create_app() -> Server:
     @app.get("/escape-stream")
     def escape_stream(
         model_preset: str = Query(min_length=1),
-        map_id: str = Query(min_length=1),
+        map_id: str | None = Query(default=None, min_length=1),
+        custom_map_token: str | None = Query(default=None, min_length=1),
         startup_delay_ms: int = Query(default=0, ge=0, le=10_000),
     ) -> StreamingResponse:
         try:
             config = config_for_model_preset(model_preset)
-            premade_map = get_premade_map(map_id)
+            game_map = _selected_stream_map(map_id=map_id, custom_map_token=custom_map_token)
             provider = create_provider(config)
             settings = think_act_settings_for_config(config)
-        except (ModelPresetError, PremadeMapError) as exc:
+        except (ModelPresetError, PremadeMapError, CustomMapTokenError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return StreamingResponse(
             _escape_event_stream(
                 provider=provider,
-                game_map=premade_map.map,
+                game_map=game_map,
                 startup_delay_ms=startup_delay_ms,
                 settings=settings,
             ),
             media_type="text/event-stream",
         )
+
+    @app.post("/maps/custom-run-token")
+    async def create_custom_map_run_token(payload: dict[str, object]) -> dict[str, str]:
+        try:
+            document = PremadeMapDocument.model_validate(payload)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()) from exc
+        return {"token": custom_map_run_store.add(document.map)}
 
     @app.post("/maps/validate")
     async def validate_map_document(payload: dict[str, object]) -> dict[str, object]:
@@ -171,6 +237,18 @@ def _premade_map_option(premade_map: PremadeMap) -> dict[str, str]:
         "preview_map_colors": _format_map(render_user_map_color_view(session)),
         "agent_position": f"({position.x}, {position.y})",
     }
+
+
+def _selected_stream_map(*, map_id: str | None, custom_map_token: str | None) -> GameMap:
+    if (map_id is None) == (custom_map_token is None):
+        msg = "Choose exactly one map source."
+        raise CustomMapTokenError(msg)
+    if map_id is not None:
+        return get_premade_map(map_id).map
+    if custom_map_token is None:
+        msg = "Choose exactly one map source."
+        raise CustomMapTokenError(msg)
+    return custom_map_run_store.get(custom_map_token)
 
 
 def _format_list(values: tuple[str, ...], *, empty: str) -> str:

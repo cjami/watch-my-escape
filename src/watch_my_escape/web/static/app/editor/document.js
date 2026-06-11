@@ -1,16 +1,93 @@
 import { downloadJson } from "../shared/downloads.js";
 import { formatValidationError, slugify } from "../shared/strings.js";
+import { customMapOptionFromDocument } from "../custom-maps.js";
+import { renderMapInto } from "../map-renderer.js";
 
 import { mapSize, simpleActionOptions } from "./constants.js";
 
-export function createEditorDocuments({ context, recordHistory, renderEditor }) {
+export function createEditorDocuments({ context, customMapStore, onCustomMapsChanged = () => {}, recordHistory, renderEditor }) {
   let validation = null;
+  let selectedSavedMapId = null;
 
   function setValidation(validationApi) {
     validation = validationApi;
   }
 
   async function exportEditorMap() {
+    const normalized = await validateCurrentEditorDocument();
+    if (!normalized) {
+      return false;
+    }
+    downloadJson(`${normalized.map.id}.json`, normalized);
+    validation.updateState("valid", "Map is valid.");
+    context.setStatus("Map validated and exported.");
+    return true;
+  }
+
+  async function saveEditorMap() {
+    const normalized = await validateCurrentEditorDocument();
+    if (!normalized) {
+      return false;
+    }
+
+    const existing = customMapStore.get(normalized.map.id);
+    if (existing && !window.confirm(`Replace saved map "${existing.map.name || existing.map.id}"?`)) {
+      context.setStatus("Save canceled.");
+      return false;
+    }
+
+    try {
+      customMapStore.save(normalized);
+    } catch {
+      const message = "Save failed: browser storage is unavailable.";
+      context.setStatus(message);
+      showValidationErrorPopup([message]);
+      return false;
+    }
+
+    selectedSavedMapId = normalized.map.id;
+    renderSavedMapList();
+    validation.updateState("valid", "Map is valid.");
+    context.setStatus(`Saved ${normalized.map.name}.`);
+    onCustomMapsChanged();
+    return true;
+  }
+
+  function loadSavedMap() {
+    const document = selectedSavedMapDocument();
+    if (!document) {
+      context.setStatus("No saved map selected.");
+      return false;
+    }
+    recordHistory();
+    loadEditorDocument(document);
+    context.setStatus(`Loaded ${document.map.name}.`);
+    return true;
+  }
+
+  function deleteSavedMap() {
+    const document = selectedSavedMapDocument();
+    if (!document) {
+      context.setStatus("No saved map selected.");
+      return;
+    }
+    if (!window.confirm(`Delete saved map "${document.map.name || document.map.id}"?`)) {
+      context.setStatus("Delete canceled.");
+      return;
+    }
+    try {
+      customMapStore.remove(document.map.id);
+    } catch {
+      context.setStatus("Delete failed: browser storage is unavailable.");
+      return;
+    }
+    selectedSavedMapId = null;
+    renderSavedMapList();
+    context.setStatus(`Deleted ${document.map.name}.`);
+    onCustomMapsChanged();
+  }
+
+  async function validateCurrentEditorDocument() {
     const localIssues = validation.issues();
     if (localIssues.length) {
       const message = localIssues.slice(0, 3).join(" ");
@@ -42,24 +119,21 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
       showValidationErrorPopup([message]);
       return;
     }
-    const normalized = await response.json();
-    downloadJson(`${normalized.map.id}.json`, normalized);
-    validation.updateState("valid", "Map is valid.");
-    context.setStatus("Map validated and exported.");
+    return response.json();
   }
 
   async function importEditorMap() {
     const [file] = context.dom.importMapFile.files;
     context.dom.importMapFile.value = "";
     if (!file) {
-      return;
+      return false;
     }
     let payload;
     try {
       payload = JSON.parse(await file.text());
     } catch {
       context.setStatus("Import failed: JSON could not be parsed.");
-      return;
+      return false;
     }
 
     const response = await fetch("/maps/validate", {
@@ -70,13 +144,14 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
     if (!response.ok) {
       const error = await response.json();
       context.setStatus(`Import failed: ${formatValidationError(error)}`);
-      return;
+      return false;
     }
 
     const normalized = await response.json();
     recordHistory();
     loadEditorDocument(normalized);
     context.setStatus(`Imported ${normalized.map.name}.`);
+    return true;
   }
 
   function loadEditorDocument(document) {
@@ -94,6 +169,100 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
     context.selectedEditorTab = "entity";
     context.openBehaviorEditor = null;
     renderEditor();
+  }
+
+  function renderSavedMapList() {
+    const savedMaps = customMapStore.list();
+    if (!savedMaps.some((savedDocument) => savedDocument.map.id === selectedSavedMapId)) {
+      selectedSavedMapId = savedMaps[0]?.map.id ?? null;
+    }
+
+    context.dom.savedMapList.replaceChildren(
+      ...(savedMaps.length ? savedMaps.map(savedMapListItem) : [savedMapEmptyState()]),
+    );
+
+    const hasSelection = Boolean(selectedSavedMapId);
+    context.dom.loadSavedMapButton.disabled = !hasSelection;
+    context.dom.deleteSavedMapButton.disabled = !hasSelection;
+    renderSavedMapPreview();
+  }
+
+  function savedMapListItem(savedDocument) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "saved-map-list-item";
+    button.dataset.mapId = savedDocument.map.id;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(savedDocument.map.id === selectedSavedMapId));
+    button.innerHTML = `
+      <span class="saved-map-list-name"></span>
+      <span class="saved-map-list-description"></span>
+    `;
+    button.querySelector(".saved-map-list-name").textContent = savedDocument.map.name || savedDocument.map.id;
+    button.querySelector(".saved-map-list-description").textContent = savedDocument.description;
+    button.addEventListener("click", () => selectSavedMap(savedDocument.map.id));
+    return button;
+  }
+
+  function savedMapEmptyState() {
+    const empty = document.createElement("div");
+    empty.className = "saved-map-list-empty";
+    empty.textContent = "No saved maps.";
+    return empty;
+  }
+
+  function selectSavedMap(mapId) {
+    selectedSavedMapId = mapId;
+    renderSavedMapList();
+  }
+
+  function renderSavedMapPreview() {
+    const savedDocument = selectedSavedMapDocument();
+    context.dom.savedMapPreview.replaceChildren();
+    if (!savedDocument) {
+      return;
+    }
+
+    const option = customMapOptionFromDocument(savedDocument);
+    renderMapInto({
+      agentPosition: option.agent_position,
+      colorText: option.preview_map_colors,
+      container: context.dom.savedMapPreview,
+      mapText: option.preview_map,
+      pixelSprite: context.pixelSprite,
+    });
+  }
+
+  function handleSavedMapListKeydown(event) {
+    const savedMaps = customMapStore.list();
+    if (!savedMaps.length) {
+      return;
+    }
+    const currentIndex = Math.max(
+      0,
+      savedMaps.findIndex((savedDocument) => savedDocument.map.id === selectedSavedMapId),
+    );
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      selectSavedMap(savedMaps[Math.max(0, currentIndex - 1)].map.id);
+      focusSelectedSavedMap();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      selectSavedMap(savedMaps[Math.min(savedMaps.length - 1, currentIndex + 1)].map.id);
+      focusSelectedSavedMap();
+    }
+  }
+
+  function focusSelectedSavedMap() {
+    [...context.dom.savedMapList.querySelectorAll("[data-map-id]")]
+      .find((button) => button.dataset.mapId === selectedSavedMapId)
+      ?.focus({ preventScroll: true });
+  }
+
+  function selectedSavedMapDocument() {
+    return selectedSavedMapId ? customMapStore.get(selectedSavedMapId) : null;
   }
 
   function buildEditorDocument() {
@@ -151,10 +320,15 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
   return {
     buildEditorDocument,
     exportEditorMap,
+    deleteSavedMap,
     handleValidationPopupClick,
     handleValidationPopupKeydown,
     importEditorMap,
+    handleSavedMapListKeydown,
     loadEditorDocument,
+    loadSavedMap,
+    renderSavedMapList,
+    saveEditorMap,
     setValidation,
   };
 }

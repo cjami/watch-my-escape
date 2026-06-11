@@ -1,4 +1,5 @@
 import { appDataFromDocument, getDomRefs } from "./app/dom.js";
+import { createCustomMapStore } from "./app/custom-maps.js";
 import { createEditor } from "./app/editor/controller.js";
 import { createGameRunner } from "./app/game-runner.js";
 import { createMapRenderer } from "./app/map-renderer.js";
@@ -15,6 +16,7 @@ const appState = {
 };
 
 const sprites = createSpriteRenderer();
+const customMapStore = createCustomMapStore();
 const screens = createScreenController({ dom });
 const mapRenderer = createMapRenderer({
   dom,
@@ -22,9 +24,15 @@ const mapRenderer = createMapRenderer({
   pixelSprite: sprites.pixelSprite,
 });
 const mapSelector = createMapSelector({
+  customMapStore,
   dom,
   getSelectedModel: () => appState.selectedModel,
-  maps: appData.maps,
+  premadeMaps: appData.maps,
+  onCustomMapDeleted: (gameMap) => {
+    if (appState.selectedMap?.source === "custom" && appState.selectedMap.id === gameMap.id) {
+      appState.selectedMap = null;
+    }
+  },
   onSelected: (gameMap) => {
     appState.selectedMap = gameMap;
     screens.showScreen("game");
@@ -36,6 +44,7 @@ const modelSelector = createModelSelector({
   models: appData.models,
   onSelected: (model) => {
     appState.selectedModel = model;
+    mapSelector.render();
     screens.showScreen("maps");
     mapSelector.focusSelectedMapOption();
   },
@@ -50,8 +59,10 @@ const gameRunner = createGameRunner({
   showScreen: screens.showScreen,
 });
 const editor = createEditor({
+  customMapStore,
   dom,
   onBack: screens.showMainMenu,
+  onCustomMapsChanged: mapSelector.render,
   pixelSprite: sprites.pixelSprite,
 });
 
@@ -131,7 +142,7 @@ function handleBackAction() {
     return true;
   }
   if (screens.isScreenActive("editor")) {
-    if (!dom.editorValidationPopup.hidden) {
+    if (!dom.editorValidationPopup.hidden || !dom.loadMapPopup.hidden || !dom.saveMapPopup.hidden) {
       return false;
     }
     screens.showMainMenu();

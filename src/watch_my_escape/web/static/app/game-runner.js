@@ -1,3 +1,5 @@
+import { formatValidationError } from "./shared/strings.js";
+
 const escapeCelebrationDelayMs = 2000;
 
 export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRenderer, pixelSprite, showScreen }) {
@@ -28,13 +30,24 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     dom.transcriptOutput.textContent = "Waiting for the first turn...";
     transcriptScroll.scrollToBottom();
     const startupDelay = gameStartupDelay();
-    void playGameIntro();
 
-    const params = new URLSearchParams({
-      model_preset: selectedModel.id,
-      map_id: selectedMap.id,
-      startup_delay_ms: String(startupDelay),
-    });
+    let params;
+    try {
+      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay);
+    } catch (error) {
+      if (currentRunEpoch !== runEpoch) {
+        return;
+      }
+      dom.transcriptOutput.textContent = error.message;
+      transcriptScroll.scrollToBottom();
+      dom.runButton.disabled = false;
+      return;
+    }
+
+    if (currentRunEpoch !== runEpoch) {
+      return;
+    }
+    void playGameIntro();
     activeStream = new EventSource(`/escape-stream?${params}`);
     activeStream.onmessage = (event) => {
       if (currentRunEpoch !== runEpoch) {
@@ -203,6 +216,47 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
   }
 
   return { init, resetGame, restartSetup, runEscape, stopStream };
+}
+
+async function escapeStreamParams(selectedModel, selectedMap, startupDelay) {
+  const params = new URLSearchParams({
+    model_preset: selectedModel.id,
+    startup_delay_ms: String(startupDelay),
+  });
+  if (selectedMap.source === "custom") {
+    params.set("custom_map_token", await customMapToken(selectedMap));
+    return params;
+  }
+  params.set("map_id", selectedMap.id);
+  return params;
+}
+
+async function customMapToken(selectedMap) {
+  if (!selectedMap.document) {
+    throw new Error("Custom map could not be loaded.");
+  }
+
+  let response;
+  try {
+    response = await fetch("/maps/custom-run-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(selectedMap.document),
+    });
+  } catch {
+    throw new Error("Custom map could not be sent to the room.");
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Custom map rejected: ${formatValidationError(error)}`);
+  }
+
+  const payload = await response.json();
+  if (!payload.token) {
+    throw new Error("Custom map token was not returned.");
+  }
+  return payload.token;
 }
 
 function entityDetails(details, fallbackText) {

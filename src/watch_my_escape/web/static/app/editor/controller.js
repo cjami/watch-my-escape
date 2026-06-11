@@ -9,7 +9,7 @@ import { createEditorContext } from "./state.js";
 import { createEditorTabs } from "./tabs.js";
 import { createEditorValidation } from "./validation.js";
 
-export function createEditor({ dom, onBack, pixelSprite }) {
+export function createEditor({ customMapStore, dom, onBack, onCustomMapsChanged, pixelSprite }) {
   const context = createEditorContext({ dom, pixelSprite });
   const iconCatalog = createIconCatalog({ context });
   const tabs = createEditorTabs({ context });
@@ -21,6 +21,8 @@ export function createEditor({ dom, onBack, pixelSprite }) {
   });
   const documents = createEditorDocuments({
     context,
+    customMapStore,
+    onCustomMapsChanged,
     recordHistory: history.record,
     renderEditor,
   });
@@ -54,6 +56,8 @@ export function createEditor({ dom, onBack, pixelSprite }) {
   function init() {
     presetPicker.render();
     renderEditor();
+    documents.renderSavedMapList();
+    customMapStore.subscribe(documents.renderSavedMapList);
     wireEvents();
   }
 
@@ -74,9 +78,37 @@ export function createEditor({ dom, onBack, pixelSprite }) {
 
   function wireEvents() {
     dom.editorBackButton.addEventListener("click", onBack);
+    dom.loadMapButton.addEventListener("click", openLoadMapPopup);
+    dom.loadMapPopup.addEventListener("click", handleLoadMapPopupClick);
+    dom.saveMapDialogButton.addEventListener("click", openSaveMapPopup);
+    dom.saveMapPopup.addEventListener("click", handleSaveMapPopupClick);
     dom.importMapButton.addEventListener("click", () => dom.importMapFile.click());
-    dom.importMapFile.addEventListener("change", documents.importEditorMap);
-    dom.exportMapButton.addEventListener("click", documents.exportEditorMap);
+    dom.importMapFile.addEventListener("change", async () => {
+      if (await documents.importEditorMap()) {
+        closeLoadMapPopup();
+        dom.loadMapButton.focus();
+      }
+    });
+    dom.exportMapButton.addEventListener("click", async () => {
+      if (await documents.exportEditorMap()) {
+        closeSaveMapPopup();
+        dom.saveMapDialogButton.focus();
+      }
+    });
+    dom.saveMapButton.addEventListener("click", async () => {
+      if (await documents.saveEditorMap()) {
+        closeSaveMapPopup();
+        dom.saveMapDialogButton.focus();
+      }
+    });
+    dom.loadSavedMapButton.addEventListener("click", () => {
+      if (documents.loadSavedMap()) {
+        closeLoadMapPopup();
+        dom.loadMapButton.focus();
+      }
+    });
+    dom.deleteSavedMapButton.addEventListener("click", documents.deleteSavedMap);
+    dom.savedMapList.addEventListener("keydown", documents.handleSavedMapListKeydown);
     dom.editorValidationPopup.addEventListener("click", documents.handleValidationPopupClick);
     dom.undoEditorButton.addEventListener("click", history.undo);
     dom.redoEditorButton.addEventListener("click", history.redo);
@@ -101,9 +133,59 @@ export function createEditor({ dom, onBack, pixelSprite }) {
       });
     });
     document.addEventListener("keydown", documents.handleValidationPopupKeydown);
+    document.addEventListener("keydown", handleMapDocumentPopupKeydown);
     document.addEventListener("click", behaviorEditor.handleDocumentClick);
     document.addEventListener("pointermove", grid.handleDragPointerMove);
     document.addEventListener("pointerup", grid.finishGridDrag);
+  }
+
+  function openLoadMapPopup() {
+    documents.renderSavedMapList();
+    dom.loadMapPopup.hidden = false;
+    const selectedSavedMap = dom.savedMapList.querySelector('[aria-selected="true"]');
+    (selectedSavedMap ?? dom.importMapButton).focus();
+  }
+
+  function closeLoadMapPopup() {
+    dom.loadMapPopup.hidden = true;
+  }
+
+  function handleLoadMapPopupClick(event) {
+    if (event.target === dom.loadMapPopup || dom.loadMapPopupClose.contains(event.target)) {
+      closeLoadMapPopup();
+      dom.loadMapButton.focus();
+    }
+  }
+
+  function openSaveMapPopup() {
+    dom.saveMapPopup.hidden = false;
+    dom.saveMapButton.focus();
+  }
+
+  function closeSaveMapPopup() {
+    dom.saveMapPopup.hidden = true;
+  }
+
+  function handleSaveMapPopupClick(event) {
+    if (event.target === dom.saveMapPopup || dom.saveMapPopupClose.contains(event.target)) {
+      closeSaveMapPopup();
+      dom.saveMapDialogButton.focus();
+    }
+  }
+
+  function handleMapDocumentPopupKeydown(event) {
+    if (event.key !== "Escape" || (dom.loadMapPopup.hidden && dom.saveMapPopup.hidden)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (!dom.loadMapPopup.hidden) {
+      closeLoadMapPopup();
+      dom.loadMapButton.focus();
+      return;
+    }
+    closeSaveMapPopup();
+    dom.saveMapDialogButton.focus();
   }
 
   return { init, refreshSprites };

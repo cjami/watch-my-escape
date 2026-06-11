@@ -45,6 +45,17 @@ def test_homepage_renders_without_request_query_parameter():
     assert "Map Editor" in response.text
     assert "Select Model" in response.text
     assert 'id="model-menu"' in response.text
+    assert 'aria-label="Premade and custom maps"' in response.text
+    assert 'id="saved-map-list"' in response.text
+    assert 'id="saved-map-preview"' in response.text
+    assert 'id="save-map"' in response.text
+    assert 'id="load-map"' in response.text
+    assert 'id="save-map-dialog"' in response.text
+    assert 'id="load-saved-map"' in response.text
+    assert 'id="delete-saved-map"' in response.text
+    assert 'aria-label="Undo"' in response.text
+    assert 'aria-label="Redo"' in response.text
+    assert "Main Menu" in response.text
     assert "key-door-room" in response.text
     assert next(iter(MODEL_PRESETS)) in response.text
 
@@ -192,6 +203,81 @@ def test_escape_stream_rejects_unknown_map(monkeypatch):
     assert "Unknown map" in response.text
 
 
+def test_custom_map_run_token_accepts_export_document():
+    client = TestClient(create_app())
+
+    response = client.post("/maps/custom-run-token", json=_custom_map_document())
+
+    assert response.status_code == 200
+    assert response.json()["token"]
+
+
+def test_escape_stream_returns_custom_map_turn_frames(monkeypatch):
+    seen = {}
+    preset_id = next(iter(MODEL_PRESETS))
+
+    def fake_steps(**kwargs):
+        seen.update(kwargs)
+        yield EscapeRunFrame(
+            escaped=False,
+            sanity=99,
+            position="(1, 1)",
+            visible_entities=("custom-exit: A custom way out.",),
+            inventory=(),
+            visible_entity_details=(),
+            inventory_details=(),
+            map_view=((".", "\U0001f642"), (".", "\U0001f3c1")),
+            map_color_view=((".", "."), (".", "#71F7B1")),
+            visibility_view=((True, True), (True, True)),
+            transcript="Turn 1 - custom map",
+            status="Still searching with 99 sanity remaining.",
+            action_label="examine",
+        )
+
+    provider = object()
+    monkeypatch.setattr(server, "create_provider", lambda _config: provider)
+    monkeypatch.setattr(server, "run_model_escape_steps", fake_steps)
+    client = TestClient(create_app())
+    token_response = client.post("/maps/custom-run-token", json=_custom_map_document())
+    token = token_response.json()["token"]
+
+    response = client.get(f"/escape-stream?model_preset={preset_id}&custom_map_token={token}")
+
+    assert response.status_code == 200
+    assert seen["provider"] is provider
+    assert seen["game_map"].id == "custom-room"
+    assert "Turn 1 - custom map" in response.text
+
+
+def test_escape_stream_rejects_unknown_custom_map_token():
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&custom_map_token=missing")
+
+    assert response.status_code == 400
+    assert "Unknown or expired custom map token" in response.text
+
+
+def test_escape_stream_rejects_missing_map_source():
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}")
+
+    assert response.status_code == 400
+    assert "Choose exactly one map source" in response.text
+
+
+def test_escape_stream_rejects_ambiguous_map_source():
+    client = TestClient(create_app())
+
+    response = client.get(
+        f"/escape-stream?model_preset={next(iter(MODEL_PRESETS))}&map_id=key-door-room&custom_map_token=extra"
+    )
+
+    assert response.status_code == 400
+    assert "Choose exactly one map source" in response.text
+
+
 def test_map_validation_accepts_export_document():
     client = TestClient(create_app())
 
@@ -237,3 +323,27 @@ def test_map_validation_rejects_objective_field():
 
     assert response.status_code == 422
     assert "objective" in response.text
+
+
+def _custom_map_document():
+    return {
+        "description": "A custom room.",
+        "map": {
+            "id": "custom-room",
+            "name": "Custom Room",
+            "agent_start": {"x": 1, "y": 1},
+            "entities": [
+                {
+                    "position": {"x": 2, "y": 1},
+                    "entity": {
+                        "id": "custom-exit",
+                        "icon": "\U0001f3c1",
+                        "color": "#71F7B1",
+                        "description": "A custom way out.",
+                        "passable": True,
+                        "behaviors": [{"trigger": {"action": "operate"}, "effects": [{"type": "escape_map"}]}],
+                    },
+                }
+            ],
+        },
+    }

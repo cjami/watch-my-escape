@@ -6,12 +6,15 @@
         <h1>Map Editor</h1>
       </div>
       <div class="editor-actions">
-        <button id="undo-editor" type="button" class="secondary-button" disabled>Undo</button>
-        <button id="redo-editor" type="button" class="secondary-button" disabled>Redo</button>
-        <button id="editor-back" type="button" class="secondary-button">Menu</button>
-        <button id="import-map" type="button" class="secondary-button">Import JSON</button>
-        <input id="import-map-file" type="file" accept="application/json,.json" hidden />
-        <button id="export-map" type="button" class="primary-button">Export JSON</button>
+        <button id="undo-editor" type="button" class="secondary-button icon-button" aria-label="Undo" title="Undo" disabled>
+          <span aria-hidden="true">↶</span>
+        </button>
+        <button id="redo-editor" type="button" class="secondary-button icon-button" aria-label="Redo" title="Redo" disabled>
+          <span aria-hidden="true">↷</span>
+        </button>
+        <button id="load-map" type="button" class="secondary-button">Load Map</button>
+        <button id="save-map-dialog" type="button" class="primary-button">Save Map</button>
+        <button id="editor-back" type="button" class="secondary-button">Main Menu</button>
       </div>
     </header>
 
@@ -102,6 +105,64 @@
         </section>
       </aside>
     </section>
+
+    <div id="load-map-popup" class="editor-popup-overlay map-library-overlay" hidden>
+      <section
+        class="editor-popup map-library-popup load-map-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="load-map-title"
+      >
+        <div class="panel-heading">
+          <h2 id="load-map-title">Load Map</h2>
+          <button id="load-map-close" type="button" class="mini-button">Close</button>
+        </div>
+        <div class="load-map-browser">
+          <div class="map-library-section load-map-list-panel">
+            <div
+              id="saved-map-list"
+              class="saved-map-list"
+              role="listbox"
+              aria-label="Saved custom maps"
+              tabindex="0"
+            ></div>
+            <button id="import-map" type="button" class="secondary-button map-library-save-button import-map-button">
+              Import JSON
+            </button>
+            <input id="import-map-file" type="file" accept="application/json,.json" hidden />
+          </div>
+          <div class="map-library-section load-map-preview-panel">
+            <div id="saved-map-preview" class="map-view map-library-preview" aria-label="Selected saved map preview"></div>
+            <div class="map-library-action-column">
+              <button id="load-saved-map" type="button" class="primary-button map-library-save-button">Load Map</button>
+              <button id="delete-saved-map" type="button" class="secondary-button map-library-save-button">
+                Delete Map
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="save-map-popup" class="editor-popup-overlay map-library-overlay" hidden>
+      <section
+        class="editor-popup map-library-popup save-map-popup-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-map-title"
+      >
+        <div class="panel-heading">
+          <h2 id="save-map-title">Save Map</h2>
+          <button id="save-map-close" type="button" class="mini-button">Close</button>
+        </div>
+        <div class="map-library-section save-map-actions">
+          <button id="save-map" type="button" class="primary-button map-library-save-button">
+            Save To Library
+          </button>
+          <button id="export-map" type="button" class="secondary-button map-library-save-button">Export JSON</button>
+        </div>
+      </section>
+    </div>
 
     <div id="editor-validation-popup" class="editor-popup-overlay" hidden>
       <section
