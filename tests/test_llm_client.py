@@ -48,11 +48,8 @@ def test_create_provider_returns_embedded_provider_for_llama_cpp():
 
 
 def test_create_provider_returns_zerogpu_provider_when_configured(monkeypatch):
-    class FakeProvider:
-        zerogpu_duration = 60
-
-    def gpu_decorator(duration):
-        assert duration(FakeProvider(), object()) == 60
+    def gpu_decorator(duration: int):
+        assert duration == 60
         return lambda function: function
 
     fake_spaces = ModuleType("spaces")
