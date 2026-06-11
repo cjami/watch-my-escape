@@ -14,10 +14,10 @@ from watch_my_escape.game.actions import (
     ExamineAction,
     OpenAction,
     OperateAction,
+    PickUpAction,
     PullAction,
     PushAction,
     SpokenText,
-    TakeAction,
     TalkToAction,
     UseItemAction,
 )
@@ -27,13 +27,13 @@ from watch_my_escape.game.maps import visible_notable_entities
 if TYPE_CHECKING:
     from watch_my_escape.game.maps import GameSessionState
 
-ENTITY_ACTIONS = ("examine", "take", "open", "close", "push", "pull", "talk_to", "operate")
+ENTITY_ACTIONS = ("examine", "pick_up", "open", "close", "push", "pull", "talk_to", "operate")
 ACTION_MODELS = {
     "close": CloseAction,
     "examine": ExamineAction,
     "open": OpenAction,
     "operate": OperateAction,
-    "take": TakeAction,
+    "pick_up": PickUpAction,
     "pull": PullAction,
     "push": PushAction,
     "talk_to": TalkToAction,
@@ -92,7 +92,7 @@ def _entity_action_models(
     for action in ENTITY_ACTIONS:
         if not _allows(actions, action):
             continue
-        targets = visible_targets if action == "take" else _direct_action_targets(visible_targets, items)
+        targets = visible_targets if action == "pick_up" else _direct_action_targets(visible_targets, items)
         if not targets:
             continue
         target_type = _literal(targets)

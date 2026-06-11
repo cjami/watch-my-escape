@@ -1158,7 +1158,7 @@
                                                     "behaviors":  [
                                                                       {
                                                                           "trigger":  {
-                                                                                          "action":  "take",
+                                                                                          "action":  "pick_up",
                                                                                           "item":  null,
                                                                                           "phrase":  null
                                                                                       },

@@ -44,9 +44,9 @@ def test_evaluate_model_scores_think_then_act_turns():
 
         user_content = request.messages[-1].content
         normalized_prompt = user_content.lower()
-        if "collect the brass key" in normalized_prompt:
+        if "pick up the brass key" in normalized_prompt:
             return InferenceResponse(
-                content='Here is JSON: {"action":"take","target":"brass key","emotion":"confident"}'
+                content='Here is JSON: {"action":"pick_up","target":"brass key","emotion":"confident"}'
             )
         if "try the silver key" in normalized_prompt:
             return InferenceResponse(
@@ -64,7 +64,7 @@ def test_evaluate_model_scores_think_then_act_turns():
     assert all(request.structured_output is not None for request in requests[1::2])
     deliberation_prompts = "\n".join(request.messages[-1].content for request in requests[::2])
     assert "Evaluation-specific constraints" not in deliberation_prompts
-    assert "- take(target)" in deliberation_prompts
+    assert "- pick_up(target)" in deliberation_prompts
     assert "- use_item(item, target)" in deliberation_prompts
 
 
@@ -126,14 +126,14 @@ def test_score_case_rejects_item_outside_inventory_vocabulary():
 
 
 def test_score_case_strips_thinking_sections_before_parsing_json():
-    json_case = next(case for case in CASES if case.name == "action_take")
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
-                '<think>\nThe answer is {"action":"take","target":"brass key","emotion":"confident"}.\n</think>\n'
-                '{"action":"take","target":"brass key","emotion":"confident"}'
+                '<think>\nThe answer is {"action":"pick_up","target":"brass key","emotion":"confident"}.\n</think>\n'
+                '{"action":"pick_up","target":"brass key","emotion":"confident"}'
             )
         ),
     )
@@ -142,14 +142,14 @@ def test_score_case_strips_thinking_sections_before_parsing_json():
 
 
 def test_score_case_strips_dangling_thinking_close_before_parsing_json():
-    json_case = next(case for case in CASES if case.name == "action_take")
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
-                'We need to output {"action":"take","target":"brass key","emotion":"confident"}.\n'
-                '</think>\n{"action":"take","target":"brass key","emotion":"confident"}'
+                'We need to output {"action":"pick_up","target":"brass key","emotion":"confident"}.\n'
+                '</think>\n{"action":"pick_up","target":"brass key","emotion":"confident"}'
             )
         ),
     )
@@ -158,14 +158,14 @@ def test_score_case_strips_dangling_thinking_close_before_parsing_json():
 
 
 def test_score_case_strips_unclosed_thinking_section_before_reporting_json_failure():
-    json_case = next(case for case in CASES if case.name == "action_take")
+    json_case = next(case for case in CASES if case.name == "action_pick_up")
 
     result = score_case(
         json_case,
         InferenceResponse(
             content=(
                 '<think>\nFirst, the user says: "Return this object exactly: '
-                '{"action":"take","target":"brass key","emotion":"confident"}"\n\n'
+                '{"action":"pick_up","target":"brass key","emotion":"confident"}"\n\n'
                 "So, I need to return this object exactly as it is."
             )
         ),

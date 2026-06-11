@@ -16,7 +16,7 @@ PROMPT_ACTION_SIGNATURES = {
     "examine": "examine(target)",
     "operate": "operate(target)",
     "open": "open(target)",
-    "take": "take(target)",
+    "pick_up": "pick_up(target)",
     "pull": "pull(target)",
     "push": "push(target)",
     "talk_to": "talk_to(target, text)",

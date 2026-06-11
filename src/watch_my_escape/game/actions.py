@@ -40,10 +40,10 @@ class OperateAction(ActionBase):
     emotion: Emotion
 
 
-class TakeAction(ActionBase):
-    """Take an object and add it to your inventory."""
+class PickUpAction(ActionBase):
+    """Pick up an object and add it to your inventory."""
 
-    action: Literal["take"]
+    action: Literal["pick_up"]
     target: VisibleTarget
     emotion: Emotion
 
@@ -102,7 +102,7 @@ class EscapeRoomAction(
         Annotated[
             UseItemAction
             | OperateAction
-            | TakeAction
+            | PickUpAction
             | OpenAction
             | CloseAction
             | ExamineAction

@@ -99,10 +99,10 @@ export function starterEditorState() {
         state: "default",
         behaviors: [
           {
-            trigger: { action: "take" },
+            trigger: { action: "pick_up" },
             conditions: [],
             effects: [
-              { type: "message", text: "You take the brass key." },
+              { type: "message", text: "You pick up the brass key." },
               { type: "add_inventory", entity_id: "brass-key" },
               { type: "set_entity_active", active: false },
             ],

@@ -7,9 +7,9 @@ from watch_my_escape.game.actions import (
     ExamineAction,
     OpenAction,
     OperateAction,
+    PickUpAction,
     PullAction,
     PushAction,
-    TakeAction,
     TalkToAction,
     UseItemAction,
 )
@@ -21,7 +21,7 @@ from watch_my_escape.game.emotions import EMOTION_TO_EMOJI, emotion_to_emoji
     [
         (UseItemAction, {"action": "use_item", "item": "brass key", "target": "locked door", "emotion": "curious"}),
         (OperateAction, {"action": "operate", "target": "keypad", "emotion": "focused"}),
-        (TakeAction, {"action": "take", "target": "brass key", "emotion": "happy"}),
+        (PickUpAction, {"action": "pick_up", "target": "brass key", "emotion": "happy"}),
         (OpenAction, {"action": "open", "target": "locked door", "emotion": "confident"}),
         (CloseAction, {"action": "close", "target": "cabinet", "emotion": "relieved"}),
         (ExamineAction, {"action": "examine", "target": "painting", "emotion": "curious"}),

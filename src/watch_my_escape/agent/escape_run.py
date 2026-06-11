@@ -359,7 +359,7 @@ def _history_action_text(action: EscapeRoomAction) -> str:
         "operate": "operated",
         "pull": "pulled",
         "push": "pushed",
-        "take": "took",
+        "pick_up": "picked up",
     }
     return f"You {past_tense_verbs[root.action]} {root.target}"
 
@@ -367,9 +367,9 @@ def _history_action_text(action: EscapeRoomAction) -> str:
 def _action_label(action: EscapeRoomAction) -> str:
     action_name = action.root.action
     labels = {
-        "take": "take",
+        "pick_up": "pick up",
         "talk_to": "talk",
-        "use_item": "use",
+        "use_item": "use item",
         "operate": "operate",
     }
     return labels.get(action_name, action_name.replace("_", " "))

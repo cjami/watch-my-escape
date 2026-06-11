@@ -1263,9 +1263,9 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "take",
+                "action": "pick_up",
                 "actions": [
-                  "take",
+                  "pick_up",
                   "pull"
                 ],
                 "item": null,
@@ -2238,9 +2238,9 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "take",
+                "action": "pick_up",
                 "actions": [
-                  "take",
+                  "pick_up",
                   "pull"
                 ],
                 "item": null,
@@ -2283,9 +2283,9 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "take",
+                "action": "pick_up",
                 "actions": [
-                  "take",
+                  "pick_up",
                   "pull"
                 ],
                 "item": null,
@@ -2328,9 +2328,9 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "take",
+                "action": "pick_up",
                 "actions": [
-                  "take",
+                  "pick_up",
                   "pull"
                 ],
                 "item": null,

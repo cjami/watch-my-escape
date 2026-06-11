@@ -40,7 +40,7 @@ class PairedProvider:
 def test_run_model_escape_stops_when_the_model_escapes():
     provider = ScriptedProvider(
         (
-            f'{{"action":"take","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             f'{{"action":"use_item","item":"brass-key","target":"locked-door","emotion":"{EMOTION_JSON}"}}',
         )
     )
@@ -60,7 +60,7 @@ def test_run_model_escape_stops_when_the_model_escapes():
     assert len(result.frames) == 8
     assert [frame.position for frame in result.frames[:4]] == ["(7, 8)", "(8, 8)", "(9, 8)", "(10, 8)"]
     assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 7
-    assert [frame.action_label for frame in result.frames] == ["", "take", "", "", "", "", "", "use"]
+    assert [frame.action_label for frame in result.frames] == ["", "pick up", "", "", "", "", "", "use item"]
 
 
 def test_run_model_escape_steps_can_delay_before_first_model_request():
@@ -104,10 +104,10 @@ def test_run_model_escape_stops_when_no_actions_are_available():
     assert "Action: none" in result.transcript
 
 
-def test_run_model_escape_offers_use_item_on_visible_distant_door_after_taking_key():
+def test_run_model_escape_offers_use_item_on_visible_distant_door_after_picking_up_key():
     provider = ScriptedProvider(
         (
-            f'{{"action":"take","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+            f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             f'{{"action":"use_item","item":"brass-key","target":"locked-door","emotion":"{EMOTION_JSON}"}}',
         )
     )
@@ -117,16 +117,16 @@ def test_run_model_escape_offers_use_item_on_visible_distant_door_after_taking_k
     action_prompt = provider.requests[3].messages[-1].content
     assert "- use_item(item, target)" in action_prompt
     assert "target: one of locked-door" not in action_prompt
-    assert '"action":"take"' not in action_prompt
-    assert "You took brass-key -> You take the brass key." in action_prompt
+    assert '"action":"pick_up"' not in action_prompt
+    assert "You picked up brass-key -> You pick up the brass key." in action_prompt
 
 
 def test_run_model_escape_prompts_include_full_action_vocabulary():
     provider = PairedProvider(
         (
             (
-                "The next useful step is to take the key.",
-                f'{{"action":"take","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+                "The next useful step is to pick up the key.",
+                f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             ),
         )
     )
@@ -144,12 +144,12 @@ def test_run_model_escape_prompts_include_full_action_vocabulary():
     assert "- use_item(item, target): Use an object from your inventory on another object." in action_prompt
 
 
-def test_run_model_escape_keeps_general_action_descriptions_after_taking_item():
+def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_item():
     provider = PairedProvider(
         (
             (
-                "The next useful step is to take the key.",
-                f'{{"action":"take","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+                "The next useful step is to pick up the key.",
+                f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             ),
         )
     )
@@ -157,7 +157,7 @@ def test_run_model_escape_keeps_general_action_descriptions_after_taking_item():
     result = run_model_escape(provider=provider, starting_sanity=1)
 
     action_prompt = provider.requests[1].messages[-1].content
-    assert "- take(target)" in action_prompt
+    assert "- pick_up(target)" in action_prompt
     assert "- open(target)" in action_prompt
     assert "target: one of brass-key" not in action_prompt
     assert result.frames[-1].position == "(8, 8)"
@@ -167,7 +167,7 @@ def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_ar
     provider = PairedProvider(
         (
             (
-                "I will take the brass key.",
+                "I will pick up the brass key.",
                 f'{{"target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             ),
         )
@@ -178,7 +178,7 @@ def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_ar
     assert result.sanity == 0
     assert result.frames[-1].position == "(7, 8)"
     assert result.frames[-1].action_label == ""
-    assert "Deliberation: I will take the brass key." in result.transcript
+    assert "Deliberation: I will pick up the brass key." in result.transcript
     assert "Model returned an action outside the current grammar" in result.transcript
 
 
@@ -186,8 +186,8 @@ def test_run_model_escape_omits_thinking_sections_from_transcript():
     provider = PairedProvider(
         (
             (
-                "<think>I should quietly reason through the password.</think>\nI will take the key.",
-                f'{{"action":"take","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
+                "<think>I should quietly reason through the password.</think>\nI will pick up the key.",
+                f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',
             ),
         )
     )
@@ -197,11 +197,11 @@ def test_run_model_escape_omits_thinking_sections_from_transcript():
     assert "<think>" not in result.transcript
     assert "</think>" not in result.transcript
     assert "quietly reason" not in result.transcript
-    assert "Deliberation: I will take the key." in result.transcript
+    assert "Deliberation: I will pick up the key." in result.transcript
 
 
 def test_run_model_escape_renders_action_emotion_as_agent_icon():
-    provider = ScriptedProvider((f'{{"action":"take","target":"brass-key","emotion":"{EMOTION_JSON}"}}',))
+    provider = ScriptedProvider((f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',))
 
     result = run_model_escape(provider=provider, starting_sanity=1)
 

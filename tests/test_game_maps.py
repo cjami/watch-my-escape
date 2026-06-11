@@ -74,7 +74,7 @@ def test_map_rejects_unknown_inventory_entity_references():
     payload = _map_payload()
     payload["entities"][0]["entity"]["behaviors"] = [
         {
-            "trigger": {"action": "take"},
+            "trigger": {"action": "pick_up"},
             "effects": [{"type": "add_inventory", "entity_id": "missing-key"}],
         }
     ]

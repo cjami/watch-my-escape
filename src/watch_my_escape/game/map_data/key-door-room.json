@@ -793,18 +793,18 @@
               "effects": [
                 {
                   "type": "message",
-                  "text": "A small brass key on the floor. Looks like it can be taken and used on the door."
+                  "text": "A small brass key on the floor. Looks like it can be picked up and used on the door."
                 }
               ]
             },
             {
               "trigger": {
-                "action": "take"
+                "action": "pick_up"
               },
               "effects": [
                 {
                   "type": "message",
-                  "text": "You take the brass key."
+                  "text": "You pick up the brass key."
                 },
                 {
                   "type": "add_inventory",

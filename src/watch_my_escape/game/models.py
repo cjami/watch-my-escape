@@ -6,8 +6,8 @@ from typing import Annotated, Literal, Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-type ActionName = Literal["examine", "take", "open", "close", "push", "pull", "talk_to", "operate", "use_item"]
-type SimpleActionName = Literal["examine", "take", "open", "close", "push", "pull", "operate"]
+type ActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "operate", "use_item"]
+type SimpleActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "operate"]
 type HexColor = Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")]
 
 
