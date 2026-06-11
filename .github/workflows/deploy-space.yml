@@ -38,6 +38,13 @@ jobs:
           node-version: "22"
           cache: npm
 
+      - name: Set up Hugging Face Xet
+        run: |
+          git lfs install
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/huggingface/xet-core/refs/heads/main/git_xet/install.sh | sh
+          git xet install
+          git xet --version
+
       - name: Install frontend dependencies
         run: npm ci
 
@@ -61,6 +68,7 @@ jobs:
             --exclude 'dist' \
             --exclude 'build' \
             --exclude 'space' \
+            --exclude 'src/watch_my_escape/web/static/fonts' \
             ./ "$DEPLOY_DIR"/
           mkdir -p "$DEPLOY_DIR/build/web"
           cp -R build/web/static "$DEPLOY_DIR/build/web/static"
