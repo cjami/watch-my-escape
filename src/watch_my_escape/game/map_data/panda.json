@@ -7,7 +7,7 @@
       {
         "entity": {
           "id": "wall-0-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -23,7 +23,7 @@
       {
         "entity": {
           "id": "wall-1-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -39,7 +39,7 @@
       {
         "entity": {
           "id": "wall-2-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -55,7 +55,7 @@
       {
         "entity": {
           "id": "wall-3-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -71,7 +71,7 @@
       {
         "entity": {
           "id": "wall-4-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -87,7 +87,7 @@
       {
         "entity": {
           "id": "wall-5-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -103,7 +103,7 @@
       {
         "entity": {
           "id": "wall-6-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -119,7 +119,7 @@
       {
         "entity": {
           "id": "wall-7-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -135,7 +135,7 @@
       {
         "entity": {
           "id": "wall-9-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -151,7 +151,7 @@
       {
         "entity": {
           "id": "wall-10-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -167,7 +167,7 @@
       {
         "entity": {
           "id": "wall-11-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -183,7 +183,7 @@
       {
         "entity": {
           "id": "wall-12-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -199,7 +199,7 @@
       {
         "entity": {
           "id": "wall-13-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -215,7 +215,7 @@
       {
         "entity": {
           "id": "wall-14-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -231,7 +231,7 @@
       {
         "entity": {
           "id": "wall-15-0",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -247,7 +247,7 @@
       {
         "entity": {
           "id": "wall-0-1",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -263,7 +263,7 @@
       {
         "entity": {
           "id": "wall-15-1",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -279,7 +279,7 @@
       {
         "entity": {
           "id": "wall-0-2",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -295,7 +295,7 @@
       {
         "entity": {
           "id": "wall-15-2",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -311,7 +311,7 @@
       {
         "entity": {
           "id": "wall-0-3",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -327,7 +327,7 @@
       {
         "entity": {
           "id": "wall-15-3",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -343,7 +343,7 @@
       {
         "entity": {
           "id": "wall-0-4",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -359,7 +359,7 @@
       {
         "entity": {
           "id": "wall-15-4",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -375,7 +375,7 @@
       {
         "entity": {
           "id": "wall-0-5",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -391,7 +391,7 @@
       {
         "entity": {
           "id": "wall-15-5",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -407,7 +407,7 @@
       {
         "entity": {
           "id": "wall-0-6",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -423,7 +423,7 @@
       {
         "entity": {
           "id": "wall-15-6",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -439,7 +439,7 @@
       {
         "entity": {
           "id": "wall-0-8",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -455,7 +455,7 @@
       {
         "entity": {
           "id": "wall-0-9",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -471,7 +471,7 @@
       {
         "entity": {
           "id": "wall-15-9",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -487,7 +487,7 @@
       {
         "entity": {
           "id": "wall-0-10",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -503,7 +503,7 @@
       {
         "entity": {
           "id": "wall-15-10",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -519,7 +519,7 @@
       {
         "entity": {
           "id": "wall-0-11",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -535,7 +535,7 @@
       {
         "entity": {
           "id": "wall-15-11",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -551,7 +551,7 @@
       {
         "entity": {
           "id": "wall-0-12",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -567,7 +567,7 @@
       {
         "entity": {
           "id": "wall-15-12",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -583,7 +583,7 @@
       {
         "entity": {
           "id": "wall-0-13",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -599,7 +599,7 @@
       {
         "entity": {
           "id": "wall-15-13",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -615,7 +615,7 @@
       {
         "entity": {
           "id": "wall-0-14",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -631,7 +631,7 @@
       {
         "entity": {
           "id": "wall-15-14",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -647,7 +647,7 @@
       {
         "entity": {
           "id": "wall-0-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -663,7 +663,7 @@
       {
         "entity": {
           "id": "wall-1-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -679,7 +679,7 @@
       {
         "entity": {
           "id": "wall-2-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -695,7 +695,7 @@
       {
         "entity": {
           "id": "wall-3-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -711,7 +711,7 @@
       {
         "entity": {
           "id": "wall-4-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -727,7 +727,7 @@
       {
         "entity": {
           "id": "wall-5-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -743,7 +743,7 @@
       {
         "entity": {
           "id": "wall-6-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -759,7 +759,7 @@
       {
         "entity": {
           "id": "wall-7-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -775,7 +775,7 @@
       {
         "entity": {
           "id": "wall-9-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -791,7 +791,7 @@
       {
         "entity": {
           "id": "wall-10-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -807,7 +807,7 @@
       {
         "entity": {
           "id": "wall-11-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -823,7 +823,7 @@
       {
         "entity": {
           "id": "wall-12-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -839,7 +839,7 @@
       {
         "entity": {
           "id": "wall-13-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -855,7 +855,7 @@
       {
         "entity": {
           "id": "wall-14-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -871,7 +871,7 @@
       {
         "entity": {
           "id": "wall-15-15",
-          "icon": "ðŸ§±",
+          "icon": "🧱",
           "description": "A solid wall.",
           "passable": false,
           "active": true,
@@ -887,7 +887,7 @@
       {
         "entity": {
           "id": "PANDA",
-          "icon": "ðŸ¼",
+          "icon": "🐼",
           "description": "a chubby panda blocks the door",
           "passable": false,
           "active": true,
@@ -928,7 +928,7 @@
       {
         "entity": {
           "id": "DOOR",
-          "icon": "ðŸšª",
+          "icon": "🚪",
           "description": "A DOOR IS REVEALED AFTER THE PANDA MOVES AWAY",
           "passable": false,
           "active": true,
@@ -963,7 +963,7 @@
       {
         "entity": {
           "id": "BAMBOO",
-          "icon": "ðŸŒ±",
+          "icon": "🌱",
           "description": "pieces of bamboo lying on the ground",
           "passable": false,
           "active": true,
@@ -994,7 +994,7 @@
       {
         "entity": {
           "id": "eating-panda",
-          "icon": "ðŸ¼",
+          "icon": "🐼",
           "description": "the panda is busy munching on bamboo",
           "passable": false,
           "active": false,
