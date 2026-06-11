@@ -1,0 +1,214 @@
+@layer components {
+  @keyframes crt-flicker {
+    0%,
+    100% {
+      opacity: 0.52;
+      transform: translateY(0);
+    }
+
+    45% {
+      opacity: 0.64;
+    }
+
+    68% {
+      opacity: 0.46;
+      transform: translateY(1px);
+    }
+  }
+
+  @keyframes game-crt-line {
+    0% {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(0);
+    }
+
+    25% {
+      opacity: 1;
+      transform: translateY(-50%) scaleX(0.92);
+    }
+
+    62% {
+      opacity: 1;
+      transform: translateY(-50%) scaleX(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-50%) scaleX(1);
+    }
+  }
+
+  @keyframes game-intro-fade {
+    0%,
+    70% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes game-crt-glow {
+    0%,
+    16% {
+      opacity: 0;
+    }
+
+    24%,
+    82% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes game-crt-open {
+    0%,
+    18% {
+      opacity: 0;
+      transform: scaleY(0.02) scaleX(0.88);
+    }
+
+    26% {
+      opacity: 1;
+      transform: scaleY(1) scaleX(1);
+    }
+
+    88% {
+      opacity: 1;
+      transform: scaleY(1) scaleX(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scaleY(1.08) scaleX(1.02);
+    }
+  }
+
+  @keyframes game-title-flash {
+    0%,
+    18% {
+      opacity: 0;
+      transform: translateY(0.25em) scale(0.96);
+    }
+
+    28%,
+    78% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-0.16em) scale(1.02);
+    }
+  }
+
+  @keyframes splash-word-arrive {
+    0% {
+      opacity: 0;
+      filter: brightness(1.18) blur(1px);
+      transform: translateY(0.18em) scale(0.98);
+    }
+
+    58% {
+      opacity: 1;
+      filter: brightness(1.08) blur(0);
+      transform: translateY(-0.02em) scale(1.012);
+    }
+
+    100% {
+      opacity: 1;
+      filter: brightness(1) blur(0);
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes splash-prompt-enter {
+    from {
+      opacity: 0;
+      transform: translateY(0.35rem);
+    }
+
+    to {
+      opacity: 0.88;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes splash-prompt-blink {
+    0%,
+    100% {
+      opacity: 0.88;
+    }
+
+    50% {
+      opacity: 0.42;
+    }
+  }
+
+  @keyframes escape-reveal {
+    0% {
+      clip-path: inset(0 100% 0 0);
+    }
+
+    100% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes escape-proud-wave {
+    0%,
+    100% {
+      transform: translateY(0) scaleY(1);
+    }
+
+    32% {
+      transform: translateY(-0.16em) scaleY(1.04);
+    }
+
+    64% {
+      transform: translateY(0.08em) scaleY(0.98);
+    }
+  }
+
+  @keyframes agent-bounce {
+    0%,
+    100% {
+      transform: translateY(0) scaleY(1) scaleX(1);
+    }
+
+    32% {
+      transform: translateY(-8%) scaleY(1.06) scaleX(0.96);
+    }
+
+    52% {
+      transform: translateY(0) scaleY(0.94) scaleX(1.05);
+    }
+
+    70% {
+      transform: translateY(-2%) scaleY(1.02) scaleX(0.99);
+    }
+  }
+
+  @keyframes action-label-float {
+    0% {
+      opacity: 0;
+      transform: translateY(0.18rem) scale(0.94);
+    }
+
+    18%,
+    72% {
+      opacity: 0.82;
+      transform: translateY(0) scale(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: translateY(-0.18rem) scale(0.98);
+    }
+  }
+}

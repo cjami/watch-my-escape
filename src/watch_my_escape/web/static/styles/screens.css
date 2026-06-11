@@ -1,0 +1,173 @@
+@layer components {
+  .screen {
+    display: none;
+    min-height: 100vh;
+  }
+
+  .screen.is-active {
+    display: grid;
+  }
+
+  .splash-screen,
+  .select-screen,
+  .game-screen,
+  .editor-screen {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(rgb(255 255 255 / 5%) 50%, rgb(0 0 0 / 18%) 50%),
+      radial-gradient(ellipse at center, rgb(245 241 208 / 10%), transparent 36%, rgb(0 0 0 / 78%) 78%),
+      linear-gradient(180deg, #090f19, #05070d 48%, #020204);
+    background-size:
+      100% 4px,
+      auto,
+      auto;
+  }
+
+  .splash-screen {
+    cursor: pointer;
+    place-items: center;
+  }
+
+  .splash-screen::after,
+  .select-screen::after,
+  .game-screen::after,
+  .editor-screen::after {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse at center, transparent 45%, rgb(0 0 0 / 58%) 100%),
+      linear-gradient(90deg, rgb(102 217 232 / 5%), transparent 32%, rgb(255 212 71 / 6%));
+    content: "";
+    pointer-events: none;
+  }
+
+  .splash-stack {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: clamp(2.55rem, 6vw, 4.5rem);
+    justify-items: center;
+    transform: translateY(clamp(-3.2rem, -7vh, -1.2rem));
+  }
+
+  .splash-title {
+    position: relative;
+    display: grid;
+    gap: clamp(0.25rem, 1.4vw, 0.85rem);
+    margin: 0;
+    color: #fff7c2;
+    font-size: clamp(3.65rem, 15vw, 11rem);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 0.78;
+    text-align: center;
+    text-shadow:
+      4px 0 0 rgb(255 212 71 / 45%),
+      -4px 0 0 rgb(89 228 255 / 42%),
+      0 8px 0 rgb(0 0 0 / 72%),
+      0 28px 70px rgb(0 0 0 / 70%);
+    text-transform: uppercase;
+  }
+
+  .splash-prompt {
+    margin: 0;
+    color: #fff7c2;
+    font-size: clamp(1.15rem, 3vw, 1.9rem);
+    letter-spacing: 0;
+    line-height: 1.1;
+    text-shadow:
+      2px 0 0 rgb(255 212 71 / 28%),
+      -2px 0 0 rgb(89 228 255 / 22%),
+      0 0 18px rgb(255 212 71 / 32%);
+    text-transform: uppercase;
+    opacity: 0;
+    animation:
+      splash-prompt-enter 420ms ease-out 2.05s forwards,
+      splash-prompt-blink 1.6s ease-in-out 2.55s infinite;
+  }
+
+  .splash-title span {
+    opacity: 0;
+    transform: translateY(0.18em) scale(0.98);
+    animation: splash-word-arrive 760ms cubic-bezier(0.2, 0.9, 0.24, 1) forwards;
+  }
+
+  .splash-title span:nth-child(1) {
+    animation-delay: 280ms;
+  }
+
+  .splash-title span:nth-child(2) {
+    animation-delay: 840ms;
+  }
+
+  .splash-title span:nth-child(3) {
+    animation-delay: 1.4s;
+  }
+
+  .main-menu-screen {
+    cursor: default;
+  }
+
+  .main-menu-screen .splash-title span,
+  .main-menu-screen .splash-prompt {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .main-menu-stack {
+    width: 100%;
+  }
+
+  .main-menu-stack::after {
+    display: block;
+    margin: 0;
+    color: transparent;
+    content: "Press To Start";
+    font-size: clamp(1.15rem, 3vw, 1.9rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+    visibility: hidden;
+  }
+
+  .main-menu-options {
+    position: absolute;
+    top: calc(100% - 1.1em);
+    left: 50%;
+    display: grid;
+    font-size: clamp(1.15rem, 3vw, 1.9rem);
+    gap: clamp(0.7rem, 1.8vw, 1.1rem);
+    justify-items: center;
+    transform: translateX(-50%);
+  }
+
+  .main-menu-option {
+    position: relative;
+    width: max-content;
+    max-width: min(82vw, 28rem);
+    border: 0;
+    background: transparent;
+    font-size: inherit;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .main-menu-screen .main-menu-option {
+    opacity: 0.46;
+  }
+
+  .main-menu-option.is-selected {
+    color: #fff7c2;
+    opacity: 0.88;
+  }
+
+  .main-menu-option:focus-visible {
+    outline: none;
+  }
+
+  .main-menu-option.is-selected {
+    opacity: 0.88;
+  }
+}

@@ -1,0 +1,174 @@
+@layer components {
+  .map-view {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(15, minmax(0, 1fr));
+    width: 100%;
+    aspect-ratio: 1;
+    align-self: start;
+    place-self: center;
+    gap: 1px;
+    overflow: hidden;
+    border: 2px solid rgb(89 228 255 / 34%);
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 50% 50%, rgb(89 228 255 / 10%), transparent 72%),
+      linear-gradient(180deg, var(--arcade-screen-lit), var(--arcade-screen));
+    box-shadow:
+      inset 0 0 22px rgb(89 228 255 / 10%),
+      inset 0 0 78px rgb(0 0 0 / 78%);
+    transform: perspective(900px) rotateX(0.8deg);
+  }
+
+  .map-tile {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    aspect-ratio: 1;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background:
+      linear-gradient(135deg, rgb(255 255 255 / 5%), transparent 52%),
+      rgb(0 0 0 / 82%);
+    color: #f2f6ff;
+    font-family: "Noto Emoji Local", "Noto Emoji", "Segoe UI Symbol", sans-serif;
+    font-size: clamp(1rem, 4.2vw, 2rem);
+    font-weight: 600;
+    font-variant-emoji: text;
+    line-height: 1;
+    overflow: hidden;
+  }
+
+  .map-tile::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    content: "";
+    pointer-events: none;
+  }
+
+  .visible-tile {
+    background:
+      radial-gradient(circle at 50% 50%, rgb(102 217 232 / 8%), transparent 68%),
+      linear-gradient(135deg, rgb(255 255 255 / 5%), transparent 52%),
+      rgb(0 0 0 / 80%);
+  }
+
+  .visible-tile::before {
+    box-shadow: inset 0 0 12px rgb(102 217 232 / 6%);
+  }
+
+  .hidden-tile {
+    background:
+      linear-gradient(135deg, rgb(255 255 255 / 2%), transparent 52%),
+      rgb(0 0 0 / 92%);
+  }
+
+  .hidden-tile::before {
+    background:
+      repeating-linear-gradient(135deg, rgb(89 228 255 / 5%) 0 1px, transparent 1px 5px),
+      radial-gradient(circle at 50% 50%, transparent 38%, rgb(0 0 0 / 36%) 100%);
+  }
+
+  .hidden-tile .pixel-sprite {
+    filter: grayscale(0.7) brightness(0.52) contrast(0.95) !important;
+    opacity: 0.32;
+  }
+
+  .map-tile::after,
+  .editor-cell::before {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: 1px solid rgb(89 228 255 / 8%);
+    content: "";
+    pointer-events: none;
+  }
+
+  .agent-tile {
+    color: var(--agent-color);
+  }
+
+  .pixel-sprite {
+    display: block;
+    position: relative;
+    z-index: 3;
+    width: 72%;
+    height: 72%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    filter: saturate(1.18) contrast(1.18) drop-shadow(0 0 5px rgb(89 228 255 / 26%));
+  }
+
+  .agent-tile .pixel-sprite {
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--agent-color), transparent 28%)) !important;
+    transform-origin: 50% 86%;
+    animation: agent-bounce 760ms cubic-bezier(0.28, 0.84, 0.42, 1) infinite;
+  }
+
+  .agent-just-moved .pixel-sprite {
+    animation-delay: 420ms;
+  }
+
+  .action-label {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 0;
+    display: block;
+    max-width: min(22%, 8rem);
+    overflow: hidden;
+    color: #fff7c2;
+    font-family:
+      "Silkscreen Local", "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: clamp(0.42rem, 1.35vw, 0.68rem);
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    text-align: center;
+    text-overflow: clip;
+    text-shadow:
+      1px 0 0 rgb(89 228 255 / 38%),
+      -1px 0 0 rgb(255 212 71 / 32%),
+      0 0 6px rgb(255 212 71 / 46%),
+      0 2px 0 rgb(0 0 0 / 72%);
+    text-transform: uppercase;
+    translate: -50% -100%;
+    white-space: nowrap;
+    animation: action-label-float 1.4s steps(12, end) both;
+  }
+
+  .action-label.is-below {
+    translate: -50% 0;
+  }
+
+  .action-label.is-right {
+    translate: 0 -50%;
+  }
+
+  .action-label.is-left {
+    text-align: right;
+    translate: -100% -50%;
+  }
+
+  .action-label.is-agent {
+    max-width: 6%;
+    font-size: clamp(0.34rem, 1vw, 0.5rem);
+    translate: -50% -50%;
+  }
+
+  .preset-icon .pixel-sprite,
+  .icon-option .pixel-sprite {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .editor-cell .pixel-sprite {
+    width: 76%;
+    height: 76%;
+  }
+}
