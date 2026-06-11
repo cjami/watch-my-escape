@@ -23,6 +23,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     context.openBehaviorEditor = { entityId: entity.id, index: entity.behaviors.length - 1 };
     context.selectedEditorTab = "behaviors";
     renderEditor();
+    scrollBehaviorEditorToBottom();
     context.setStatus("Behavior added.");
   }
 
@@ -55,6 +56,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       button.addEventListener("click", () => {
         toggleBehaviorEditor(placed.entity.id, index);
         render();
+        scrollBehaviorEditorToBottom();
       });
       ruleList.append(button);
     });
@@ -182,11 +184,13 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       history.record();
       behavior.conditions.push({ entity_id: "", state: "" });
       renderEditor();
+      scrollBehaviorEditorToBottom();
     });
     block.querySelector("[data-add-effect]").addEventListener("click", () => {
       history.record();
       behavior.effects.push({ type: "message", text: "Something happens." });
       renderEditor();
+      scrollBehaviorEditorToBottom();
     });
     renderConditionList(block.querySelector("[data-condition-list]"), behavior);
     renderEffectList(block.querySelector("[data-effect-list]"), behavior);
@@ -461,6 +465,15 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       )
       .join("");
     return `<select ${attributes}>${optionHtml}</select>`;
+  }
+
+  function scrollBehaviorEditorToBottom() {
+    if (context.dom.behaviorEditorOverlay.hidden) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      context.dom.behaviorEditorPanel.scrollTop = context.dom.behaviorEditorPanel.scrollHeight;
+    });
   }
 
   return { addBehavior, handleDocumentClick, render };

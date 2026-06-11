@@ -5,8 +5,10 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
   let gameIntroTimer = null;
   let escapeCelebrationTimer = null;
   let runEpoch = 0;
+  const transcriptScroll = createTranscriptScrollController(dom.transcriptOutput);
 
   function init() {
+    transcriptScroll.init();
     dom.restartButton.addEventListener("click", restartSetup);
     dom.runButton.addEventListener("click", runEscape);
   }
@@ -24,6 +26,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     const currentRunEpoch = (runEpoch += 1);
     dom.runButton.disabled = true;
     dom.transcriptOutput.textContent = "Waiting for the first turn...";
+    transcriptScroll.scrollToBottom();
     const startupDelay = gameStartupDelay();
     void playGameIntro();
 
@@ -43,7 +46,9 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
       mapRenderer.renderMap(frame.map, frame.position, frame.visibility, frame.action_label, frame.map_colors);
       renderEntityStrip(dom.visibleEntitiesOutput, frame.visible_entity_details, "None.", frame.visible_entities);
       renderEntityStrip(dom.inventoryOutput, frame.inventory_details, "Empty.", frame.inventory);
+      const shouldFollowTranscript = transcriptScroll.shouldFollowOutput();
       dom.transcriptOutput.textContent = frame.transcript;
+      transcriptScroll.scrollToBottomIfFollowing(shouldFollowTranscript);
       if (frame.escaped) {
         scheduleEscapeCelebration(currentRunEpoch);
       } else {
@@ -59,7 +64,9 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
       if (currentRunEpoch !== runEpoch) {
         return;
       }
+      const shouldFollowTranscript = transcriptScroll.shouldFollowOutput();
       dom.transcriptOutput.textContent = "The room stream closed.";
+      transcriptScroll.scrollToBottomIfFollowing(shouldFollowTranscript);
       stopStream();
       dom.runButton.disabled = false;
     };
@@ -137,6 +144,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     renderEntityStrip(dom.visibleEntitiesOutput, [], "None.");
     renderEntityStrip(dom.inventoryOutput, [], "Empty.");
     dom.transcriptOutput.textContent = "The model has not tried the room yet.";
+    transcriptScroll.scrollToBottom();
     clearEscapeCelebrationTimer();
     dom.escapeBanner.hidden = true;
     dom.escapeAgentIcon.replaceChildren();
@@ -234,4 +242,53 @@ function entityLabel(item) {
 
 function entityStripSignature(items, emptyText) {
   return JSON.stringify({ emptyText, items });
+}
+
+function createTranscriptScrollController(element) {
+  const bottomThresholdPx = 8;
+  let followsOutput = true;
+  let pointerHeld = false;
+
+  function init() {
+    element.addEventListener("pointerdown", () => {
+      pointerHeld = true;
+    });
+    element.addEventListener("scroll", updateFollowState);
+    window.addEventListener("pointerup", releasePointer);
+    window.addEventListener("pointercancel", releasePointer);
+    window.addEventListener("blur", releasePointer);
+  }
+
+  function shouldFollowOutput() {
+    return followsOutput && !pointerHeld;
+  }
+
+  function scrollToBottomIfFollowing(shouldFollow) {
+    if (shouldFollow) {
+      scrollToBottom();
+    }
+  }
+
+  function scrollToBottom() {
+    followsOutput = true;
+    requestAnimationFrame(() => {
+      element.scrollTop = element.scrollHeight;
+      followsOutput = true;
+    });
+  }
+
+  function releasePointer() {
+    pointerHeld = false;
+    updateFollowState();
+  }
+
+  function updateFollowState() {
+    followsOutput = isAtBottom();
+  }
+
+  function isAtBottom() {
+    return element.scrollHeight - element.scrollTop - element.clientHeight <= bottomThresholdPx;
+  }
+
+  return { init, scrollToBottom, scrollToBottomIfFollowing, shouldFollowOutput };
 }
