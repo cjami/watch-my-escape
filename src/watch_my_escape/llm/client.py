@@ -103,12 +103,13 @@ class EmbeddedLlamaCppProvider:
         )
 
     def _load_llama(self) -> Any:
+        self._prepare_runtime_dependencies()
         try:
             llama_module = import_module("llama_cpp")
             llama_cls = llama_module.__dict__["Llama"]
-        except ImportError as exc:
+        except (ImportError, RuntimeError) as exc:
             msg = (
-                "llama-cpp-python is not installed. Run one setup profile, for example "
+                "llama-cpp-python could not be loaded. Run one setup profile, for example "
                 "`uv run python -m watch_my_escape.setup_llm cpu`."
             )
             raise LlmConfigurationError(msg) from exc
@@ -123,6 +124,9 @@ class EmbeddedLlamaCppProvider:
         if self._config.chat_format:
             llama_kwargs["chat_format"] = self._config.chat_format
         return llama_cls(**llama_kwargs)
+
+    def _prepare_runtime_dependencies(self) -> None:
+        """Prepare optional runtime dependencies before importing llama.cpp."""
 
     def _resolve_flash_attn(self, llama_module: Any) -> bool:
         if self._config.flash_attn is not None:
@@ -236,6 +240,13 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
             msg = "The `spaces` package is required for WME_LLM_PROVIDER=zerogpu."
             raise LlmConfigurationError(msg)
         return complete_on_gpu
+
+    def _prepare_runtime_dependencies(self) -> None:
+        try:
+            import_module("torch")
+        except ImportError as exc:
+            msg = "ZeroGPU llama.cpp inference requires torch. Install the hf-zerogpu setup profile."
+            raise LlmConfigurationError(msg) from exc
 
 
 def create_provider(config: LlamaCppConfig | None = None) -> InferenceProvider:

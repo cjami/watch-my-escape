@@ -1,3 +1,4 @@
+import importlib
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import ClassVar
 import pytest
 from pydantic import BaseModel
 
+from watch_my_escape.llm import client as llm_client
 from watch_my_escape.llm.client import (
     EmbeddedLlamaCppProvider,
     LlmConfigurationError,
@@ -61,6 +63,45 @@ def test_create_provider_returns_zerogpu_provider_when_configured(monkeypatch):
     assert isinstance(provider, ZeroGpuLlamaCppProvider)
 
 
+def test_zerogpu_provider_imports_torch_before_llama_cpp(monkeypatch, tmp_path):
+    def gpu_decorator(duration: int):
+        assert duration == 60
+        return lambda function: function
+
+    class FakeLlama:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def create_chat_completion(self, **_kwargs):
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    fake_spaces = ModuleType("spaces")
+    fake_spaces.__dict__["GPU"] = gpu_decorator
+    fake_torch = ModuleType("torch")
+    fake_llama_cpp = ModuleType("llama_cpp")
+    fake_llama_cpp.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "spaces", fake_spaces)
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_llama_cpp)
+
+    seen_imports = []
+    real_import_module = importlib.import_module
+
+    def tracking_import_module(name: str):
+        if name in {"torch", "llama_cpp"}:
+            seen_imports.append(name)
+        return real_import_module(name)
+
+    monkeypatch.setattr(llm_client, "import_module", tracking_import_module)
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("not gguf", encoding="utf-8")
+
+    provider = ZeroGpuLlamaCppProvider(_config(LlmProviderName.ZEROGPU, str(model_path)))
+    provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
+
+    assert seen_imports.index("torch") < seen_imports.index("llama_cpp")
+
+
 def test_create_provider_rejects_unresolved_auto_provider():
     with pytest.raises(LlmConfigurationError, match="auto-selection"):
         create_provider(_config(LlmProviderName.AUTO))
@@ -72,6 +113,44 @@ def test_embedded_provider_does_not_import_llama_cpp_until_completion(monkeypatc
     provider = create_provider(_config(LlmProviderName.LLAMA_CPP))
 
     assert isinstance(provider, EmbeddedLlamaCppProvider)
+
+
+def test_embedded_provider_does_not_require_torch(monkeypatch, tmp_path):
+    class FakeLlama:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def create_chat_completion(self, **_kwargs):
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    fake_llama_cpp = ModuleType("llama_cpp")
+    fake_llama_cpp.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_llama_cpp)
+    monkeypatch.setitem(sys.modules, "torch", None)
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("not gguf", encoding="utf-8")
+
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+    response = provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
+
+    assert response.content == "ok"
+
+
+def test_embedded_provider_reports_llama_cpp_load_error(monkeypatch, tmp_path):
+    real_import_module = importlib.import_module
+
+    def raising_import_module(name: str):
+        if name == "llama_cpp":
+            raise RuntimeError
+        return real_import_module(name)
+
+    monkeypatch.setattr(llm_client, "import_module", raising_import_module)
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("not gguf", encoding="utf-8")
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+
+    with pytest.raises(LlmConfigurationError, match="llama-cpp-python could not be loaded"):
+        provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
 
 
 def test_embedded_provider_reports_missing_huggingface_hub_download(monkeypatch):

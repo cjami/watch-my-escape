@@ -9,3 +9,5 @@ langfuse
 llama-cpp-python
 pydantic
 python-dotenv
+spaces==0.50.4
+torch==2.8.0
