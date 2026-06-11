@@ -32,6 +32,25 @@ class LlmConfigurationError(RuntimeError):
     """Raised when inference cannot be configured."""
 
 
+def _zero_gpu_duration(provider: Any, _request: InferenceRequest) -> int:
+    return int(provider.zerogpu_duration)
+
+
+def _complete_with_zero_gpu(provider: Any, request: InferenceRequest) -> InferenceResponse:
+    return provider.complete_with_loaded_model(request)
+
+
+def _decorate_zero_gpu_completion(function: Any) -> Any | None:
+    try:
+        gpu_decorator = import_module("spaces").__dict__["GPU"]
+    except ImportError:
+        return None
+    return gpu_decorator(duration=_zero_gpu_duration)(function)
+
+
+_ZERO_GPU_COMPLETION = _decorate_zero_gpu_completion(_complete_with_zero_gpu)
+
+
 class EmbeddedLlamaCppProvider:
     """Local llama-cpp-python provider."""
 
@@ -206,24 +225,27 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
 
     def __init__(self, config: LlamaCppConfig) -> None:
         super().__init__(config)
-        self._complete_on_gpu = self._build_gpu_completion()
+        complete_on_gpu = _ZERO_GPU_COMPLETION or self._build_gpu_completion()
+        if complete_on_gpu is None:
+            msg = "The `spaces` package is required for WME_LLM_PROVIDER=zerogpu."
+            raise LlmConfigurationError(msg)
+        self._complete_on_gpu = complete_on_gpu
+
+    @property
+    def zerogpu_duration(self) -> int:
+        """Return the configured ZeroGPU duration for dynamic queue budgeting."""
+        return self._config.zerogpu_duration
+
+    def complete_with_loaded_model(self, request: InferenceRequest) -> InferenceResponse:
+        """Run a completion from the module-level ZeroGPU wrapper."""
+        return self._complete_with_loaded_model(request)
 
     def complete(self, request: InferenceRequest) -> InferenceResponse:
         """Run one ZeroGPU-backed chat completion."""
-        return self._complete_on_gpu(request)
+        return self._complete_on_gpu(self, request)
 
-    def _build_gpu_completion(self) -> Any:
-        try:
-            gpu_decorator = import_module("spaces").__dict__["GPU"]
-        except ImportError as exc:
-            msg = "The `spaces` package is required for WME_LLM_PROVIDER=zerogpu."
-            raise LlmConfigurationError(msg) from exc
-
-        @gpu_decorator(duration=self._config.zerogpu_duration)
-        def complete_on_gpu(request: InferenceRequest) -> InferenceResponse:
-            return self._complete_with_loaded_model(request)
-
-        return complete_on_gpu
+    def _build_gpu_completion(self) -> Any | None:
+        return _decorate_zero_gpu_completion(_complete_with_zero_gpu)
 
 
 def create_provider(config: LlamaCppConfig | None = None) -> InferenceProvider:
