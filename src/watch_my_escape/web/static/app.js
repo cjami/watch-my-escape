@@ -78,6 +78,7 @@ dom.previousModelButton.addEventListener("click", () => modelSelector.change(-1)
 dom.nextModelButton.addEventListener("click", () => modelSelector.change(1));
 dom.chooseModelButton.addEventListener("click", modelSelector.choose);
 dom.modelOptions.addEventListener("keydown", modelSelector.handleKeydown);
+dom.mapBackButton.addEventListener("click", backToModelSelect);
 dom.mapOptions.addEventListener("keydown", mapSelector.handleKeydown);
 dom.openEditorButton.addEventListener("click", () => {
   screens.selectMenuOption(1);
@@ -86,12 +87,19 @@ dom.openEditorButton.addEventListener("click", () => {
 
 function handleGlobalKeydown(event) {
   if (screens.isScreenActive("splash")) {
+    if (event.key === "Escape") {
+      return;
+    }
     event.preventDefault();
     screens.showMainMenu();
     return;
   }
   if (screens.isScreenActive("menu")) {
     screens.handleMainMenuKeydown(event);
+    return;
+  }
+  if (event.key === "Escape" && handleBackAction()) {
+    event.preventDefault();
     return;
   }
   if (screens.isScreenActive("models")) {
@@ -107,4 +115,32 @@ function handleGlobalKeydown(event) {
     }
     mapSelector.handleKeydown(event);
   }
+}
+
+function handleBackAction() {
+  if (screens.isScreenActive("models")) {
+    screens.showMainMenu();
+    return true;
+  }
+  if (screens.isScreenActive("maps")) {
+    backToModelSelect();
+    return true;
+  }
+  if (screens.isScreenActive("game")) {
+    gameRunner.restartSetup();
+    return true;
+  }
+  if (screens.isScreenActive("editor")) {
+    if (!dom.editorValidationPopup.hidden) {
+      return false;
+    }
+    screens.showMainMenu();
+    return true;
+  }
+  return false;
+}
+
+function backToModelSelect() {
+  screens.showScreen("models");
+  modelSelector.focus();
 }

@@ -202,7 +202,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     return token;
   }
 
-  return { init, resetGame, runEscape, stopStream };
+  return { init, resetGame, restartSetup, runEscape, stopStream };
 }
 
 function entityDetails(details, fallbackText) {

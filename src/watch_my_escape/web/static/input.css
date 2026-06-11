@@ -302,6 +302,18 @@
     gap: 1rem;
   }
 
+  .map-select-shell .select-header {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .map-select-shell .select-header > div {
+    min-width: 0;
+  }
+
   .select-header h1,
   .editor-toolbar h1 {
     margin: 0;
@@ -430,6 +442,10 @@
   }
 
   .model-select-shell .secondary-button {
+    justify-self: start;
+  }
+
+  .map-select-shell .secondary-button {
     justify-self: start;
   }
 

@@ -36,6 +36,7 @@ export function getDomRefs() {
     mapPreview: query("#map-preview"),
     mapPreviewTitle: query("#map-preview-title"),
     mapPreviewDescription: query("#map-preview-description"),
+    mapBackButton: query("#map-back"),
     selectedModelLabel: query("#selected-model-label"),
     gameSelectionLabel: query("#game-selection-label"),
     runButton: query("#run-escape"),

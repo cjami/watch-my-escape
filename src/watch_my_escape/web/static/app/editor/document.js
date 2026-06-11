@@ -143,6 +143,8 @@ export function createEditorDocuments({ context, recordHistory, renderEditor }) 
     if (context.dom.editorValidationPopup.hidden || event.key !== "Escape") {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
     hideValidationErrorPopup();
   }
 
