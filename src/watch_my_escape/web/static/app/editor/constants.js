@@ -1,4 +1,4 @@
-export const mapSize = 16;
+export const mapSize = 15;
 export const historyLimit = 50;
 export const editorValidationDelayMs = 600;
 

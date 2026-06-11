@@ -1160,7 +1160,7 @@
   .map-view {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(16, minmax(0, 1fr));
+    grid-template-columns: repeat(15, minmax(0, 1fr));
     width: 100%;
     aspect-ratio: 1;
     align-self: start;
@@ -1813,7 +1813,7 @@
 
   .editor-grid {
     display: grid;
-    grid-template-columns: repeat(16, minmax(0, 1fr));
+    grid-template-columns: repeat(15, minmax(0, 1fr));
     width: min(100%, 760px);
     aspect-ratio: 1;
     place-self: center;
@@ -1945,7 +1945,7 @@
 
   .editor-tray {
     display: grid;
-    grid-template-columns: repeat(16, minmax(0, 1fr));
+    grid-template-columns: repeat(15, minmax(0, 1fr));
     width: min(100%, 760px);
     place-self: center;
     overflow: hidden;
@@ -1983,8 +1983,8 @@
 
   .editor-tray-list {
     display: grid;
-    grid-column: span 14;
-    grid-template-columns: repeat(var(--tray-cell-count, 14), calc(100% / 14));
+    grid-column: span 13;
+    grid-template-columns: repeat(var(--tray-cell-count, 13), calc(100% / 13));
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;

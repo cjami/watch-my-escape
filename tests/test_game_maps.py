@@ -172,8 +172,8 @@ def test_user_map_view_shows_full_grid_with_visible_icons():
 
     view = render_user_map_view(session)
 
-    assert len(view) == 16
-    assert all(len(row) == 16 for row in view)
+    assert len(view) == 15
+    assert all(len(row) == 15 for row in view)
     assert view[1][1] == "🙂"
     assert view[1][2] == "🚪"
     assert view[2][1] == "🔑"
@@ -196,8 +196,8 @@ def test_user_map_color_view_shows_active_entity_colors_without_coloring_agent()
 
     view = render_user_map_color_view(session)
 
-    assert len(view) == 16
-    assert all(len(row) == 16 for row in view)
+    assert len(view) == 15
+    assert all(len(row) == 15 for row in view)
     assert view[1][1] == "."
     assert view[1][2] == "#C8793A"
     assert view[2][1] == "#FFD447"
@@ -209,8 +209,8 @@ def test_visibility_view_marks_cells_visible_to_agent():
 
     view = render_visibility_view(session)
 
-    assert len(view) == 16
-    assert all(len(row) == 16 for row in view)
+    assert len(view) == 15
+    assert all(len(row) == 15 for row in view)
     assert view[1][1] is True
     assert view[1][2] is True
     assert view[1][3] is False
@@ -299,7 +299,7 @@ def _map_payload():
                         "notable": False,
                     },
                 }
-                for y in [0, *range(2, 16)]
+                for y in [0, *range(2, 15)]
             ],
             {
                 "position": {"x": 1, "y": 3},

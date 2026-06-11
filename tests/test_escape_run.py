@@ -56,11 +56,11 @@ def test_run_model_escape_stops_when_the_model_escapes():
     assert "Available actions:" not in result.transcript
     assert "Deliberation: I will choose the next useful action." in result.transcript
     assert "direction: one of" not in result.transcript
-    assert "Position: (14, 8)" in result.transcript
-    assert len(result.frames) == 8
-    assert [frame.position for frame in result.frames[:4]] == ["(7, 8)", "(8, 8)", "(9, 8)", "(10, 8)"]
-    assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 7
-    assert [frame.action_label for frame in result.frames] == ["", "pick up", "", "", "", "", "", "use item"]
+    assert "Position: (13, 7)" in result.transcript
+    assert len(result.frames) == 7
+    assert [frame.position for frame in result.frames[:4]] == ["(7, 7)", "(8, 7)", "(9, 7)", "(10, 7)"]
+    assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 6
+    assert [frame.action_label for frame in result.frames] == ["", "pick up", "", "", "", "", "use item"]
 
 
 def test_run_model_escape_steps_can_delay_before_first_model_request():
@@ -160,7 +160,7 @@ def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_ite
     assert "- pick_up(target)" in action_prompt
     assert "- open(target)" in action_prompt
     assert "target: one of brass-key" not in action_prompt
-    assert result.frames[-1].position == "(8, 8)"
+    assert result.frames[-1].position == "(8, 7)"
 
 
 def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_are_available():
@@ -176,7 +176,7 @@ def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_ar
     result = run_model_escape(provider=provider, starting_sanity=1)
 
     assert result.sanity == 0
-    assert result.frames[-1].position == "(7, 8)"
+    assert result.frames[-1].position == "(7, 7)"
     assert result.frames[-1].action_label == ""
     assert "Deliberation: I will pick up the brass key." in result.transcript
     assert "Model returned an action outside the current grammar" in result.transcript
@@ -205,7 +205,7 @@ def test_run_model_escape_renders_action_emotion_as_agent_icon():
 
     result = run_model_escape(provider=provider, starting_sanity=1)
 
-    assert result.frames[-1].map_view[8][8] == "\U0001f914"
+    assert result.frames[-1].map_view[7][8] == "\U0001f914"
 
 
 def test_run_model_escape_uses_selected_map():

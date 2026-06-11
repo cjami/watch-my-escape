@@ -5,7 +5,7 @@
     "name": "Key Door Room",
     "agent_start": {
       "x": 7,
-      "y": 8
+      "y": 7
     },
     "entities": [
       {
@@ -105,7 +105,7 @@
           "y": 7
         },
         "entity": {
-          "id": "wall-0-7",
+          "id": "wall-0-8",
           "icon": "🧱",
           "description": "A solid wall around the room.",
           "passable": false,
@@ -118,7 +118,7 @@
           "y": 8
         },
         "entity": {
-          "id": "wall-0-8",
+          "id": "wall-0-9",
           "icon": "🧱",
           "description": "A solid wall around the room.",
           "passable": false,
@@ -131,7 +131,7 @@
           "y": 9
         },
         "entity": {
-          "id": "wall-0-9",
+          "id": "wall-0-10",
           "icon": "🧱",
           "description": "A solid wall around the room.",
           "passable": false,
@@ -144,7 +144,7 @@
           "y": 10
         },
         "entity": {
-          "id": "wall-0-10",
+          "id": "wall-0-11",
           "icon": "🧱",
           "description": "A solid wall around the room.",
           "passable": false,
@@ -157,7 +157,7 @@
           "y": 11
         },
         "entity": {
-          "id": "wall-0-11",
+          "id": "wall-0-12",
           "icon": "🧱",
           "description": "A solid wall around the room.",
           "passable": false,
@@ -170,7 +170,7 @@
           "y": 12
         },
         "entity": {
-          "id": "wall-0-12",
+          "id": "wall-0-13",
           "icon": "🧱",
           "description": "A solid wall around the room.",
           "passable": false,
@@ -183,19 +183,6 @@
           "y": 13
         },
         "entity": {
-          "id": "wall-0-13",
-          "icon": "🧱",
-          "description": "A solid wall around the room.",
-          "passable": false,
-          "notable": false
-        }
-      },
-      {
-        "position": {
-          "x": 0,
-          "y": 14
-        },
-        "entity": {
           "id": "wall-0-14",
           "icon": "🧱",
           "description": "A solid wall around the room.",
@@ -206,7 +193,7 @@
       {
         "position": {
           "x": 0,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-0-15",
@@ -232,7 +219,7 @@
       {
         "position": {
           "x": 1,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-1-15",
@@ -258,7 +245,7 @@
       {
         "position": {
           "x": 2,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-2-15",
@@ -284,7 +271,7 @@
       {
         "position": {
           "x": 3,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-3-15",
@@ -310,7 +297,7 @@
       {
         "position": {
           "x": 4,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-4-15",
@@ -336,7 +323,7 @@
       {
         "position": {
           "x": 5,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-5-15",
@@ -362,7 +349,7 @@
       {
         "position": {
           "x": 6,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-6-15",
@@ -388,7 +375,7 @@
       {
         "position": {
           "x": 7,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-7-15",
@@ -414,7 +401,7 @@
       {
         "position": {
           "x": 8,
-          "y": 15
+          "y": 14
         },
         "entity": {
           "id": "wall-8-15",
@@ -430,32 +417,6 @@
           "y": 0
         },
         "entity": {
-          "id": "wall-9-0",
-          "icon": "🧱",
-          "description": "A solid wall around the room.",
-          "passable": false,
-          "notable": false
-        }
-      },
-      {
-        "position": {
-          "x": 9,
-          "y": 15
-        },
-        "entity": {
-          "id": "wall-9-15",
-          "icon": "🧱",
-          "description": "A solid wall around the room.",
-          "passable": false,
-          "notable": false
-        }
-      },
-      {
-        "position": {
-          "x": 10,
-          "y": 0
-        },
-        "entity": {
           "id": "wall-10-0",
           "icon": "🧱",
           "description": "A solid wall around the room.",
@@ -465,8 +426,8 @@
       },
       {
         "position": {
-          "x": 10,
-          "y": 15
+          "x": 9,
+          "y": 14
         },
         "entity": {
           "id": "wall-10-15",
@@ -478,7 +439,7 @@
       },
       {
         "position": {
-          "x": 11,
+          "x": 10,
           "y": 0
         },
         "entity": {
@@ -491,8 +452,8 @@
       },
       {
         "position": {
-          "x": 11,
-          "y": 15
+          "x": 10,
+          "y": 14
         },
         "entity": {
           "id": "wall-11-15",
@@ -504,7 +465,7 @@
       },
       {
         "position": {
-          "x": 12,
+          "x": 11,
           "y": 0
         },
         "entity": {
@@ -517,8 +478,8 @@
       },
       {
         "position": {
-          "x": 12,
-          "y": 15
+          "x": 11,
+          "y": 14
         },
         "entity": {
           "id": "wall-12-15",
@@ -530,7 +491,7 @@
       },
       {
         "position": {
-          "x": 13,
+          "x": 12,
           "y": 0
         },
         "entity": {
@@ -543,8 +504,8 @@
       },
       {
         "position": {
-          "x": 13,
-          "y": 15
+          "x": 12,
+          "y": 14
         },
         "entity": {
           "id": "wall-13-15",
@@ -556,7 +517,7 @@
       },
       {
         "position": {
-          "x": 14,
+          "x": 13,
           "y": 0
         },
         "entity": {
@@ -569,8 +530,8 @@
       },
       {
         "position": {
-          "x": 14,
-          "y": 15
+          "x": 13,
+          "y": 14
         },
         "entity": {
           "id": "wall-14-15",
@@ -582,7 +543,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 0
         },
         "entity": {
@@ -595,7 +556,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 1
         },
         "entity": {
@@ -608,7 +569,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 2
         },
         "entity": {
@@ -621,7 +582,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 3
         },
         "entity": {
@@ -634,7 +595,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 4
         },
         "entity": {
@@ -647,7 +608,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 5
         },
         "entity": {
@@ -660,7 +621,7 @@
       },
       {
         "position": {
-          "x": 15,
+          "x": 14,
           "y": 6
         },
         "entity": {
@@ -673,21 +634,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 7
-        },
-        "entity": {
-          "id": "wall-15-7",
-          "icon": "🧱",
-          "description": "A solid wall around the room.",
-          "passable": false,
-          "notable": false
-        }
-      },
-      {
-        "position": {
-          "x": 15,
-          "y": 9
+          "x": 14,
+          "y": 8
         },
         "entity": {
           "id": "wall-15-9",
@@ -699,8 +647,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 10
+          "x": 14,
+          "y": 9
         },
         "entity": {
           "id": "wall-15-10",
@@ -712,8 +660,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 11
+          "x": 14,
+          "y": 10
         },
         "entity": {
           "id": "wall-15-11",
@@ -725,8 +673,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 12
+          "x": 14,
+          "y": 11
         },
         "entity": {
           "id": "wall-15-12",
@@ -738,8 +686,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 13
+          "x": 14,
+          "y": 12
         },
         "entity": {
           "id": "wall-15-13",
@@ -751,8 +699,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 14
+          "x": 14,
+          "y": 13
         },
         "entity": {
           "id": "wall-15-14",
@@ -764,8 +712,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 15
+          "x": 14,
+          "y": 14
         },
         "entity": {
           "id": "wall-15-15",
@@ -778,7 +726,7 @@
       {
         "position": {
           "x": 8,
-          "y": 8
+          "y": 7
         },
         "entity": {
           "id": "brass-key",
@@ -821,8 +769,8 @@
       },
       {
         "position": {
-          "x": 15,
-          "y": 8
+          "x": 14,
+          "y": 7
         },
         "entity": {
           "id": "locked-door",
@@ -862,6 +810,8 @@
           ]
         }
       }
-    ]
+    ],
+    "width": 15,
+    "height": 15
   }
 }

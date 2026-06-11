@@ -76,12 +76,13 @@ export function defaultEffect(type) {
 
 export function starterEditorState() {
   const entities = [];
+  const center = Math.floor(mapSize / 2);
   for (let y = 0; y < mapSize; y += 1) {
     for (let x = 0; x < mapSize; x += 1) {
       if (x !== 0 && x !== mapSize - 1 && y !== 0 && y !== mapSize - 1) {
         continue;
       }
-      if (x === 15 && y === 8) {
+      if (x === mapSize - 1 && y === center) {
         continue;
       }
       entities.push(placedEntityFromDefinition(wallDefinition(x, y), x, y));
@@ -110,7 +111,7 @@ export function starterEditorState() {
         ],
       },
       8,
-      8,
+      center,
     ),
     placedEntityFromDefinition(
       {
@@ -134,12 +135,12 @@ export function starterEditorState() {
           },
         ],
       },
-      15,
-      8,
+      mapSize - 1,
+      center,
     ),
   );
   return {
-    agentStart: { x: 7, y: 8 },
+    agentStart: { x: center, y: center },
     entities,
     unplacedEntities: [],
   };

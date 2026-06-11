@@ -361,7 +361,7 @@ def _sealed_map_payload():
                         "notable": False,
                     },
                 }
-                for y in range(16)
+                for y in range(15)
             ],
             {
                 "position": {"x": 3, "y": 1},

@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Protocol, Self
+from typing import Annotated, Final, Literal, Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 type ActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "talk_to", "operate", "use_item"]
 type SimpleActionName = Literal["examine", "pick_up", "open", "close", "push", "pull", "operate"]
 type HexColor = Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")]
+MAP_SIZE: Final = 15
+MAX_COORDINATE: Final = MAP_SIZE - 1
 
 
 class StrictModel(BaseModel):
@@ -18,12 +20,12 @@ class StrictModel(BaseModel):
 
 
 class Coordinate(StrictModel):
-    """A location on the 16x16 map grid."""
+    """A location on the 15x15 map grid."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    x: Annotated[int, Field(ge=0, le=15)]
-    y: Annotated[int, Field(ge=0, le=15)]
+    x: Annotated[int, Field(ge=0, le=MAX_COORDINATE)]
+    y: Annotated[int, Field(ge=0, le=MAX_COORDINATE)]
 
 
 class BehaviorTrigger(StrictModel):

@@ -9,6 +9,7 @@ from typing import Annotated, Literal, Self, cast
 from pydantic import Field, ValidationError, model_validator
 
 from watch_my_escape.game.models import (
+    MAP_SIZE,
     ActionName,
     AddInventoryEffect,
     BehaviorContext,
@@ -24,8 +25,6 @@ from watch_my_escape.game.models import (
     StrictModel,
     evaluate_entity_behavior,
 )
-
-MAP_SIZE = 16
 
 
 class Direction(StrEnum):
@@ -60,8 +59,8 @@ class GameMap(StrictModel):
     entities: tuple[PlacedEntity, ...] = ()
     unplaced_entities: tuple[Entity, ...] = ()
     agent_start: Coordinate
-    width: Literal[16] = MAP_SIZE
-    height: Literal[16] = MAP_SIZE
+    width: Literal[15] = MAP_SIZE
+    height: Literal[15] = MAP_SIZE
 
     @model_validator(mode="after")
     def validate_map(self) -> Self:
@@ -211,7 +210,7 @@ def render_agent_room_view(session: GameSessionState) -> str:
 
 
 def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001f642") -> tuple[tuple[str, ...], ...]:
-    """Render the full active 16x16 map as emoji cells for the user."""
+    """Render the full active 15x15 map as emoji cells for the user."""
     cells = [["." for _ in range(session.map.width)] for _ in range(session.map.height)]
     for placed in session.map.active_entities():
         cells[placed.position.y][placed.position.x] = placed.entity.icon
@@ -222,7 +221,7 @@ def render_user_map_view(session: GameSessionState, *, agent_icon: str = "\U0001
 
 
 def render_user_map_color_view(session: GameSessionState) -> tuple[tuple[str, ...], ...]:
-    """Render the full active 16x16 map as CSS color cells for the user."""
+    """Render the full active 15x15 map as CSS color cells for the user."""
     cells = [["." for _ in range(session.map.width)] for _ in range(session.map.height)]
     for placed in session.map.active_entities():
         cells[placed.position.y][placed.position.x] = placed.entity.color or "."
