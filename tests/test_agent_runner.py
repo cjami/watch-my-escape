@@ -47,7 +47,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     deliberation_system_prompt = provider.requests[0].messages[0].content
     assert "Assess your surroundings" in deliberation_system_prompt
     assert "consider all possible actions and targets" in deliberation_system_prompt
-    assert "short sentence of your reasoning" in deliberation_system_prompt
+    assert "short paragraph of your reasoning" in deliberation_system_prompt
     assert "named action and target" in deliberation_system_prompt
     deliberation_prompt = provider.requests[0].messages[-1].content
     assert "Game state:" in deliberation_prompt
@@ -59,6 +59,8 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "- use_item(item, target)" in deliberation_prompt
     assert "- pick_up(target): Pick up an object and add it to your inventory." in deliberation_prompt
     assert "- open(target): Open an object." in deliberation_prompt
+    assert "\n\nActions may target any surrounding objects or inventory items." in deliberation_prompt
+    assert "Actions may target any surrounding objects or inventory items." in deliberation_prompt
     assert "entity" not in deliberation_prompt.casefold()
     assert "target: a visible object" not in deliberation_prompt
     assert "item: an item currently in inventory" not in deliberation_prompt
@@ -67,7 +69,8 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert provider.requests[1].settings.temperature == 0.0
     assert provider.requests[1].settings.max_tokens == 256
     action_prompt = provider.requests[1].messages[-1].content
-    assert "Available actions:" in action_prompt
+    assert "Available actions:" not in action_prompt
+    assert "Actions may target any surrounding objects or inventory items." not in action_prompt
     assert "Inspect the key before trying the door." not in provider.requests[1].messages[-1].content
     assert "<think>" not in provider.requests[1].messages[-1].content
     assert "Intended action: examine the brass key." in provider.requests[1].messages[-1].content

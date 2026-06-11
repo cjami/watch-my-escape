@@ -2,6 +2,3 @@
 
 Prior deliberation:
 {deliberation}
-
-Available actions:
-{action_options}

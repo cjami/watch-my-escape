@@ -114,8 +114,10 @@ def test_run_model_escape_offers_use_item_on_visible_distant_door_after_picking_
 
     run_model_escape(provider=provider)
 
+    deliberation_prompt = provider.requests[2].messages[-1].content
     action_prompt = provider.requests[3].messages[-1].content
-    assert "- use_item(item, target)" in action_prompt
+    assert "- use_item(item, target)" in deliberation_prompt
+    assert "- use_item(item, target)" not in action_prompt
     assert "target: one of locked-door" not in action_prompt
     assert '"action":"pick_up"' not in action_prompt
     assert "You picked up brass-key -> You pick up the brass key." in action_prompt
@@ -135,16 +137,17 @@ def test_run_model_escape_prompts_include_full_action_vocabulary():
 
     deliberation_prompt = provider.requests[0].messages[-1].content
     action_prompt = provider.requests[1].messages[-1].content
-    assert "- close(target): Close an object." in action_prompt
-    assert "- push(target): Push an object." in action_prompt
-    assert "- pull(target): Pull an object." in action_prompt
-    assert "- talk_to(target, text): Say something to an object or character." in action_prompt
-    assert "- operate(target): Operate a device, mechanism, or control." in action_prompt
+    assert "- close(target): Close an object." in deliberation_prompt
+    assert "- push(target): Push an object." in deliberation_prompt
+    assert "- pull(target): Pull an object." in deliberation_prompt
+    assert "- talk_to(target, text): Say something to an object or character." in deliberation_prompt
+    assert "- operate(target): Operate a device, mechanism, or control." in deliberation_prompt
     assert "- use_item(item, target): Use an object from your inventory on another object." in deliberation_prompt
-    assert "- use_item(item, target): Use an object from your inventory on another object." in action_prompt
+    assert "- close(target): Close an object." not in action_prompt
+    assert "- use_item(item, target): Use an object from your inventory on another object." not in action_prompt
 
 
-def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_item():
+def test_run_model_escape_keeps_general_action_descriptions_in_deliberation_prompt():
     provider = PairedProvider(
         (
             (
@@ -156,9 +159,12 @@ def test_run_model_escape_keeps_general_action_descriptions_after_picking_up_ite
 
     result = run_model_escape(provider=provider, starting_sanity=1)
 
+    deliberation_prompt = provider.requests[0].messages[-1].content
     action_prompt = provider.requests[1].messages[-1].content
-    assert "- pick_up(target)" in action_prompt
-    assert "- open(target)" in action_prompt
+    assert "- pick_up(target)" in deliberation_prompt
+    assert "- open(target)" in deliberation_prompt
+    assert "- pick_up(target)" not in action_prompt
+    assert "- open(target)" not in action_prompt
     assert "target: one of brass-key" not in action_prompt
     assert result.frames[-1].position == "(8, 7)"
 
