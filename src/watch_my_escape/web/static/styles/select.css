@@ -162,6 +162,11 @@
   }
 
   .map-preview-copy p {
+    display: -webkit-box;
+    min-height: 2.9em;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     color: #d4d7c6;
     font-size: 0.88rem;
     line-height: 1.45;
