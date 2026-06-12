@@ -943,8 +943,8 @@
         "entity": {
           "id": "exit-door",
           "icon": "🚪",
-          "color": null,
-          "description": "A door with a sign above it",
+          "color": "#ffd447",
+          "description": "A yellow exit door is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -952,33 +952,80 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
-              "conditions": [],
+              "conditions": [
+                {
+                  "state": "locked"
+                }
+              ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "a solid metal door. An exit sign hangs above it."
+                  "text": "An exit sign is above the locked door."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine"
+              },
+              "conditions": [
+                {
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The exit door is unlocked."
                 }
               ]
             },
             {
               "trigger": {
                 "action": "open",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": "exit-door",
+                  "state": "locked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The exit door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
                   "state": "unlocked"
                 }
               ],
               "effects": [
+                {
+                  "type": "message",
+                  "text": "The exit door opens. You escape."
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false
+                },
                 {
                   "type": "escape_map"
                 }
@@ -1115,7 +1162,7 @@
           "id": "door",
           "icon": "🚪",
           "color": null,
-          "description": "A closed door.",
+          "description": "A door is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -1123,26 +1170,54 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "use_item",
-                "actions": [],
-                "item": "key",
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "entity_id": null,
                   "state": "closed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The brass key turns in the door."
+                  "text": "The door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine"
+              },
+              "conditions": [
+                {
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The door is unlocked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "use_item",
+                "item": "key"
+              },
+              "conditions": [
+                {
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The brass key unlocks the door."
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked",
-                  "entity_id": null
+                  "state": "unlocked"
                 },
                 {
                   "type": "remove_inventory",
@@ -1153,25 +1228,46 @@
             {
               "trigger": {
                 "action": "open",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
                   "state": "unlocked"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The door opens and disappears from the map."
+                  "text": "The door opens."
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -1195,19 +1291,29 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "pick_up",
-                "actions": [
-                  "pick_up",
-                  "pull"
-                ],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You collect the brass key."
+                  "text": "It is small enough to carry."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "pick_up",
+                "actions": [
+                  "pick_up",
+                  "pull"
+                ]
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You pick up the brass key."
                 },
                 {
                   "type": "add_inventory",
@@ -1215,8 +1321,7 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -1334,7 +1439,7 @@
           "id": "red-door",
           "icon": "🚪",
           "color": "#ff6b6b",
-          "description": "A closed door.",
+          "description": "A red door is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -1342,14 +1447,43 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "use_item",
-                "actions": [],
-                "item": "red-key",
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The red door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine"
+              },
+              "conditions": [
+                {
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The red door is unlocked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "use_item",
+                "item": "red-key"
+              },
+              "conditions": [
+                {
                   "state": "closed"
                 }
               ],
@@ -1360,8 +1494,7 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked",
-                  "entity_id": null
+                  "state": "unlocked"
                 },
                 {
                   "type": "remove_inventory",
@@ -1372,25 +1505,46 @@
             {
               "trigger": {
                 "action": "open",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The red door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
                   "state": "unlocked"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The red door opens and disappears from the map."
+                  "text": "The red door opens."
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -1423,7 +1577,7 @@
           "id": "green-door",
           "icon": "🚪",
           "color": "#71f7b1",
-          "description": "A closed door.",
+          "description": "A green door is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -1431,14 +1585,43 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "use_item",
-                "actions": [],
-                "item": "green-key",
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The green door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine"
+              },
+              "conditions": [
+                {
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The green door is unlocked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "use_item",
+                "item": "green-key"
+              },
+              "conditions": [
+                {
                   "state": "closed"
                 }
               ],
@@ -1449,8 +1632,7 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked",
-                  "entity_id": null
+                  "state": "unlocked"
                 },
                 {
                   "type": "remove_inventory",
@@ -1461,25 +1643,46 @@
             {
               "trigger": {
                 "action": "open",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The green door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
                   "state": "unlocked"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The green door opens and disappears from the map."
+                  "text": "The green door opens."
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -1495,7 +1698,7 @@
           "id": "blue-door",
           "icon": "🚪",
           "color": "#2563eb",
-          "description": "A closed door.",
+          "description": "A blue door is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -1503,14 +1706,43 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "use_item",
-                "actions": [],
-                "item": "blue-key",
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The blue door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine"
+              },
+              "conditions": [
+                {
+                  "state": "unlocked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The blue door is unlocked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "use_item",
+                "item": "blue-key"
+              },
+              "conditions": [
+                {
                   "state": "closed"
                 }
               ],
@@ -1521,8 +1753,7 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked",
-                  "entity_id": null
+                  "state": "unlocked"
                 },
                 {
                   "type": "remove_inventory",
@@ -1533,25 +1764,46 @@
             {
               "trigger": {
                 "action": "open",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": null,
+                  "state": "closed"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The blue door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "open",
+                "actions": [
+                  "open",
+                  "pull",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
                   "state": "unlocked"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The blue door opens and disappears from the map."
+                  "text": "The blue door opens."
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -1567,47 +1819,41 @@
           "id": "button-1",
           "icon": "🖲️",
           "color": null,
-          "description": "A switch that can trigger something.",
+          "description": "A button is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "default",
+          "state": "unpressed",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "state": "default"
+                  "state": "unpressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A red light glows above the unpressed button."
+                  "text": "The button is raised."
                 }
               ]
             },
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "state": "pushed"
+                  "state": "pressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A green light glows above the pressed button."
+                  "text": "The button is pressed."
                 }
               ]
             },
@@ -1617,24 +1863,21 @@
                 "actions": [
                   "push",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "state": "default"
+                  "state": "unpressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The button clicks into place."
+                  "text": "The button clicks."
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "pushed",
-                  "entity_id": null
+                  "state": "pressed"
                 }
               ]
             },
@@ -1644,28 +1887,46 @@
                 "actions": [
                   "push",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": "button-2",
-                  "state": "pushed"
-                },
-                {
-                  "entity_id": "button-3",
-                  "state": "pushed"
-                },
-                {
-                  "entity_id": "exit-door",
-                  "state": "locked"
+                  "state": "pressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You hear a click at the exit door."
+                  "text": "The button is already pressed."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
+                  "state": "pressed",
+                  "entity_id": "button-2"
+                },
+                {
+                  "state": "pressed",
+                  "entity_id": "button-3"
+                },
+                {
+                  "state": "locked",
+                  "entity_id": "exit-door"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A click comes from the exit door."
                 },
                 {
                   "type": "set_entity_state",
@@ -1686,47 +1947,41 @@
           "id": "button-2",
           "icon": "🖲️",
           "color": null,
-          "description": "A switch that can trigger something.",
+          "description": "A button is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "default",
+          "state": "unpressed",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "state": "default"
+                  "state": "unpressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A red light glows above the unpressed button."
+                  "text": "The button is raised."
                 }
               ]
             },
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "state": "pushed"
+                  "state": "pressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A green light glows above the pressed button."
+                  "text": "The button is pressed."
                 }
               ]
             },
@@ -1736,24 +1991,21 @@
                 "actions": [
                   "push",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "state": "default"
+                  "state": "unpressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The button clicks into place."
+                  "text": "The button clicks."
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "pushed",
-                  "entity_id": null
+                  "state": "pressed"
                 }
               ]
             },
@@ -1763,28 +2015,46 @@
                 "actions": [
                   "push",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": "button-1",
-                  "state": "pushed"
-                },
-                {
-                  "entity_id": "button-3",
-                  "state": "pushed"
-                },
-                {
-                  "entity_id": "exit-door",
-                  "state": "locked"
+                  "state": "pressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You hear a click at the exit door."
+                  "text": "The button is already pressed."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
+                  "state": "pressed",
+                  "entity_id": "button-1"
+                },
+                {
+                  "state": "pressed",
+                  "entity_id": "button-3"
+                },
+                {
+                  "state": "locked",
+                  "entity_id": "exit-door"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A click comes from the exit door."
                 },
                 {
                   "type": "set_entity_state",
@@ -1805,47 +2075,41 @@
           "id": "button-3",
           "icon": "🖲️",
           "color": null,
-          "description": "A switch that can trigger something.",
+          "description": "A button is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "default",
+          "state": "unpressed",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "state": "default"
+                  "state": "unpressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A red light glows above the unpressed button."
+                  "text": "The button is raised."
                 }
               ]
             },
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "state": "pushed"
+                  "state": "pressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A green light glows above the pressed button."
+                  "text": "The button is pressed."
                 }
               ]
             },
@@ -1855,24 +2119,21 @@
                 "actions": [
                   "push",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "state": "default"
+                  "state": "unpressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The button clicks into place."
+                  "text": "The button clicks."
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "pushed",
-                  "entity_id": null
+                  "state": "pressed"
                 }
               ]
             },
@@ -1882,28 +2143,46 @@
                 "actions": [
                   "push",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": "button-1",
-                  "state": "pushed"
-                },
-                {
-                  "entity_id": "button-2",
-                  "state": "pushed"
-                },
-                {
-                  "entity_id": "exit-door",
-                  "state": "locked"
+                  "state": "pressed"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You hear a click at the exit door."
+                  "text": "The button is already pressed."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "push",
+                "actions": [
+                  "push",
+                  "operate"
+                ]
+              },
+              "conditions": [
+                {
+                  "state": "pressed",
+                  "entity_id": "button-1"
+                },
+                {
+                  "state": "pressed",
+                  "entity_id": "button-2"
+                },
+                {
+                  "state": "locked",
+                  "entity_id": "exit-door"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "A click comes from the exit door."
                 },
                 {
                   "type": "set_entity_state",
@@ -2153,19 +2432,29 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "pick_up",
-                "actions": [
-                  "pick_up",
-                  "pull"
-                ],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You collect the green key."
+                  "text": "It is small enough to carry."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "pick_up",
+                "actions": [
+                  "pick_up",
+                  "pull"
+                ]
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You pick up the green key."
                 },
                 {
                   "type": "add_inventory",
@@ -2173,8 +2462,7 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -2198,19 +2486,29 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "pick_up",
-                "actions": [
-                  "pick_up",
-                  "pull"
-                ],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You collect the blue key."
+                  "text": "It is small enough to carry."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "pick_up",
+                "actions": [
+                  "pick_up",
+                  "pull"
+                ]
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You pick up the blue key."
                 },
                 {
                   "type": "add_inventory",
@@ -2218,8 +2516,7 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -2243,19 +2540,29 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "pick_up",
-                "actions": [
-                  "pick_up",
-                  "pull"
-                ],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [],
               "effects": [
                 {
                   "type": "message",
-                  "text": "You collect the red key."
+                  "text": "It is small enough to carry."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "pick_up",
+                "actions": [
+                  "pick_up",
+                  "pull"
+                ]
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "You pick up the red key."
                 },
                 {
                   "type": "add_inventory",
@@ -2263,8 +2570,7 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }

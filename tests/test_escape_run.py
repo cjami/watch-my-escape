@@ -50,7 +50,7 @@ def test_run_model_escape_stops_when_the_model_escapes():
 
     assert result.escaped is True
     assert result.sanity == 98
-    assert result.inventory == ("brass-key",)
+    assert result.inventory == ()
     assert result.status == "Escaped with 98 sanity remaining."
     assert "Turn 1 - sanity 100 -> 99" in result.transcript
     assert "Turn 2 - sanity 99 -> 98" in result.transcript

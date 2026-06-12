@@ -353,7 +353,10 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     if (effect.type === "message") {
       return `<label class="block-field block-wide">Text <input data-effect-field="text" type="text" value="${escapeAttribute(effect.text ?? "")}" /></label>`;
     }
-    if (effect.type === "add_inventory" || effect.type === "remove_inventory") {
+    if (effect.type === "add_inventory") {
+      return `<label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`, { emptyLabel: "Current entity" })}</label>`;
+    }
+    if (effect.type === "remove_inventory") {
       return `<label class="block-field">Entity ${entitySelectHtml(effect.entity_id, `data-effect-field="entity_id"`, { allowEmpty: false })}</label>`;
     }
     if (effect.type === "set_entity_state") {
@@ -424,7 +427,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       return `Passable ${effect.passable ? "yes" : "no"} ${effect.entity_id || "self"}`;
     }
     if (effect.type === "add_inventory") {
-      return `Give ${effect.entity_id || "item"}`;
+      return `Give ${effect.entity_id || "self"}`;
     }
     if (effect.type === "remove_inventory") {
       return `Take ${effect.entity_id || "item"}`;

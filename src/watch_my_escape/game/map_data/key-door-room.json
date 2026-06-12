@@ -944,7 +944,7 @@
           "id": "brass-key",
           "icon": "🔑",
           "color": null,
-          "description": "A brass key lies on the floor.",
+          "description": "A small brass key.",
           "passable": true,
           "active": true,
           "notable": true,
@@ -952,16 +952,13 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine",
-                "actions": [],
-                "item": null,
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [],
               "effects": [
                 {
                   "type": "message",
-                  "text": "A small brass key on the floor. you should probably pick it up."
+                  "text": "It is small enough to carry."
                 }
               ]
             },
@@ -971,9 +968,7 @@
                 "actions": [
                   "pick_up",
                   "pull"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [],
               "effects": [
@@ -987,8 +982,7 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 }
               ]
             }
@@ -1003,8 +997,8 @@
         "entity": {
           "id": "locked-door",
           "icon": "🚪",
-          "color": null,
-          "description": "A locked door bars the exit.",
+          "color": "#ffd447",
+          "description": "A locked exit door blocks the way.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -1012,31 +1006,42 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "use_item",
-                "actions": [],
-                "item": "brass-key",
-                "phrase": null
+                "action": "examine"
               },
               "conditions": [
                 {
-                  "entity_id": "locked-door",
                   "state": "locked"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The brass key turns. The locked door opens, and you escape."
+                  "text": "The door is locked."
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "use_item",
+                "item": "brass-key"
+              },
+              "conditions": [
+                {
+                  "state": "locked"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "The brass key unlocks the door. You escape."
                 },
                 {
-                  "type": "set_entity_state",
-                  "state": "open",
-                  "entity_id": null
+                  "type": "remove_inventory",
+                  "entity_id": "brass-key"
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false,
-                  "entity_id": null
+                  "active": false
                 },
                 {
                   "type": "escape_map"
@@ -1050,20 +1055,17 @@
                   "open",
                   "pull",
                   "operate"
-                ],
-                "item": null,
-                "phrase": null
+                ]
               },
               "conditions": [
                 {
-                  "entity_id": "locked-door",
-                  "state": "LOCKED"
+                  "state": "locked"
                 }
               ],
               "effects": [
                 {
                   "type": "message",
-                  "text": "The door does not budge. it is clearly locked."
+                  "text": "The door is locked."
                 }
               ]
             }

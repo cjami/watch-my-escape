@@ -93,14 +93,19 @@ export function starterEditorState() {
       {
         id: "brass-key",
         icon: "\u{1F511}",
-        description: "A tarnished brass key.",
+        description: "A brass key lies on the floor.",
         passable: true,
         active: true,
         notable: true,
         state: "default",
         behaviors: [
           {
-            trigger: { action: "pick_up" },
+            trigger: { action: "examine" },
+            conditions: [],
+            effects: [{ type: "message", text: "It is small enough to carry." }],
+          },
+          {
+            trigger: { action: "pick_up", actions: ["pick_up", "pull"] },
             conditions: [],
             effects: [
               { type: "message", text: "You pick up the brass key." },
@@ -117,21 +122,32 @@ export function starterEditorState() {
       {
         id: "locked-door",
         icon: "\u{1F6AA}",
-        description: "A locked door bars the exit.",
+        color: "#ffd447",
+        description: "A locked exit door blocks the way.",
         passable: false,
         active: true,
         notable: true,
         state: "locked",
         behaviors: [
           {
+            trigger: { action: "examine" },
+            conditions: [{ state: "locked" }],
+            effects: [{ type: "message", text: "The door is locked." }],
+          },
+          {
             trigger: { action: "use_item", item: "brass-key" },
             conditions: [],
             effects: [
-              { type: "message", text: "The brass key turns, and the door opens. You escape." },
-              { type: "set_entity_state", state: "open" },
-              { type: "set_entity_passable", passable: true },
+              { type: "message", text: "The brass key unlocks the door. You escape." },
+              { type: "remove_inventory", entity_id: "brass-key" },
+              { type: "set_entity_active", active: false },
               { type: "escape_map" },
             ],
+          },
+          {
+            trigger: { action: "open", actions: ["open", "pull", "operate"] },
+            conditions: [{ state: "locked" }],
+            effects: [{ type: "message", text: "The door is locked." }],
           },
         ],
       },
@@ -175,6 +191,7 @@ function createEntity(context, preset, x, y) {
 }
 
 function entityFromPreset(preset, id) {
+  const behaviors = structuredClone(preset.behaviors ?? []);
   return {
     id,
     icon: preset.icon,
@@ -184,8 +201,20 @@ function entityFromPreset(preset, id) {
     active: preset.active ?? true,
     notable: preset.notable ?? true,
     state: preset.state ?? "default",
-    behaviors: structuredClone(preset.behaviors ?? []),
+    behaviors: materializePresetReferences(behaviors, id),
   };
+}
+
+function materializePresetReferences(value, id) {
+  if (Array.isArray(value)) {
+    return value.map((item) => materializePresetReferences(item, id));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, materializePresetReferences(item, id)]),
+    );
+  }
+  return value === "{self}" ? id : value;
 }
 
 function selectedPlacedEntity(context) {

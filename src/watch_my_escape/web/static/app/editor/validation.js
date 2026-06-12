@@ -84,7 +84,7 @@ export function createEditorValidation({ buildEditorDocument, context }) {
           }
         }
         for (const effect of behavior.effects) {
-          if ((effect.type === "add_inventory" || effect.type === "remove_inventory") && !effect.entity_id) {
+          if (effect.type === "remove_inventory" && !effect.entity_id) {
             issues.push(`${entity.id} ${optionLabel(effectLabels, effect.type)} effect needs an entity.`);
           }
           if (effect.entity_id && !entityIdSet.has(effect.entity_id)) {

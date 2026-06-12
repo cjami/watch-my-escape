@@ -103,6 +103,51 @@ export const presets = [
     description: "A closed door.",
     passable: false,
     state: "closed",
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [{ state: "closed" }],
+        effects: [{ type: "message", text: "The handle looks usable." }],
+      },
+      {
+        trigger: { action: "open", actions: ["open", "pull", "operate"] },
+        conditions: [{ state: "closed" }],
+        effects: [
+          { type: "message", text: "The door opens." },
+          { type: "set_entity_active", active: false },
+        ],
+      },
+      {
+        trigger: { action: "close" },
+        conditions: [{ state: "closed" }],
+        effects: [{ type: "message", text: "The door is already closed." }],
+      },
+    ],
+  },
+  {
+    type: "exit",
+    name: "Exit Door",
+    icon: "\u{1F6AA}",
+    color: "#ffd447",
+    description: "A yellow exit door is closed.",
+    passable: false,
+    state: "closed",
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [],
+        effects: [{ type: "message", text: "An exit sign is above the door." }],
+      },
+      {
+        trigger: { action: "open", actions: ["open", "pull", "operate"] },
+        conditions: [{ state: "closed" }],
+        effects: [
+          { type: "message", text: "The exit door opens. You escape." },
+          { type: "set_entity_active", active: false },
+          { type: "escape_map" },
+        ],
+      },
+    ],
   },
   {
     type: "key",
@@ -110,27 +155,139 @@ export const presets = [
     icon: "\u{1F511}",
     description: "A small key.",
     passable: true,
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [],
+        effects: [{ type: "message", text: "It is small enough to carry." }],
+      },
+      {
+        trigger: { action: "pick_up", actions: ["pick_up", "pull"] },
+        conditions: [],
+        effects: [
+          { type: "message", text: "You pick up the key." },
+          { type: "add_inventory", entity_id: "{self}" },
+          { type: "set_entity_active", active: false },
+        ],
+      },
+    ],
   },
   {
     type: "note",
     name: "Note",
     icon: "\u{1F4DD}",
-    description: "A note with useful writing on it.",
+    description: "A readable note.",
     passable: true,
+    behaviors: [
+      {
+        trigger: { action: "examine", actions: ["examine", "operate"] },
+        conditions: [],
+        effects: [{ type: "message", text: "The note has writing on it." }],
+      },
+      {
+        trigger: { action: "pick_up", actions: ["pick_up", "pull"] },
+        conditions: [],
+        effects: [
+          { type: "message", text: "You pick up the note." },
+          { type: "add_inventory", entity_id: "{self}" },
+          { type: "set_entity_active", active: false },
+        ],
+      },
+    ],
   },
   {
     type: "character",
     name: "Character",
     icon: "\u{1F9CD}",
-    description: "Someone waiting in the room.",
+    description: "A person is waiting here.",
     passable: false,
+    state: "waiting",
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [],
+        effects: [{ type: "message", text: "They are alert and watching you." }],
+      },
+      {
+        trigger: { action: "talk_to" },
+        conditions: [],
+        effects: [{ type: "message", text: "They listen but give no clear answer." }],
+      },
+      {
+        trigger: { action: "pick_up", actions: ["pick_up", "open", "close", "push", "pull", "operate"] },
+        conditions: [],
+        effects: [{ type: "message", text: "That does not help." }],
+      },
+    ],
   },
   {
-    type: "switch",
-    name: "Switch",
-    icon: "\u{1F39A}\uFE0F",
-    description: "A switch that can trigger something.",
+    type: "lever",
+    name: "Lever",
+    icon: "\u{1F579}\uFE0F",
+    description: "A lever points up.",
     passable: true,
+    state: "up",
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [{ state: "up" }],
+        effects: [{ type: "message", text: "The lever can be pulled." }],
+      },
+      {
+        trigger: { action: "examine" },
+        conditions: [{ state: "down" }],
+        effects: [{ type: "message", text: "The lever is down." }],
+      },
+      {
+        trigger: { action: "pull", actions: ["pull", "operate"] },
+        conditions: [{ state: "up" }],
+        effects: [
+          { type: "message", text: "The lever moves down." },
+          { type: "set_entity_state", state: "down" },
+        ],
+      },
+      {
+        trigger: { action: "pull", actions: ["pull", "operate"] },
+        conditions: [{ state: "down" }],
+        effects: [{ type: "message", text: "The lever is already down." }],
+      },
+    ],
+  },
+  {
+    type: "container",
+    name: "Container",
+    icon: "\u{1F9F0}",
+    description: "A container is {state}.",
+    passable: true,
+    state: "closed",
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [{ state: "closed" }],
+        effects: [{ type: "message", text: "The lid can be opened." }],
+      },
+      {
+        trigger: { action: "examine" },
+        conditions: [{ state: "open" }],
+        effects: [{ type: "message", text: "The container is open." }],
+      },
+      {
+        trigger: { action: "open", actions: ["open", "pull", "operate"] },
+        conditions: [{ state: "closed" }],
+        effects: [
+          { type: "message", text: "The container opens." },
+          { type: "set_entity_state", state: "open" },
+        ],
+      },
+      {
+        trigger: { action: "close" },
+        conditions: [{ state: "open" }],
+        effects: [
+          { type: "message", text: "The container closes." },
+          { type: "set_entity_state", state: "closed" },
+        ],
+      },
+    ],
   },
   {
     type: "item",
@@ -138,21 +295,34 @@ export const presets = [
     icon: "\u{1F4E6}",
     description: "A useful item.",
     passable: true,
+    behaviors: [
+      {
+        trigger: { action: "examine" },
+        conditions: [],
+        effects: [{ type: "message", text: "It is small enough to carry." }],
+      },
+      {
+        trigger: { action: "pick_up", actions: ["pick_up", "pull"] },
+        conditions: [],
+        effects: [
+          { type: "message", text: "You pick up the item." },
+          { type: "add_inventory", entity_id: "{self}" },
+          { type: "set_entity_active", active: false },
+        ],
+      },
+    ],
   },
   {
-    type: "exit",
-    name: "Exit",
-    icon: "\u{1F3C1}",
-    description: "The way out.",
+    type: "sign",
+    name: "Sign",
+    icon: "\u{1FAA7}",
+    description: "A readable sign is mounted here.",
     passable: true,
     behaviors: [
       {
-        trigger: { action: "operate" },
+        trigger: { action: "examine", actions: ["examine", "operate"] },
         conditions: [],
-        effects: [
-          { type: "message", text: "You escape the room." },
-          { type: "escape_map" },
-        ],
+        effects: [{ type: "message", text: "The sign is readable." }],
       },
     ],
   },

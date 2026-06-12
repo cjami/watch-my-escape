@@ -348,8 +348,9 @@ function normalizeImportedEntity(entity) {
 }
 
 function normalizeEntity(entity) {
+  const entityId = entity.id.trim();
   return compactObject({
-    id: entity.id.trim(),
+    id: entityId,
     icon: entity.icon.trim(),
     color: normalizeColor(entity.color),
     description: entity.description.trim(),
@@ -357,16 +358,23 @@ function normalizeEntity(entity) {
     active: entity.active,
     notable: entity.notable,
     state: entity.state.trim() || "default",
-    behaviors: entity.behaviors.map(normalizeBehavior),
+    behaviors: entity.behaviors.map((behavior) => normalizeBehavior(behavior, entityId)),
   });
 }
 
-function normalizeBehavior(behavior) {
+function normalizeBehavior(behavior, entityId) {
   return {
     trigger: normalizeBehaviorTrigger(behavior.trigger),
     conditions: (behavior.conditions ?? []).map(compactObject),
-    effects: (behavior.effects ?? []).map(compactObject),
+    effects: (behavior.effects ?? []).map((effect) => normalizeEffect(effect, entityId)).map(compactObject),
   };
+}
+
+function normalizeEffect(effect, entityId) {
+  if (effect.type === "add_inventory" && !effect.entity_id) {
+    return { ...effect, entity_id: entityId };
+  }
+  return effect;
 }
 
 function normalizeImportedBehavior(behavior) {
