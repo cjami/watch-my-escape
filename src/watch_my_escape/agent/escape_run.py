@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -33,6 +35,8 @@ if TYPE_CHECKING:
     from watch_my_escape.game.models import Entity
 
 DEFAULT_MAP_ID = "key-door-room"
+PERF_LOGGER = logging.getLogger("watch_my_escape.perf")
+PERF_LOGGER.setLevel(logging.INFO)
 
 
 @dataclass(frozen=True, slots=True)
@@ -383,7 +387,10 @@ def _run_escape_turn(
     history: tuple[str, ...],
     settings: ThinkActSettings | None,
 ) -> ThinkActResult:
+    turn_number = len(history) + 1
+    turn_started = time.perf_counter()
     resolved_settings = ThinkActSettings() if settings is None else settings
+    deliberation_started = time.perf_counter()
     deliberation_response = provider.complete(
         InferenceRequest(
             messages=build_deliberation_messages(
@@ -396,7 +403,14 @@ def _run_escape_turn(
         )
     )
     deliberation = deliberation_response.content.strip()
+    PERF_LOGGER.info(
+        "perf escape_turn_phase turn=%s phase=deliberation elapsed_ms=%.1f chars=%s",
+        turn_number,
+        _elapsed_ms(deliberation_started),
+        len(deliberation),
+    )
     action_deliberation = strip_thinking_sections(deliberation)
+    action_started = time.perf_counter()
     action_response = provider.complete(
         InferenceRequest(
             messages=build_action_messages(
@@ -410,6 +424,12 @@ def _run_escape_turn(
             enable_thinking=False,
         )
     )
+    PERF_LOGGER.info(
+        "perf escape_turn_phase turn=%s phase=action elapsed_ms=%.1f chars=%s",
+        turn_number,
+        _elapsed_ms(action_started),
+        len(action_response.content),
+    )
     try:
         action = validate_structured_output(action_model, action_response.content)
     except (StructuredOutputError, ValidationError) as exc:
@@ -417,4 +437,9 @@ def _run_escape_turn(
             str(exc),
             deliberation=deliberation,
         ) from exc
+    PERF_LOGGER.info("perf escape_turn_model turn=%s elapsed_ms=%.1f", turn_number, _elapsed_ms(turn_started))
     return ThinkActResult(deliberation=deliberation, action=action)
+
+
+def _elapsed_ms(started_at: float) -> float:
+    return (time.perf_counter() - started_at) * 1000
