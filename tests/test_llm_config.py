@@ -150,9 +150,23 @@ def test_config_for_model_preset_resolves_preset_to_hub_source():
     assert config.model_path is None
     assert config.model_repo_id == preset.repo_id
     assert config.model_filename == preset.filename
+    assert config.thinking_supported == preset.thinking_supported
+    assert config.thinking_enabled == (
+        preset.thinking_enabled if preset.thinking_enabled is not None else preset.thinking_supported
+    )
     assert config.thinking_temperature == preset.thinking_temperature
     assert config.thinking_top_p == preset.thinking_top_p
     assert config.thinking_top_k == preset.thinking_top_k
+
+
+def test_config_for_model_preset_uses_thinking_support_as_default_enabled_state():
+    supported_config = config_for_model_preset("gemma-4-12b-it", load_config({}))
+    unsupported_config = config_for_model_preset("tiny-aya-global", load_config({}))
+
+    assert supported_config.thinking_supported is True
+    assert supported_config.thinking_enabled is True
+    assert unsupported_config.thinking_supported is False
+    assert unsupported_config.thinking_enabled is False
 
 
 def test_config_for_model_preset_preserves_explicit_thinking_sampling_overrides():
@@ -176,6 +190,8 @@ def test_model_presets_include_publisher_thinking_sampling_where_known():
     assert MODEL_PRESETS["minicpm5-1b"].thinking_temperature == 0.9
     assert MODEL_PRESETS["minicpm5-1b"].thinking_top_p == 0.95
     assert MODEL_PRESETS["gemma-4-12b-it"].thinking_top_k == 64
+    assert MODEL_PRESETS["tiny-aya-global"].thinking_supported is False
+    assert MODEL_PRESETS["tiny-aya-global"].thinking_enabled is False
     assert MODEL_PRESETS["tiny-aya-global"].thinking_temperature == 0.2
     assert MODEL_PRESETS["mellum2-12b-a2.5b-thinking"].thinking_top_k == 20
     assert MODEL_PRESETS["nvidia-nemotron-3-nano-4b"].thinking_temperature is None

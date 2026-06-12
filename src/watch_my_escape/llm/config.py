@@ -38,6 +38,8 @@ class ModelPreset:
     repo_id: str
     filename: str
     active_parameter_size_b: float | None = None
+    thinking_supported: bool = True
+    thinking_enabled: bool | None = None
     thinking_temperature: float | None = None
     thinking_top_p: float | None = None
     thinking_top_k: int | None = None
@@ -92,6 +94,8 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             parameter_size_b=3.35,
             repo_id="CohereLabs/tiny-aya-global-GGUF",
             filename="tiny-aya-global-q4_k_m.gguf",
+            thinking_supported=False,
+            thinking_enabled=False,
             thinking_temperature=0.2,
             thinking_top_p=0.95,
         ),
@@ -142,6 +146,8 @@ class LlamaCppConfig:
     gpu_layers: int
     zerogpu_duration: int
     seed: int = DEFAULT_SEED
+    thinking_supported: bool = True
+    thinking_enabled: bool = True
     thinking_temperature: float | None = None
     thinking_top_p: float | None = None
     thinking_top_k: int | None = None
@@ -216,6 +222,8 @@ def config_for_model_preset(preset_name: str, base_config: LlamaCppConfig | None
         model_path=None,
         model_repo_id=preset.repo_id,
         model_filename=preset.filename,
+        thinking_supported=preset.thinking_supported,
+        thinking_enabled=_first_configured(preset.thinking_enabled, preset.thinking_supported),
         thinking_temperature=_first_configured(config.thinking_temperature, preset.thinking_temperature),
         thinking_top_p=_first_configured(config.thinking_top_p, preset.thinking_top_p),
         thinking_top_k=_first_configured(config.thinking_top_k, preset.thinking_top_k),

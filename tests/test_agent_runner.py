@@ -1,5 +1,5 @@
 from watch_my_escape.agent.prompts import build_deliberation_messages
-from watch_my_escape.agent.runner import ThinkActTurn, run_think_act_turn
+from watch_my_escape.agent.runner import ThinkActSettings, ThinkActTurn, run_think_act_turn
 from watch_my_escape.game.actions import EscapeRoomAction, ExamineAction
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
@@ -102,6 +102,24 @@ def test_run_think_act_turn_strips_thinking_wrappers_from_action_response():
     assert isinstance(result.action, EscapeRoomAction)
     assert isinstance(result.action.root, ExamineAction)
     assert result.action.root.target == "brass key"
+
+
+def test_run_think_act_turn_uses_configured_deliberation_thinking_flag():
+    provider = FakeProvider()
+
+    run_think_act_turn(
+        provider,
+        ThinkActTurn(
+            game_state="A brass key rests on a table beside a locked door.",
+            action_model=EscapeRoomAction,
+            settings=ThinkActSettings(deliberation_enable_thinking=False),
+        ),
+    )
+
+    assert provider.requests[0].phase == "deliberation"
+    assert provider.requests[0].enable_thinking is False
+    assert provider.requests[1].phase == "action"
+    assert provider.requests[1].enable_thinking is False
 
 
 def test_run_think_act_turn_strips_gemma_thought_channel_from_action_prompt():

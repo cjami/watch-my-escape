@@ -185,11 +185,16 @@ def test_warm_provider_store_drops_expired_sessions():
 
 def test_model_preset_options_include_selector_metadata():
     options = model_preset_options()
+    tiny_aya = next(option for option in options if option["id"] == "tiny-aya-global")
 
     assert options
     assert {option["id"] for option in options} == set(MODEL_PRESETS)
     assert all(option["agent_icon"] for option in options)
     assert all(isinstance(option["parameter_size_b"], int | float) for option in options)
+    assert all("thinking_supported" in option for option in options)
+    assert all("thinking_enabled" in option for option in options)
+    assert tiny_aya["thinking_supported"] is False
+    assert tiny_aya["thinking_enabled"] is False
 
 
 def test_premade_map_options_include_preview_metadata():
@@ -293,6 +298,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert seen["settings"].deliberation.temperature == preset.thinking_temperature
     assert seen["settings"].deliberation.top_p == preset.thinking_top_p
     assert seen["settings"].deliberation.top_k == preset.thinking_top_k
+    assert seen["settings"].deliberation_enable_thinking is True
     assert seen["settings"].action.temperature == 0.0
     assert "objective" not in seen
     assert "Still searching with 99 sanity remaining." in response.text
@@ -305,6 +311,66 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert '"inventory_details": [{"id": "brass-key"' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
+
+
+def test_escape_stream_applies_deliberation_query_overrides(monkeypatch):
+    seen = {}
+    preset_id = "gemma-4-12b-it"
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: object())
+    monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
+    client = TestClient(create_app())
+
+    response = client.get(
+        "/escape-stream",
+        params={
+            "model_preset": preset_id,
+            "map_id": "key-door-room",
+            "deliberation_enable_thinking": "false",
+            "deliberation_temperature": "0.35",
+        },
+    )
+
+    assert response.status_code == 200
+    assert seen["settings"].deliberation_enable_thinking is False
+    assert seen["settings"].deliberation.temperature == 0.35
+    assert seen["settings"].action.temperature == 0.0
+
+
+def test_escape_stream_rejects_deliberation_temperature_above_slider_range():
+    client = TestClient(create_app())
+
+    response = client.get(
+        "/escape-stream",
+        params={
+            "model_preset": "gemma-4-12b-it",
+            "map_id": "key-door-room",
+            "deliberation_temperature": "1.5",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_escape_stream_keeps_thinking_disabled_for_unsupported_model(monkeypatch):
+    seen = {}
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: object())
+    monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
+    client = TestClient(create_app())
+
+    response = client.get(
+        "/escape-stream",
+        params={
+            "model_preset": "tiny-aya-global",
+            "map_id": "key-door-room",
+            "deliberation_enable_thinking": "true",
+        },
+    )
+
+    assert response.status_code == 200
+    assert seen["settings"].deliberation_enable_thinking is False
+    assert seen["settings"].deliberation.temperature == MODEL_PRESETS["tiny-aya-global"].thinking_temperature
 
 
 def test_escape_stream_rejects_unknown_model_preset():

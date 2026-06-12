@@ -232,6 +232,10 @@ async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sess
     session_id: sessionId,
     startup_delay_ms: String(startupDelay),
   });
+  if (selectedModel.deliberation_settings) {
+    params.set("deliberation_enable_thinking", String(selectedModel.deliberation_settings.enable_thinking));
+    params.set("deliberation_temperature", String(selectedModel.deliberation_settings.temperature));
+  }
   if (selectedMap.source === "custom") {
     params.set("custom_map_token", await customMapToken(selectedMap));
     return params;

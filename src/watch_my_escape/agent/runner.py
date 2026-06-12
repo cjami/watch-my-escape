@@ -27,6 +27,7 @@ DEFAULT_ACTION_TEMPERATURE = 0.0
 class ThinkActSettings:
     """Generation settings for the two phases of an agent turn."""
 
+    deliberation_enable_thinking: bool = True
     deliberation: InferenceSettings = field(
         default_factory=lambda: InferenceSettings(
             max_tokens=DEFAULT_DELIBERATION_MAX_TOKENS,
@@ -60,15 +61,25 @@ class ThinkActResult:
     action: BaseModel
 
 
-def think_act_settings_for_config(config: LlamaCppConfig) -> ThinkActSettings:
+def think_act_settings_for_config(
+    config: LlamaCppConfig,
+    *,
+    deliberation_enable_thinking: bool | None = None,
+    deliberation_temperature: float | None = None,
+) -> ThinkActSettings:
     """Return turn settings with model-preset thinking overrides."""
+    enable_thinking = _resolved_thinking_enabled(config, requested=deliberation_enable_thinking)
     return ThinkActSettings(
+        deliberation_enable_thinking=enable_thinking,
         deliberation=InferenceSettings(
             max_tokens=DEFAULT_DELIBERATION_MAX_TOKENS,
-            temperature=_first_configured(config.thinking_temperature, DEFAULT_DELIBERATION_TEMPERATURE),
+            temperature=_first_configured(
+                deliberation_temperature,
+                _first_configured(config.thinking_temperature, DEFAULT_DELIBERATION_TEMPERATURE),
+            ),
             top_p=_first_configured(config.thinking_top_p, DEFAULT_DELIBERATION_TOP_P),
             top_k=config.thinking_top_k,
-        )
+        ),
     )
 
 
@@ -93,7 +104,7 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
             ),
             phase="deliberation",
             settings=turn.settings.deliberation,
-            enable_thinking=True,
+            enable_thinking=turn.settings.deliberation_enable_thinking,
         )
     )
     deliberation = deliberation_response.content.strip()
@@ -122,3 +133,9 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
 
 def _first_configured[T](override: T | None, fallback: T) -> T:
     return override if override is not None else fallback
+
+
+def _resolved_thinking_enabled(config: LlamaCppConfig, *, requested: bool | None) -> bool:
+    if not config.thinking_supported:
+        return False
+    return config.thinking_enabled if requested is None else requested

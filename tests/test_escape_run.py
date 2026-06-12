@@ -1,4 +1,5 @@
 from watch_my_escape.agent.escape_run import run_model_escape, run_model_escape_steps
+from watch_my_escape.agent.runner import ThinkActSettings
 from watch_my_escape.game.maps import GameMap
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
 
@@ -84,6 +85,21 @@ def test_run_model_escape_stops_when_sanity_reaches_zero():
     assert result.sanity == 0
     assert result.status == "Sanity reached 0 before the model escaped."
     assert len(provider.requests) == 2
+
+
+def test_run_model_escape_uses_configured_deliberation_thinking_flag():
+    provider = ScriptedProvider((f'{{"action":"pick_up","target":"brass-key","emotion":"{EMOTION_JSON}"}}',))
+
+    run_model_escape(
+        provider=provider,
+        starting_sanity=1,
+        settings=ThinkActSettings(deliberation_enable_thinking=False),
+    )
+
+    assert provider.requests[0].phase == "deliberation"
+    assert provider.requests[0].enable_thinking is False
+    assert provider.requests[1].phase == "action"
+    assert provider.requests[1].enable_thinking is False
 
 
 def test_run_model_escape_stops_when_no_actions_are_available():

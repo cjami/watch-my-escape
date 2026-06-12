@@ -19,8 +19,46 @@
         </div>
         <div class="model-readout">
           <p id="model-company" class="brand-mark"></p>
-          <h2 id="model-name"></h2>
-          <div id="model-stats" class="model-stats"></div>
+          <div class="model-title-anchor">
+            <h2 id="model-name"></h2>
+            <div id="model-advanced-settings" class="model-advanced-settings" hidden>
+              <div class="model-setting-row">
+                <div class="model-setting-copy">
+                  <span class="model-setting-label">Thinking</span>
+                </div>
+                <button id="model-thinking-toggle" type="button" class="model-toggle" aria-pressed="true">On</button>
+              </div>
+              <div class="model-setting-row model-temperature-row">
+                <span class="model-setting-label">Temperature</span>
+                <div class="model-temperature-stepper" role="group" aria-label="Temperature">
+                  <button
+                    id="model-temperature-down"
+                    type="button"
+                    class="model-stepper-button"
+                    aria-label="Decrease temperature"
+                  >&lsaquo;</button>
+                  <output id="model-temperature-value" class="model-setting-value">1.00</output>
+                  <button
+                    id="model-temperature-up"
+                    type="button"
+                    class="model-stepper-button"
+                    aria-label="Increase temperature"
+                  >&rsaquo;</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="model-stats-shell">
+            <div id="model-stats" class="model-stats"></div>
+            <button
+              id="model-settings-toggle"
+              type="button"
+              class="model-settings-button"
+              aria-label="Advanced settings for selected model"
+              aria-expanded="false"
+              aria-controls="model-advanced-settings"
+            >&#9881;</button>
+          </div>
           <p id="model-file" class="model-file"></p>
         </div>
         <button id="choose-model" type="button" class="primary-button model-choose-button">Choose Agent</button>

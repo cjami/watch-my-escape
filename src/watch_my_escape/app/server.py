@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass, replace
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Annotated, Any, Final, cast
 
 from fastapi import HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -27,7 +27,7 @@ from watch_my_escape.game.premade_maps import (
     list_premade_maps,
 )
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
-from watch_my_escape.llm.config import MODEL_PRESETS, ModelPresetError, config_for_model_preset
+from watch_my_escape.llm.config import MODEL_PRESETS, ModelPreset, ModelPresetError, config_for_model_preset
 from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceSettings
 
 if TYPE_CHECKING:
@@ -78,6 +78,18 @@ class ModelWarmupRequest(BaseModel):
 
     session_id: str = Field(min_length=1)
     model_preset: str = Field(min_length=1)
+
+
+class EscapeStreamRequest(BaseModel):
+    """Query parameters for a streaming escape run."""
+
+    model_preset: str = Field(min_length=1)
+    map_id: str | None = Field(default=None, min_length=1)
+    custom_map_token: str | None = Field(default=None, min_length=1)
+    session_id: str | None = Field(default=None, min_length=1)
+    startup_delay_ms: int = Field(default=0, ge=0, le=10_000)
+    deliberation_enable_thinking: bool | None = None
+    deliberation_temperature: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class WarmProviderStore:
@@ -183,25 +195,23 @@ def create_app() -> Server:
         return build_escape_run_response()
 
     @app.get("/escape-stream")
-    def escape_stream(
-        model_preset: str = Query(min_length=1),
-        map_id: str | None = Query(default=None, min_length=1),
-        custom_map_token: str | None = Query(default=None, min_length=1),
-        session_id: str | None = Query(default=None, min_length=1),
-        startup_delay_ms: int = Query(default=0, ge=0, le=10_000),
-    ) -> StreamingResponse:
+    def escape_stream(query: Annotated[EscapeStreamRequest, Query()]) -> StreamingResponse:
         try:
-            config = config_for_model_preset(model_preset)
-            game_map = _selected_stream_map(map_id=map_id, custom_map_token=custom_map_token)
-            provider = _stream_provider(config=config, model_preset=model_preset, session_id=session_id)
-            settings = think_act_settings_for_config(config)
+            config = config_for_model_preset(query.model_preset)
+            game_map = _selected_stream_map(map_id=query.map_id, custom_map_token=query.custom_map_token)
+            provider = _stream_provider(config=config, model_preset=query.model_preset, session_id=query.session_id)
+            settings = think_act_settings_for_config(
+                config,
+                deliberation_enable_thinking=query.deliberation_enable_thinking,
+                deliberation_temperature=query.deliberation_temperature,
+            )
         except (ModelPresetError, PremadeMapError, CustomMapTokenError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return StreamingResponse(
             _escape_event_stream(
                 provider=provider,
                 game_map=game_map,
-                startup_delay_ms=startup_delay_ms,
+                startup_delay_ms=query.startup_delay_ms,
                 settings=settings,
             ),
             media_type="text/event-stream",
@@ -312,23 +322,27 @@ def _stream_provider(*, config: LlamaCppConfig, model_preset: str, session_id: s
 
 def model_preset_options() -> tuple[dict[str, object], ...]:
     """Return JSON-safe preset selector metadata."""
-    return tuple(
-        {
-            "id": preset_id,
-            "display_name": preset.display_name,
-            "company": preset.company,
-            "brand_color": preset.brand_color,
-            "agent_icon": preset.agent_icon,
-            "parameter_size_b": preset.parameter_size_b,
-            "active_parameter_size_b": preset.active_parameter_size_b,
-            "repo_id": preset.repo_id,
-            "filename": preset.filename,
-            "thinking_temperature": preset.thinking_temperature,
-            "thinking_top_p": preset.thinking_top_p,
-            "thinking_top_k": preset.thinking_top_k,
-        }
-        for preset_id, preset in MODEL_PRESETS.items()
-    )
+    return tuple(_model_preset_option(preset_id, preset) for preset_id, preset in MODEL_PRESETS.items())
+
+
+def _model_preset_option(preset_id: str, preset: ModelPreset) -> dict[str, object]:
+    thinking_enabled = preset.thinking_enabled if preset.thinking_enabled is not None else preset.thinking_supported
+    return {
+        "id": preset_id,
+        "display_name": preset.display_name,
+        "company": preset.company,
+        "brand_color": preset.brand_color,
+        "agent_icon": preset.agent_icon,
+        "parameter_size_b": preset.parameter_size_b,
+        "active_parameter_size_b": preset.active_parameter_size_b,
+        "repo_id": preset.repo_id,
+        "filename": preset.filename,
+        "thinking_supported": preset.thinking_supported,
+        "thinking_enabled": thinking_enabled,
+        "thinking_temperature": preset.thinking_temperature,
+        "thinking_top_p": preset.thinking_top_p,
+        "thinking_top_k": preset.thinking_top_k,
+    }
 
 
 def premade_map_options() -> tuple[dict[str, str], ...]:

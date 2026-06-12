@@ -393,7 +393,7 @@ def _run_escape_turn(
             ),
             phase="deliberation",
             settings=resolved_settings.deliberation,
-            enable_thinking=True,
+            enable_thinking=resolved_settings.deliberation_enable_thinking,
         )
     )
     deliberation = deliberation_response.content.strip()

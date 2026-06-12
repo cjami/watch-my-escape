@@ -432,11 +432,26 @@
     text-transform: uppercase;
   }
 
+  .model-title-anchor {
+    position: relative;
+    z-index: 6;
+    display: grid;
+    width: 100%;
+    justify-items: center;
+  }
+
+  .model-stats-shell {
+    --model-stat-gap: 0.55rem;
+    position: relative;
+    z-index: 5;
+    width: min(100%, 34rem);
+  }
+
   .model-stats {
     display: grid;
-    width: min(100%, 34rem);
+    width: 100%;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.55rem;
+    gap: var(--model-stat-gap);
   }
 
   .model-stat {
@@ -480,6 +495,221 @@
     line-height: 1.35;
   }
 
+  .model-settings-button {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + var(--model-stat-gap, 0.55rem));
+    z-index: 2;
+    display: grid;
+    width: 1.75rem;
+    aspect-ratio: 1;
+    place-items: center;
+    padding: 0;
+    border: 2px solid rgb(89 228 255 / 28%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 5%) 50%, rgb(0 0 0 / 8%) 50%),
+      rgb(5 7 13 / 78%);
+    background-size:
+      100% 4px,
+      auto;
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 76%),
+      0 3px 0 rgb(0 0 0 / 58%);
+    color: #fff7c2;
+    font-size: 0.88rem;
+    line-height: 1;
+    transform: translateY(-50%);
+    transition:
+      border-color 120ms steps(2),
+      color 120ms steps(2),
+      transform 120ms steps(2);
+  }
+
+  .model-settings-button:hover,
+  .model-settings-button:focus-visible,
+  .model-settings-button.is-open {
+    border-color: var(--arcade-amber);
+    color: var(--arcade-amber);
+    transform: translateY(calc(-50% - 2px));
+  }
+
+  .model-advanced-settings {
+    position: absolute;
+    top: calc(100% - 0.12rem);
+    left: 50%;
+    z-index: 20;
+    display: grid;
+    width: max-content;
+    max-width: min(24rem, 88vw);
+    grid-template-columns: 1fr;
+    align-items: center;
+    justify-content: start;
+    gap: 0.58rem;
+    padding: 0.7rem;
+    border: 2px solid rgb(89 228 255 / 42%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 6%) 50%, rgb(0 0 0 / 10%) 50%),
+      linear-gradient(180deg, #101928, #05070d 72%, #020204);
+    background-size:
+      100% 4px,
+      auto;
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 78%),
+      inset 0 0 24px color-mix(in srgb, var(--model-color, var(--arcade-amber)), transparent 88%),
+      0 5px 0 rgb(0 0 0 / 70%),
+      0 18px 34px rgb(0 0 0 / 48%);
+    transform: translateX(-50%);
+  }
+
+  .model-advanced-settings[hidden] {
+    display: none;
+  }
+
+  .model-setting-row {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 6.8rem auto;
+    align-items: center;
+    gap: 0.52rem;
+  }
+
+  .model-setting-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+  }
+
+  .model-setting-label,
+  .model-setting-value {
+    overflow-wrap: anywhere;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .model-setting-label {
+    color: var(--arcade-cyan);
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .model-setting-value {
+    color: #fff7c2;
+    font-size: 0.82rem;
+  }
+
+  .model-toggle {
+    min-width: 3.4rem;
+    border: 2px solid rgb(248 255 232 / 14%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 5%) 50%, rgb(0 0 0 / 9%) 50%),
+      rgb(4 7 12 / 86%);
+    background-size:
+      100% 4px,
+      auto;
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 78%),
+      0 3px 0 rgb(0 0 0 / 66%);
+    color: #d4d7c6;
+    padding: 0.5rem 0.58rem;
+    font-size: 0.74rem;
+    line-height: 1;
+    transition:
+      border-color 120ms steps(2),
+      color 120ms steps(2),
+      transform 120ms steps(2);
+  }
+
+  .model-toggle.is-on {
+    border-color: rgb(113 247 177 / 48%);
+    color: #d9ffe9;
+    box-shadow:
+      inset 0 0 18px rgb(113 247 177 / 12%),
+      0 3px 0 rgb(0 0 0 / 66%);
+  }
+
+  .model-toggle:hover:not(:disabled),
+  .model-toggle:focus-visible:not(:disabled) {
+    border-color: var(--arcade-amber);
+    color: #fff7c2;
+    transform: translateY(-2px);
+  }
+
+  .model-toggle:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.45);
+    opacity: 0.54;
+  }
+
+  .model-temperature-row {
+    grid-template-columns: 6.8rem auto;
+  }
+
+  .model-temperature-stepper {
+    display: grid;
+    grid-template-columns: 2rem 3.4rem 2rem;
+    align-items: center;
+    gap: 0.28rem;
+  }
+
+  .model-stepper-button {
+    display: grid;
+    width: 2rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 2px solid rgb(255 212 71 / 34%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 5%) 50%, rgb(0 0 0 / 9%) 50%),
+      rgb(4 7 12 / 90%);
+    background-size:
+      100% 4px,
+      auto;
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 78%),
+      0 3px 0 rgb(0 0 0 / 66%);
+    color: #fff7c2;
+    padding: 0;
+    font-size: 1.18rem;
+    line-height: 1;
+    transition:
+      border-color 120ms steps(2),
+      color 120ms steps(2),
+      transform 120ms steps(2);
+  }
+
+  .model-stepper-button:hover,
+  .model-stepper-button:focus-visible {
+    border-color: var(--arcade-amber);
+    color: var(--arcade-amber);
+    transform: translateY(-2px);
+  }
+
+  .model-stepper-button:disabled {
+    cursor: not-allowed;
+    color: rgb(248 255 232 / 28%);
+    filter: grayscale(0.5);
+    opacity: 0.58;
+    transform: none;
+  }
+
+  .model-temperature-stepper .model-setting-value {
+    display: grid;
+    min-height: 2rem;
+    place-items: center;
+    border: 2px solid rgb(248 255 232 / 14%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 5%) 50%, rgb(0 0 0 / 9%) 50%),
+      rgb(2 2 4 / 86%);
+    background-size:
+      100% 4px,
+      auto;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 78%);
+  }
+
   .model-choose-button {
     position: relative;
     z-index: 1;
@@ -499,6 +729,15 @@
 
     .model-stats {
       grid-template-columns: 1fr;
+    }
+
+    .model-settings-button {
+      right: 0.45rem;
+      left: auto;
+    }
+
+    .model-advanced-settings {
+      max-width: min(22rem, 86vw);
     }
   }
 
