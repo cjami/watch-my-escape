@@ -277,25 +277,28 @@ def app_data() -> dict[str, object]:
 
 def warm_model_preset(*, session_id: str, model_preset: str) -> dict[str, object]:
     """Run a tiny completion to prepare a model for the first game turn."""
-    if warm_provider_store.get(session_id=session_id, model_preset=model_preset) is not None:
-        return {"warmed": True}
-
     try:
-        provider = create_provider(config_for_model_preset(model_preset))
-        provider.complete(
-            InferenceRequest(
-                messages=(ChatMessage(role="user", content="Reply with OK."),),
-                settings=InferenceSettings(max_tokens=8, temperature=0.0),
-                enable_thinking=False,
-            )
-        )
+        provider = warm_provider_store.get(session_id=session_id, model_preset=model_preset)
+        if provider is None:
+            provider = create_provider(config_for_model_preset(model_preset))
+            warm_provider_store.add(session_id=session_id, model_preset=model_preset, provider=provider)
+        _run_warmup_completion(provider)
     except ModelPresetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except LlmConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    warm_provider_store.add(session_id=session_id, model_preset=model_preset, provider=provider)
     return {"warmed": True}
+
+
+def _run_warmup_completion(provider: InferenceProvider) -> None:
+    provider.complete(
+        InferenceRequest(
+            messages=(ChatMessage(role="user", content="Reply with OK."),),
+            settings=InferenceSettings(max_tokens=8, temperature=0.0),
+            enable_thinking=False,
+        )
+    )
 
 
 def _stream_provider(*, config: LlamaCppConfig, model_preset: str, session_id: str | None) -> InferenceProvider:

@@ -97,7 +97,7 @@ def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
 def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
     preset_id = next(iter(MODEL_PRESETS))
     session_id = "warmup-existing-provider"
-    provider = _NoopProvider()
+    provider = _RecordingProvider()
     server.warm_provider_store.add(session_id=session_id, model_preset=preset_id, provider=provider)
 
     monkeypatch.setattr(server, "create_provider", lambda _config: None)
@@ -107,6 +107,9 @@ def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {"warmed": True}
+    assert provider.requests
+    assert provider.requests[0].enable_thinking is False
+    assert provider.requests[0].settings.max_tokens == 8
     assert server.warm_provider_store.get(session_id=session_id, model_preset=preset_id) is provider
 
 
@@ -468,6 +471,15 @@ def _fake_stream_steps(seen, **kwargs):
 class _NoopProvider:
     def complete(self, request):
         del request
+        return InferenceResponse(content="OK")
+
+
+class _RecordingProvider:
+    def __init__(self):
+        self.requests = []
+
+    def complete(self, request):
+        self.requests.append(request)
         return InferenceResponse(content="OK")
 
 
