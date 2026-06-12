@@ -251,10 +251,10 @@
     width: 0%;
     height: 100%;
     background:
-      linear-gradient(90deg, #59e4ff, #fff7c2 62%, #ffd447);
+      linear-gradient(90deg, #8aa38f, #c4cbc1);
     box-shadow:
-      0 0 18px rgb(255 212 71 / 34%),
-      0 0 28px rgb(89 228 255 / 24%);
+      0 0 14px rgb(196 203 193 / 24%),
+      0 0 24px rgb(89 228 255 / 10%);
     transition: width 180ms linear;
   }
 }

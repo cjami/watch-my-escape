@@ -2,7 +2,16 @@ import { formatValidationError } from "./shared/strings.js";
 
 const escapeCelebrationDelayMs = 2000;
 
-export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRenderer, pixelSprite, showScreen }) {
+export function createGameRunner({
+  clearWarmupToken,
+  dom,
+  getSelectedMap,
+  getSelectedModel,
+  getWarmupToken,
+  mapRenderer,
+  pixelSprite,
+  showScreen,
+}) {
   let activeStream = null;
   let gameIntroTimer = null;
   let escapeCelebrationTimer = null;
@@ -30,10 +39,11 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     dom.transcriptOutput.textContent = "Waiting for the first turn...";
     transcriptScroll.scrollToBottom();
     const startupDelay = gameStartupDelay();
+    const warmupToken = getWarmupToken();
 
     let params;
     try {
-      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay);
+      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay, warmupToken);
     } catch (error) {
       if (currentRunEpoch !== runEpoch) {
         return;
@@ -47,6 +57,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
     if (currentRunEpoch !== runEpoch) {
       return;
     }
+    clearWarmupToken();
     void playGameIntro();
     activeStream = new EventSource(`/escape-stream?${params}`);
     activeStream.onmessage = (event) => {
@@ -87,6 +98,7 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
 
   function restartSetup() {
     runEpoch += 1;
+    clearWarmupToken();
     stopStream();
     resetGame();
     showScreen("models");
@@ -218,11 +230,14 @@ export function createGameRunner({ dom, getSelectedMap, getSelectedModel, mapRen
   return { init, resetGame, restartSetup, runEscape, stopStream };
 }
 
-async function escapeStreamParams(selectedModel, selectedMap, startupDelay) {
+async function escapeStreamParams(selectedModel, selectedMap, startupDelay, warmupToken) {
   const params = new URLSearchParams({
     model_preset: selectedModel.id,
     startup_delay_ms: String(startupDelay),
   });
+  if (warmupToken) {
+    params.set("warmup_token", warmupToken);
+  }
   if (selectedMap.source === "custom") {
     params.set("custom_map_token", await customMapToken(selectedMap));
     return params;

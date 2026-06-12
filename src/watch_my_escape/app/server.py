@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from watch_my_escape.game.maps import GameMap
     from watch_my_escape.game.premade_maps import PremadeMap
     from watch_my_escape.llm.client import InferenceProvider
+    from watch_my_escape.llm.config import LlamaCppConfig
 
 PACKAGE_DIR: Final = Path(__file__).resolve().parents[1]
 PROJECT_DIR: Final = PACKAGE_DIR.parents[1]
@@ -47,6 +48,7 @@ GENERATED_STATIC_DIR: Final = PROJECT_DIR / "build" / "web" / "static"
 TEMPLATES_DIR: Final = WEB_DIR / "templates"
 templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
 CUSTOM_MAP_TOKEN_TTL_SECONDS: Final = 15 * 60
+WARM_PROVIDER_TOKEN_TTL_SECONDS: Final = 5 * 60
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +56,15 @@ class CustomMapRun:
     """A validated custom map available to a pending stream."""
 
     game_map: GameMap
+    expires_at: float
+
+
+@dataclass(frozen=True, slots=True)
+class WarmProviderRun:
+    """A warmed model provider available to the next matching game stream."""
+
+    model_preset: str
+    provider: InferenceProvider
     expires_at: float
 
 
@@ -65,6 +76,43 @@ class ModelWarmupRequest(BaseModel):
     """Request to prepare a model before the game screen appears."""
 
     model_preset: str
+
+
+class WarmProviderStore:
+    """Short-lived in-memory storage for warmed model providers."""
+
+    def __init__(self, *, ttl_seconds: int = WARM_PROVIDER_TOKEN_TTL_SECONDS) -> None:
+        self._ttl_seconds = ttl_seconds
+        self._runs: dict[str, WarmProviderRun] = {}
+        self._lock = Lock()
+
+    def add(self, *, model_preset: str, provider: InferenceProvider) -> str:
+        """Store a warmed provider and return its opaque warmup token."""
+        self._prune_expired()
+        token = secrets.token_urlsafe(32)
+        with self._lock:
+            self._runs[token] = WarmProviderRun(
+                model_preset=model_preset,
+                provider=provider,
+                expires_at=time.monotonic() + self._ttl_seconds,
+            )
+        return token
+
+    def claim(self, *, token: str, model_preset: str) -> InferenceProvider | None:
+        """Return and remove a warmed provider if it is fresh and matches the preset."""
+        self._prune_expired()
+        with self._lock:
+            run = self._runs.pop(token, None)
+        if run is None or run.expires_at <= time.monotonic() or run.model_preset != model_preset:
+            return None
+        return run.provider
+
+    def _prune_expired(self) -> None:
+        now = time.monotonic()
+        with self._lock:
+            expired_tokens = [token for token, run in self._runs.items() if run.expires_at <= now]
+            for token in expired_tokens:
+                del self._runs[token]
 
 
 class CustomMapRunStore:
@@ -106,6 +154,7 @@ class CustomMapRunStore:
 
 
 custom_map_run_store: Final = CustomMapRunStore()
+warm_provider_store: Final = WarmProviderStore()
 
 
 def create_app() -> Server:
@@ -133,12 +182,13 @@ def create_app() -> Server:
         model_preset: str = Query(min_length=1),
         map_id: str | None = Query(default=None, min_length=1),
         custom_map_token: str | None = Query(default=None, min_length=1),
+        warmup_token: str | None = Query(default=None, min_length=1),
         startup_delay_ms: int = Query(default=0, ge=0, le=10_000),
     ) -> StreamingResponse:
         try:
             config = config_for_model_preset(model_preset)
             game_map = _selected_stream_map(map_id=map_id, custom_map_token=custom_map_token)
-            provider = create_provider(config)
+            provider = _stream_provider(config=config, model_preset=model_preset, warmup_token=warmup_token)
             settings = think_act_settings_for_config(config)
         except (ModelPresetError, PremadeMapError, CustomMapTokenError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -169,7 +219,7 @@ def create_app() -> Server:
         return document.model_dump(mode="json")
 
     @app.post("/models/warmup")
-    def warmup_model(request: ModelWarmupRequest) -> dict[str, bool]:
+    def warmup_model(request: ModelWarmupRequest) -> dict[str, object]:
         return warm_model_preset(request.model_preset)
 
     return app
@@ -217,22 +267,11 @@ def app_data() -> dict[str, object]:
     return {
         "models": model_preset_options(),
         "maps": premade_map_options(),
-        "runtime": {
-            "model_warmup_enabled": model_warmup_enabled(),
-        },
     }
 
 
-def model_warmup_enabled() -> bool:
-    """Return whether the browser should warm the selected model before play."""
-    return True
-
-
-def warm_model_preset(model_preset: str) -> dict[str, bool]:
+def warm_model_preset(model_preset: str) -> dict[str, object]:
     """Run a tiny completion to prepare a model for the first game turn."""
-    if not model_warmup_enabled():
-        return {"enabled": False, "warmed": False}
-
     try:
         provider = create_provider(config_for_model_preset(model_preset))
         provider.complete(
@@ -247,7 +286,15 @@ def warm_model_preset(model_preset: str) -> dict[str, bool]:
     except LlmConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    return {"enabled": True, "warmed": True}
+    return {"warmed": True, "warmup_token": warm_provider_store.add(model_preset=model_preset, provider=provider)}
+
+
+def _stream_provider(*, config: LlamaCppConfig, model_preset: str, warmup_token: str | None) -> InferenceProvider:
+    if warmup_token is not None:
+        provider = warm_provider_store.claim(token=warmup_token, model_preset=model_preset)
+        if provider is not None:
+            return provider
+    return create_provider(config)
 
 
 def model_preset_options() -> tuple[dict[str, object], ...]:

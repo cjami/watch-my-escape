@@ -1,21 +1,16 @@
-const progressTickMs = 180;
+const progressTickMs = 360;
 const progressFloor = 7;
 const progressCeiling = 92;
 
-export function createModelWarmup({ dom, enabled, getSelectedModel, showScreen }) {
+export function createModelWarmup({ dom, getSelectedModel, showScreen }) {
   let warmupEpoch = 0;
   let progressTimer = null;
   let abortController = null;
 
   async function runBeforeGame(onComplete) {
-    if (!enabled) {
-      onComplete();
-      return;
-    }
-
     const model = getSelectedModel();
     if (!model) {
-      onComplete();
+      onComplete(null);
       return;
     }
 
@@ -25,8 +20,9 @@ export function createModelWarmup({ dom, enabled, getSelectedModel, showScreen }
     showScreen("warmup");
     startProgress(model);
 
+    let warmupToken = null;
     try {
-      await requestWarmup(model.id, abortController.signal);
+      warmupToken = await requestWarmup(model.id, abortController.signal);
       if (currentEpoch !== warmupEpoch) {
         return;
       }
@@ -40,7 +36,7 @@ export function createModelWarmup({ dom, enabled, getSelectedModel, showScreen }
 
     window.setTimeout(() => {
       if (currentEpoch === warmupEpoch) {
-        onComplete();
+        onComplete(warmupToken);
       }
     }, 450);
   }
@@ -99,4 +95,6 @@ async function requestWarmup(modelPreset, signal) {
   if (!response.ok) {
     throw new Error("Model warmup failed.");
   }
+  const payload = await response.json();
+  return payload.warmup_token ? String(payload.warmup_token) : null;
 }

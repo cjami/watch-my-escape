@@ -7,11 +7,11 @@ from watch_my_escape.app.server import (
     GENERATED_STATIC_DIR,
     SOURCE_STATIC_DIR,
     TEMPLATES_DIR,
+    WarmProviderStore,
     app_data,
     build_escape_run_response,
     create_app,
     model_preset_options,
-    model_warmup_enabled,
     premade_map_options,
 )
 from watch_my_escape.llm.client import LlmConfigurationError
@@ -64,9 +64,8 @@ def test_homepage_renders_without_request_query_parameter():
     assert next(iter(MODEL_PRESETS)) in response.text
 
 
-def test_app_data_enables_model_warmup():
-    assert model_warmup_enabled() is True
-    assert app_data()["runtime"] == {"model_warmup_enabled": True}
+def test_app_data_includes_browser_options():
+    assert set(app_data()) == {"models", "maps"}
 
 
 def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
@@ -78,17 +77,85 @@ def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
             seen["request"] = request
             return InferenceResponse(content="OK")
 
-    monkeypatch.setattr(server, "create_provider", lambda _config: FakeProvider())
+    provider = FakeProvider()
+    monkeypatch.setattr(server, "create_provider", lambda _config: provider)
     client = TestClient(create_app())
 
     response = client.post("/models/warmup", json={"model_preset": preset_id})
+    payload = response.json()
 
     assert response.status_code == 200
-    assert response.json() == {"enabled": True, "warmed": True}
+    assert payload["warmed"] is True
+    assert isinstance(payload["warmup_token"], str)
     assert seen["request"].messages[0].content == "Reply with OK."
     assert seen["request"].settings.max_tokens == 8
     assert seen["request"].settings.temperature == 0.0
     assert seen["request"].enable_thinking is False
+    assert server.warm_provider_store.claim(token=payload["warmup_token"], model_preset=preset_id) is provider
+
+
+def test_escape_stream_claims_warmed_provider(monkeypatch):
+    seen = {}
+    preset_id = next(iter(MODEL_PRESETS))
+    provider = _NoopProvider()
+    warmup_token = server.warm_provider_store.add(model_preset=preset_id, provider=provider)
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: None)
+    monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+
+    assert response.status_code == 200
+    assert seen["provider"] is provider
+
+
+def test_escape_stream_reuses_warmup_token_only_once(monkeypatch):
+    seen_providers = []
+    preset_id = next(iter(MODEL_PRESETS))
+    warmed_provider = _NoopProvider()
+    fallback_provider = _NoopProvider()
+    warmup_token = server.warm_provider_store.add(model_preset=preset_id, provider=warmed_provider)
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: fallback_provider)
+    monkeypatch.setattr(
+        server,
+        "run_model_escape_steps",
+        lambda **kwargs: _fake_stream_steps({"providers": seen_providers}, **kwargs),
+    )
+    client = TestClient(create_app())
+
+    first = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+    second = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert seen_providers == [warmed_provider, fallback_provider]
+
+
+def test_escape_stream_ignores_warmup_token_for_different_preset(monkeypatch):
+    seen = {}
+    preset_id, other_preset_id = tuple(MODEL_PRESETS)[:2]
+    fallback_provider = _NoopProvider()
+    warmup_token = server.warm_provider_store.add(model_preset=other_preset_id, provider=_NoopProvider())
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: fallback_provider)
+    monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+
+    assert response.status_code == 200
+    assert seen["provider"] is fallback_provider
+    assert server.warm_provider_store.claim(token=warmup_token, model_preset=other_preset_id) is None
+
+
+def test_warm_provider_store_drops_expired_tokens():
+    provider = _NoopProvider()
+    store = WarmProviderStore(ttl_seconds=0)
+    token = store.add(model_preset="example", provider=provider)
+
+    assert store.claim(token=token, model_preset="example") is None
 
 
 def test_model_preset_options_include_selector_metadata():
@@ -354,6 +421,34 @@ def test_map_validation_rejects_objective_field():
 
     assert response.status_code == 422
     assert "objective" in response.text
+
+
+def _fake_stream_steps(seen, **kwargs):
+    if "providers" in seen:
+        seen["providers"].append(kwargs["provider"])
+    else:
+        seen.update(kwargs)
+    yield EscapeRunFrame(
+        escaped=False,
+        sanity=99,
+        position="(8, 8)",
+        visible_entities=(),
+        inventory=(),
+        visible_entity_details=(),
+        inventory_details=(),
+        map_view=((".",),),
+        map_color_view=((".",),),
+        visibility_view=((True,),),
+        transcript="Turn 1",
+        status="Still searching with 99 sanity remaining.",
+        action_label="wait",
+    )
+
+
+class _NoopProvider:
+    def complete(self, request):
+        del request
+        return InferenceResponse(content="OK")
 
 
 def _custom_map_document():

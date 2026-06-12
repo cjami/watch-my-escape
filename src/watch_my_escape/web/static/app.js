@@ -14,6 +14,7 @@ const dom = getDomRefs();
 const appState = {
   selectedMap: null,
   selectedModel: null,
+  warmupToken: null,
 };
 
 const sprites = createSpriteRenderer();
@@ -26,7 +27,6 @@ const mapRenderer = createMapRenderer({
 });
 const modelWarmup = createModelWarmup({
   dom,
-  enabled: Boolean(appData.runtime?.model_warmup_enabled),
   getSelectedModel: () => appState.selectedModel,
   showScreen: screens.showScreen,
 });
@@ -37,7 +37,9 @@ const mapSelector = createMapSelector({
   premadeMaps: appData.maps,
   onSelected: (gameMap) => {
     appState.selectedMap = gameMap;
-    modelWarmup.runBeforeGame(() => {
+    appState.warmupToken = null;
+    modelWarmup.runBeforeGame((warmupToken) => {
+      appState.warmupToken = warmupToken;
       gameRunner.resetGame();
       screens.showScreen("game");
     });
@@ -59,6 +61,10 @@ const gameRunner = createGameRunner({
   dom,
   getSelectedMap: () => appState.selectedMap,
   getSelectedModel: () => appState.selectedModel,
+  getWarmupToken: () => appState.warmupToken,
+  clearWarmupToken: () => {
+    appState.warmupToken = null;
+  },
   mapRenderer,
   pixelSprite: sprites.pixelSprite,
   showScreen: screens.showScreen,
