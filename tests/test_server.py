@@ -7,13 +7,16 @@ from watch_my_escape.app.server import (
     GENERATED_STATIC_DIR,
     SOURCE_STATIC_DIR,
     TEMPLATES_DIR,
+    app_data,
     build_escape_run_response,
     create_app,
     model_preset_options,
+    model_warmup_enabled,
     premade_map_options,
 )
 from watch_my_escape.llm.client import LlmConfigurationError
 from watch_my_escape.llm.config import MODEL_PRESETS
+from watch_my_escape.llm.models import InferenceResponse
 
 
 def test_create_app_returns_gradio_server():
@@ -46,6 +49,7 @@ def test_homepage_renders_without_request_query_parameter():
     assert "Select Model" in response.text
     assert 'id="model-menu"' in response.text
     assert 'aria-label="Premade and custom maps"' in response.text
+    assert 'id="warmup-screen"' in response.text
     assert 'id="saved-map-list"' in response.text
     assert 'id="saved-map-preview"' in response.text
     assert 'id="save-map"' in response.text
@@ -58,6 +62,33 @@ def test_homepage_renders_without_request_query_parameter():
     assert "Main Menu" in response.text
     assert "key-door-room" in response.text
     assert next(iter(MODEL_PRESETS)) in response.text
+
+
+def test_app_data_enables_model_warmup():
+    assert model_warmup_enabled() is True
+    assert app_data()["runtime"] == {"model_warmup_enabled": True}
+
+
+def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
+    seen = {}
+    preset_id = next(iter(MODEL_PRESETS))
+
+    class FakeProvider:
+        def complete(self, request):
+            seen["request"] = request
+            return InferenceResponse(content="OK")
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: FakeProvider())
+    client = TestClient(create_app())
+
+    response = client.post("/models/warmup", json={"model_preset": preset_id})
+
+    assert response.status_code == 200
+    assert response.json() == {"enabled": True, "warmed": True}
+    assert seen["request"].messages[0].content == "Reply with OK."
+    assert seen["request"].settings.max_tokens == 8
+    assert seen["request"].settings.temperature == 0.0
+    assert seen["request"].enable_thinking is False
 
 
 def test_model_preset_options_include_selector_metadata():

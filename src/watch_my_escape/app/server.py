@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from gradio import Server
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, run_model_escape, run_model_escape_steps
 from watch_my_escape.agent.runner import ThinkActSettings, think_act_settings_for_config
@@ -28,6 +28,7 @@ from watch_my_escape.game.premade_maps import (
 )
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, ModelPresetError, config_for_model_preset
+from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceSettings
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -58,6 +59,12 @@ class CustomMapRun:
 
 class CustomMapTokenError(ValueError):
     """Raised when a custom map run token cannot be used."""
+
+
+class ModelWarmupRequest(BaseModel):
+    """Request to prepare a model before the game screen appears."""
+
+    model_preset: str
 
 
 class CustomMapRunStore:
@@ -113,8 +120,7 @@ def create_app() -> Server:
             name="index.html.jinja",
             context={
                 "app_name": "Watch My Escape",
-                "model_presets": model_preset_options(),
-                "premade_maps": premade_map_options(),
+                "app_data": app_data(),
             },
         )
 
@@ -162,6 +168,10 @@ def create_app() -> Server:
             raise HTTPException(status_code=422, detail=exc.errors()) from exc
         return document.model_dump(mode="json")
 
+    @app.post("/models/warmup")
+    def warmup_model(request: ModelWarmupRequest) -> dict[str, bool]:
+        return warm_model_preset(request.model_preset)
+
     return app
 
 
@@ -200,6 +210,44 @@ def build_escape_run_response() -> dict[str, Any]:
         "visibility": _format_visibility(result.visibility_view),
         "transcript": result.transcript or "No turns were run.",
     }
+
+
+def app_data() -> dict[str, object]:
+    """Return JSON-safe application data for the browser."""
+    return {
+        "models": model_preset_options(),
+        "maps": premade_map_options(),
+        "runtime": {
+            "model_warmup_enabled": model_warmup_enabled(),
+        },
+    }
+
+
+def model_warmup_enabled() -> bool:
+    """Return whether the browser should warm the selected model before play."""
+    return True
+
+
+def warm_model_preset(model_preset: str) -> dict[str, bool]:
+    """Run a tiny completion to prepare a model for the first game turn."""
+    if not model_warmup_enabled():
+        return {"enabled": False, "warmed": False}
+
+    try:
+        provider = create_provider(config_for_model_preset(model_preset))
+        provider.complete(
+            InferenceRequest(
+                messages=(ChatMessage(role="user", content="Reply with OK."),),
+                settings=InferenceSettings(max_tokens=8, temperature=0.0),
+                enable_thinking=False,
+            )
+        )
+    except ModelPresetError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except LlmConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {"enabled": True, "warmed": True}
 
 
 def model_preset_options() -> tuple[dict[str, object], ...]:

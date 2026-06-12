@@ -6,7 +6,7 @@
     <title>{{ app_name }}</title>
     <link rel="stylesheet" href="/static/styles.css" />
     <script id="app-data" type="application/json">
-      {{ {"models": model_presets, "maps": premade_maps} | tojson }}
+      {{ app_data | tojson }}
     </script>
     <script type="module" src="/static/app.js"></script>
   </head>
@@ -16,6 +16,7 @@
       {% include "screens/_menu.html.jinja" %}
       {% include "screens/_model_select.html.jinja" %}
       {% include "screens/_map_select.html.jinja" %}
+      {% include "screens/_warmup.html.jinja" %}
       {% include "screens/_game.html.jinja" %}
       {% include "screens/_editor.html.jinja" %}
     </main>

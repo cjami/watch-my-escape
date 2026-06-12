@@ -4,6 +4,7 @@ import { createEditor } from "./app/editor/controller.js";
 import { createGameRunner } from "./app/game-runner.js";
 import { createMapRenderer } from "./app/map-renderer.js";
 import { createMapSelector } from "./app/maps.js";
+import { createModelWarmup } from "./app/model-warmup.js";
 import { createModelSelector } from "./app/models.js";
 import { createScreenController } from "./app/screens.js";
 import { createSpriteRenderer } from "./app/shared/sprites.js";
@@ -23,6 +24,12 @@ const mapRenderer = createMapRenderer({
   getSelectedModel: () => appState.selectedModel,
   pixelSprite: sprites.pixelSprite,
 });
+const modelWarmup = createModelWarmup({
+  dom,
+  enabled: Boolean(appData.runtime?.model_warmup_enabled),
+  getSelectedModel: () => appState.selectedModel,
+  showScreen: screens.showScreen,
+});
 const mapSelector = createMapSelector({
   customMapStore,
   dom,
@@ -30,7 +37,10 @@ const mapSelector = createMapSelector({
   premadeMaps: appData.maps,
   onSelected: (gameMap) => {
     appState.selectedMap = gameMap;
-    screens.showScreen("game");
+    modelWarmup.runBeforeGame(() => {
+      gameRunner.resetGame();
+      screens.showScreen("game");
+    });
   },
   pixelSprite: sprites.pixelSprite,
 });
@@ -130,6 +140,11 @@ function handleBackAction() {
   }
   if (screens.isScreenActive("maps")) {
     backToModelSelect();
+    return true;
+  }
+  if (screens.isScreenActive("warmup")) {
+    modelWarmup.cancel();
+    screens.showScreen("maps");
     return true;
   }
   if (screens.isScreenActive("game")) {
