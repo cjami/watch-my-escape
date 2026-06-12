@@ -517,6 +517,21 @@
                   "text": "the dog glares at you. no toy time now."
                 }
               ]
+            },
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "dog looks hungry."
+                }
+              ]
             }
           ]
         },
@@ -793,6 +808,26 @@
                 {
                   "type": "add_inventory",
                   "entity_id": "snack"
+                }
+              ]
+            },
+            {
+              "trigger": {
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
+              },
+              "conditions": [
+                {
+                  "entity_id": "fridge",
+                  "state": "open"
+                }
+              ],
+              "effects": [
+                {
+                  "type": "message",
+                  "text": "there are snacks for you to pick up."
                 }
               ]
             }
