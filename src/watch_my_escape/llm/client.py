@@ -118,6 +118,7 @@ class EmbeddedLlamaCppProvider:
             "model_path": str(self._model_path),
             "n_ctx": self._config.context_tokens,
             "n_gpu_layers": self._config.gpu_layers,
+            "seed": self._config.seed,
             "verbose": False,
         }
         llama_kwargs["flash_attn"] = self._resolve_flash_attn(llama_module)
@@ -159,6 +160,7 @@ class EmbeddedLlamaCppProvider:
         max_tokens = request.settings.max_tokens if request.settings.max_tokens is not None else self._config.max_tokens
         return {
             "max_tokens": max_tokens,
+            "seed": self._config.seed,
             "temperature": _first_float(
                 request.settings.temperature,
                 self._config.temperature,

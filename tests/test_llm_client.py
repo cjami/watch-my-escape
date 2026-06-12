@@ -15,7 +15,7 @@ from watch_my_escape.llm.client import (
     ZeroGpuLlamaCppProvider,
     create_provider,
 )
-from watch_my_escape.llm.config import LlamaCppConfig, LlmProviderName
+from watch_my_escape.llm.config import DEFAULT_SEED, LlamaCppConfig, LlmProviderName
 from watch_my_escape.llm.models import ChatMessage, InferenceRequest, StructuredOutputSpec, ToolSpec
 
 
@@ -134,6 +134,32 @@ def test_embedded_provider_does_not_require_torch(monkeypatch, tmp_path):
     response = provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
 
     assert response.content == "ok"
+
+
+def test_embedded_provider_uses_fixed_seed_for_model_and_completion(monkeypatch, tmp_path):
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("not gguf", encoding="utf-8")
+
+    class FakeLlama:
+        init_kwargs: ClassVar[dict[str, object]] = {}
+        completion_kwargs: ClassVar[dict[str, object]] = {}
+
+        def __init__(self, **kwargs):
+            type(self).init_kwargs = kwargs
+
+        def create_chat_completion(self, **kwargs):
+            type(self).completion_kwargs = kwargs
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    fake_llama_cpp = ModuleType("llama_cpp")
+    fake_llama_cpp.__dict__["Llama"] = FakeLlama
+    monkeypatch.setitem(sys.modules, "llama_cpp", fake_llama_cpp)
+
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+    provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
+
+    assert FakeLlama.init_kwargs["seed"] == DEFAULT_SEED == 1
+    assert FakeLlama.completion_kwargs["seed"] == DEFAULT_SEED == 1
 
 
 def test_embedded_provider_reports_llama_cpp_load_error(monkeypatch, tmp_path):

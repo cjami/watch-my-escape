@@ -18,6 +18,7 @@ DEFAULT_MAX_TOKENS: Final = 256
 DEFAULT_TEMPERATURE: Final = 1.0
 DEFAULT_TOP_P: Final = 0.95
 DEFAULT_TOP_K: Final = 64
+DEFAULT_SEED: Final = 1
 DEFAULT_GPU_LAYERS: Final = -1
 DEFAULT_ZEROGPU_DURATION: Final = 60
 BOOLEAN_TRUE_VALUES: Final = frozenset({"1", "true", "yes", "on"})
@@ -91,7 +92,7 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             parameter_size_b=3.35,
             repo_id="CohereLabs/tiny-aya-global-GGUF",
             filename="tiny-aya-global-q4_k_m.gguf",
-            thinking_temperature=0.6,
+            thinking_temperature=0.2,
             thinking_top_p=0.95,
         ),
         "mellum2-12b-a2.5b-thinking": ModelPreset(
@@ -140,6 +141,7 @@ class LlamaCppConfig:
     top_k: int | None
     gpu_layers: int
     zerogpu_duration: int
+    seed: int = DEFAULT_SEED
     thinking_temperature: float | None = None
     thinking_top_p: float | None = None
     thinking_top_k: int | None = None

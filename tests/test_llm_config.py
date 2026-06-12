@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from watch_my_escape.llm.config import (
+    DEFAULT_SEED,
     MODEL_PRESETS,
     LangfuseConfig,
     LlamaCppConfig,
@@ -71,6 +72,12 @@ def test_load_config_reads_model_path_and_generation_settings():
         flash_attn=True,
         langfuse=LangfuseConfig(),
     )
+
+
+def test_load_config_uses_fixed_default_seed():
+    config = load_config({})
+
+    assert config.seed == DEFAULT_SEED == 1
 
 
 def test_load_config_rejects_invalid_flash_attention_value():
@@ -169,7 +176,7 @@ def test_model_presets_include_publisher_thinking_sampling_where_known():
     assert MODEL_PRESETS["minicpm5-1b"].thinking_temperature == 0.9
     assert MODEL_PRESETS["minicpm5-1b"].thinking_top_p == 0.95
     assert MODEL_PRESETS["gemma-4-12b-it"].thinking_top_k == 64
-    assert MODEL_PRESETS["tiny-aya-global"].thinking_temperature == 0.6
+    assert MODEL_PRESETS["tiny-aya-global"].thinking_temperature == 0.2
     assert MODEL_PRESETS["mellum2-12b-a2.5b-thinking"].thinking_top_k == 20
     assert MODEL_PRESETS["nvidia-nemotron-3-nano-4b"].thinking_temperature is None
 
