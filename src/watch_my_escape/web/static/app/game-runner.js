@@ -3,11 +3,10 @@ import { formatValidationError } from "./shared/strings.js";
 const escapeCelebrationDelayMs = 2000;
 
 export function createGameRunner({
-  clearWarmupToken,
   dom,
   getSelectedMap,
   getSelectedModel,
-  getWarmupToken,
+  getSessionId,
   mapRenderer,
   pixelSprite,
   showScreen,
@@ -39,11 +38,10 @@ export function createGameRunner({
     dom.transcriptOutput.textContent = "Waiting for the first turn...";
     transcriptScroll.scrollToBottom();
     const startupDelay = gameStartupDelay();
-    const warmupToken = getWarmupToken();
 
     let params;
     try {
-      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay, warmupToken);
+      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay, getSessionId());
     } catch (error) {
       if (currentRunEpoch !== runEpoch) {
         return;
@@ -57,7 +55,6 @@ export function createGameRunner({
     if (currentRunEpoch !== runEpoch) {
       return;
     }
-    clearWarmupToken();
     void playGameIntro();
     activeStream = new EventSource(`/escape-stream?${params}`);
     activeStream.onmessage = (event) => {
@@ -98,7 +95,6 @@ export function createGameRunner({
 
   function restartSetup() {
     runEpoch += 1;
-    clearWarmupToken();
     stopStream();
     resetGame();
     showScreen("models");
@@ -230,14 +226,12 @@ export function createGameRunner({
   return { init, resetGame, restartSetup, runEscape, stopStream };
 }
 
-async function escapeStreamParams(selectedModel, selectedMap, startupDelay, warmupToken) {
+async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sessionId) {
   const params = new URLSearchParams({
     model_preset: selectedModel.id,
+    session_id: sessionId,
     startup_delay_ms: String(startupDelay),
   });
-  if (warmupToken) {
-    params.set("warmup_token", warmupToken);
-  }
   if (selectedMap.source === "custom") {
     params.set("custom_map_token", await customMapToken(selectedMap));
     return params;

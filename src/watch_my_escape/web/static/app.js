@@ -11,10 +11,10 @@ import { createSpriteRenderer } from "./app/shared/sprites.js";
 
 const appData = appDataFromDocument();
 const dom = getDomRefs();
+const browserSessionId = browserSessionIdFromStorage();
 const appState = {
   selectedMap: null,
   selectedModel: null,
-  warmupToken: null,
 };
 
 const sprites = createSpriteRenderer();
@@ -28,6 +28,7 @@ const mapRenderer = createMapRenderer({
 const modelWarmup = createModelWarmup({
   dom,
   getSelectedModel: () => appState.selectedModel,
+  getSessionId: () => browserSessionId,
   showScreen: screens.showScreen,
 });
 const mapSelector = createMapSelector({
@@ -37,9 +38,7 @@ const mapSelector = createMapSelector({
   premadeMaps: appData.maps,
   onSelected: (gameMap) => {
     appState.selectedMap = gameMap;
-    appState.warmupToken = null;
-    modelWarmup.runBeforeGame((warmupToken) => {
-      appState.warmupToken = warmupToken;
+    modelWarmup.runBeforeGame(() => {
       gameRunner.resetGame();
       screens.showScreen("game");
     });
@@ -61,10 +60,7 @@ const gameRunner = createGameRunner({
   dom,
   getSelectedMap: () => appState.selectedMap,
   getSelectedModel: () => appState.selectedModel,
-  getWarmupToken: () => appState.warmupToken,
-  clearWarmupToken: () => {
-    appState.warmupToken = null;
-  },
+  getSessionId: () => browserSessionId,
   mapRenderer,
   pixelSprite: sprites.pixelSprite,
   showScreen: screens.showScreen,
@@ -170,4 +166,20 @@ function handleBackAction() {
 function backToModelSelect() {
   screens.showScreen("models");
   modelSelector.focus();
+}
+
+function browserSessionIdFromStorage() {
+  const key = "watch-my-escape-session-id";
+  const fallbackSessionId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  try {
+    const existing = window.sessionStorage.getItem(key);
+    if (existing) {
+      return existing;
+    }
+    const sessionId = fallbackSessionId();
+    window.sessionStorage.setItem(key, sessionId);
+    return sessionId;
+  } catch {
+    return fallbackSessionId();
+  }
 }

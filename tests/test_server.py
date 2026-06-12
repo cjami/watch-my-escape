@@ -71,6 +71,7 @@ def test_app_data_includes_browser_options():
 def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
     seen = {}
     preset_id = next(iter(MODEL_PRESETS))
+    session_id = "warmup-short-completion"
 
     class FakeProvider:
         def complete(self, request):
@@ -81,41 +82,58 @@ def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
     monkeypatch.setattr(server, "create_provider", lambda _config: provider)
     client = TestClient(create_app())
 
-    response = client.post("/models/warmup", json={"model_preset": preset_id})
+    response = client.post("/models/warmup", json={"session_id": session_id, "model_preset": preset_id})
     payload = response.json()
 
     assert response.status_code == 200
-    assert payload["warmed"] is True
-    assert isinstance(payload["warmup_token"], str)
+    assert payload == {"warmed": True}
     assert seen["request"].messages[0].content == "Reply with OK."
     assert seen["request"].settings.max_tokens == 8
     assert seen["request"].settings.temperature == 0.0
     assert seen["request"].enable_thinking is False
-    assert server.warm_provider_store.claim(token=payload["warmup_token"], model_preset=preset_id) is provider
+    assert server.warm_provider_store.get(session_id=session_id, model_preset=preset_id) is provider
 
 
-def test_escape_stream_claims_warmed_provider(monkeypatch):
+def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
+    preset_id = next(iter(MODEL_PRESETS))
+    session_id = "warmup-existing-provider"
+    provider = _NoopProvider()
+    server.warm_provider_store.add(session_id=session_id, model_preset=preset_id, provider=provider)
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: None)
+    client = TestClient(create_app())
+
+    response = client.post("/models/warmup", json={"session_id": session_id, "model_preset": preset_id})
+
+    assert response.status_code == 200
+    assert response.json() == {"warmed": True}
+    assert server.warm_provider_store.get(session_id=session_id, model_preset=preset_id) is provider
+
+
+def test_escape_stream_uses_session_warmed_provider(monkeypatch):
     seen = {}
     preset_id = next(iter(MODEL_PRESETS))
+    session_id = "stream-warmed-provider"
     provider = _NoopProvider()
-    warmup_token = server.warm_provider_store.add(model_preset=preset_id, provider=provider)
+    server.warm_provider_store.add(session_id=session_id, model_preset=preset_id, provider=provider)
 
     monkeypatch.setattr(server, "create_provider", lambda _config: None)
     monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
     client = TestClient(create_app())
 
-    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
 
     assert response.status_code == 200
     assert seen["provider"] is provider
 
 
-def test_escape_stream_reuses_warmup_token_only_once(monkeypatch):
+def test_escape_stream_reuses_session_provider_for_multiple_runs(monkeypatch):
     seen_providers = []
     preset_id = next(iter(MODEL_PRESETS))
+    session_id = "stream-reusable-provider"
     warmed_provider = _NoopProvider()
     fallback_provider = _NoopProvider()
-    warmup_token = server.warm_provider_store.add(model_preset=preset_id, provider=warmed_provider)
+    server.warm_provider_store.add(session_id=session_id, model_preset=preset_id, provider=warmed_provider)
 
     monkeypatch.setattr(server, "create_provider", lambda _config: fallback_provider)
     monkeypatch.setattr(
@@ -125,37 +143,39 @@ def test_escape_stream_reuses_warmup_token_only_once(monkeypatch):
     )
     client = TestClient(create_app())
 
-    first = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
-    second = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+    first = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
+    second = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert seen_providers == [warmed_provider, fallback_provider]
+    assert seen_providers == [warmed_provider, warmed_provider]
 
 
-def test_escape_stream_ignores_warmup_token_for_different_preset(monkeypatch):
+def test_escape_stream_ignores_session_provider_for_different_preset(monkeypatch):
     seen = {}
     preset_id, other_preset_id = tuple(MODEL_PRESETS)[:2]
+    session_id = "stream-different-preset"
     fallback_provider = _NoopProvider()
-    warmup_token = server.warm_provider_store.add(model_preset=other_preset_id, provider=_NoopProvider())
+    warmed_provider = _NoopProvider()
+    server.warm_provider_store.add(session_id=session_id, model_preset=other_preset_id, provider=warmed_provider)
 
     monkeypatch.setattr(server, "create_provider", lambda _config: fallback_provider)
     monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
     client = TestClient(create_app())
 
-    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&warmup_token={warmup_token}")
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
 
     assert response.status_code == 200
     assert seen["provider"] is fallback_provider
-    assert server.warm_provider_store.claim(token=warmup_token, model_preset=other_preset_id) is None
+    assert server.warm_provider_store.get(session_id=session_id, model_preset=other_preset_id) is warmed_provider
 
 
-def test_warm_provider_store_drops_expired_tokens():
+def test_warm_provider_store_drops_expired_sessions():
     provider = _NoopProvider()
     store = WarmProviderStore(ttl_seconds=0)
-    token = store.add(model_preset="example", provider=provider)
+    store.add(session_id="expired-session", model_preset="example", provider=provider)
 
-    assert store.claim(token=token, model_preset="example") is None
+    assert store.get(session_id="expired-session", model_preset="example") is None
 
 
 def test_model_preset_options_include_selector_metadata():

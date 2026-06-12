@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import secrets
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Final, cast
@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from gradio import Server
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, run_model_escape, run_model_escape_steps
 from watch_my_escape.agent.runner import ThinkActSettings, think_act_settings_for_config
@@ -48,7 +48,7 @@ GENERATED_STATIC_DIR: Final = PROJECT_DIR / "build" / "web" / "static"
 TEMPLATES_DIR: Final = WEB_DIR / "templates"
 templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
 CUSTOM_MAP_TOKEN_TTL_SECONDS: Final = 15 * 60
-WARM_PROVIDER_TOKEN_TTL_SECONDS: Final = 5 * 60
+WARM_PROVIDER_SESSION_TTL_SECONDS: Final = 5 * 60
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,8 +61,9 @@ class CustomMapRun:
 
 @dataclass(frozen=True, slots=True)
 class WarmProviderRun:
-    """A warmed model provider available to the next matching game stream."""
+    """A warmed model provider available to one browser session."""
 
+    session_id: str
     model_preset: str
     provider: InferenceProvider
     expires_at: float
@@ -75,44 +76,48 @@ class CustomMapTokenError(ValueError):
 class ModelWarmupRequest(BaseModel):
     """Request to prepare a model before the game screen appears."""
 
-    model_preset: str
+    session_id: str = Field(min_length=1)
+    model_preset: str = Field(min_length=1)
 
 
 class WarmProviderStore:
     """Short-lived in-memory storage for warmed model providers."""
 
-    def __init__(self, *, ttl_seconds: int = WARM_PROVIDER_TOKEN_TTL_SECONDS) -> None:
+    def __init__(self, *, ttl_seconds: int = WARM_PROVIDER_SESSION_TTL_SECONDS) -> None:
         self._ttl_seconds = ttl_seconds
-        self._runs: dict[str, WarmProviderRun] = {}
+        self._runs: dict[tuple[str, str], WarmProviderRun] = {}
         self._lock = Lock()
 
-    def add(self, *, model_preset: str, provider: InferenceProvider) -> str:
-        """Store a warmed provider and return its opaque warmup token."""
+    def add(self, *, session_id: str, model_preset: str, provider: InferenceProvider) -> None:
+        """Store a warmed provider for one browser session and preset."""
         self._prune_expired()
-        token = secrets.token_urlsafe(32)
         with self._lock:
-            self._runs[token] = WarmProviderRun(
+            self._runs[(session_id, model_preset)] = WarmProviderRun(
+                session_id=session_id,
                 model_preset=model_preset,
                 provider=provider,
                 expires_at=time.monotonic() + self._ttl_seconds,
             )
-        return token
 
-    def claim(self, *, token: str, model_preset: str) -> InferenceProvider | None:
-        """Return and remove a warmed provider if it is fresh and matches the preset."""
+    def get(self, *, session_id: str, model_preset: str) -> InferenceProvider | None:
+        """Return a warmed provider if it is fresh and belongs to the session."""
         self._prune_expired()
         with self._lock:
-            run = self._runs.pop(token, None)
-        if run is None or run.expires_at <= time.monotonic() or run.model_preset != model_preset:
-            return None
+            run = self._runs.get((session_id, model_preset))
+            if run is None or run.expires_at <= time.monotonic():
+                return None
+            self._runs[(session_id, model_preset)] = replace(
+                run,
+                expires_at=time.monotonic() + self._ttl_seconds,
+            )
         return run.provider
 
     def _prune_expired(self) -> None:
         now = time.monotonic()
         with self._lock:
-            expired_tokens = [token for token, run in self._runs.items() if run.expires_at <= now]
-            for token in expired_tokens:
-                del self._runs[token]
+            expired_keys = [key for key, run in self._runs.items() if run.expires_at <= now]
+            for key in expired_keys:
+                del self._runs[key]
 
 
 class CustomMapRunStore:
@@ -182,13 +187,13 @@ def create_app() -> Server:
         model_preset: str = Query(min_length=1),
         map_id: str | None = Query(default=None, min_length=1),
         custom_map_token: str | None = Query(default=None, min_length=1),
-        warmup_token: str | None = Query(default=None, min_length=1),
+        session_id: str | None = Query(default=None, min_length=1),
         startup_delay_ms: int = Query(default=0, ge=0, le=10_000),
     ) -> StreamingResponse:
         try:
             config = config_for_model_preset(model_preset)
             game_map = _selected_stream_map(map_id=map_id, custom_map_token=custom_map_token)
-            provider = _stream_provider(config=config, model_preset=model_preset, warmup_token=warmup_token)
+            provider = _stream_provider(config=config, model_preset=model_preset, session_id=session_id)
             settings = think_act_settings_for_config(config)
         except (ModelPresetError, PremadeMapError, CustomMapTokenError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -220,7 +225,7 @@ def create_app() -> Server:
 
     @app.post("/models/warmup")
     def warmup_model(request: ModelWarmupRequest) -> dict[str, object]:
-        return warm_model_preset(request.model_preset)
+        return warm_model_preset(session_id=request.session_id, model_preset=request.model_preset)
 
     return app
 
@@ -270,8 +275,11 @@ def app_data() -> dict[str, object]:
     }
 
 
-def warm_model_preset(model_preset: str) -> dict[str, object]:
+def warm_model_preset(*, session_id: str, model_preset: str) -> dict[str, object]:
     """Run a tiny completion to prepare a model for the first game turn."""
+    if warm_provider_store.get(session_id=session_id, model_preset=model_preset) is not None:
+        return {"warmed": True}
+
     try:
         provider = create_provider(config_for_model_preset(model_preset))
         provider.complete(
@@ -286,12 +294,13 @@ def warm_model_preset(model_preset: str) -> dict[str, object]:
     except LlmConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    return {"warmed": True, "warmup_token": warm_provider_store.add(model_preset=model_preset, provider=provider)}
+    warm_provider_store.add(session_id=session_id, model_preset=model_preset, provider=provider)
+    return {"warmed": True}
 
 
-def _stream_provider(*, config: LlamaCppConfig, model_preset: str, warmup_token: str | None) -> InferenceProvider:
-    if warmup_token is not None:
-        provider = warm_provider_store.claim(token=warmup_token, model_preset=model_preset)
+def _stream_provider(*, config: LlamaCppConfig, model_preset: str, session_id: str | None) -> InferenceProvider:
+    if session_id is not None:
+        provider = warm_provider_store.get(session_id=session_id, model_preset=model_preset)
         if provider is not None:
             return provider
     return create_provider(config)
