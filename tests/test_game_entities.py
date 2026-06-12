@@ -120,6 +120,36 @@ def test_examine_behavior_returns_message_text():
     assert result.text == "The clock is frozen at twelve."
 
 
+def test_message_effect_can_interpolate_current_entity_state():
+    entity = Entity.model_validate(
+        {
+            "id": "door",
+            "icon": "door",
+            "description": "A door.",
+            "passable": False,
+            "state": "closed",
+            "behaviors": [
+                {
+                    "trigger": {"action": "open"},
+                    "effects": [
+                        {"type": "message", "text": "The door is {state}."},
+                        {"type": "set_entity_state", "state": "open"},
+                        {"type": "message", "text": "The door is {state}."},
+                    ],
+                }
+            ],
+        }
+    )
+
+    result = evaluate_entity_behavior(
+        entity,
+        action="open",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+
+    assert result.messages == ("The door is closed.", "The door is open.")
+
+
 def test_pick_up_behavior_adds_item_to_inventory():
     entity = Entity.model_validate(
         {

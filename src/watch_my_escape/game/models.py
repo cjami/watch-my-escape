@@ -274,7 +274,7 @@ def _apply_effect(
     accumulator: _BehaviorAccumulator,
 ) -> None:
     if isinstance(effect, MessageEffect):
-        accumulator.messages.append(effect.text)
+        accumulator.messages.append(_render_message_text(effect.text, current_entity, accumulator))
         return
     if isinstance(effect, AddInventoryEffect):
         accumulator.add_inventory.append(effect.entity_id)
@@ -300,3 +300,8 @@ def _effect_entity_id(
     current_entity: Entity,
 ) -> str:
     return effect.entity_id or current_entity.id
+
+
+def _render_message_text(text: str, current_entity: Entity, accumulator: _BehaviorAccumulator) -> str:
+    state = accumulator.entity_updates.get(current_entity.id, EntityUpdate()).state or current_entity.state
+    return text.replace("{state}", state)
