@@ -50,8 +50,10 @@ def test_create_provider_returns_embedded_provider_for_llama_cpp():
 
 
 def test_create_provider_returns_zerogpu_provider_when_configured(monkeypatch):
-    def gpu_decorator(duration: int):
-        assert duration == 60
+    seen = {}
+
+    def gpu_decorator(duration):
+        seen["duration"] = duration
         return lambda function: function
 
     fake_spaces = ModuleType("spaces")
@@ -61,11 +63,15 @@ def test_create_provider_returns_zerogpu_provider_when_configured(monkeypatch):
     provider = create_provider(_config(LlmProviderName.ZEROGPU))
 
     assert isinstance(provider, ZeroGpuLlamaCppProvider)
+    assert seen["duration"](InferenceRequest(messages=(), enable_thinking=True)) == 60
+    assert seen["duration"](InferenceRequest(messages=(), enable_thinking=False)) == 15
+    assert seen["duration"](InferenceRequest(messages=())) == 15
 
 
 def test_zerogpu_provider_imports_torch_before_llama_cpp(monkeypatch, tmp_path):
-    def gpu_decorator(duration: int):
-        assert duration == 60
+    def gpu_decorator(duration):
+        assert duration(InferenceRequest(messages=(), enable_thinking=True)) == 60
+        assert duration(InferenceRequest(messages=(), enable_thinking=False)) == 15
         return lambda function: function
 
     class FakeLlama:

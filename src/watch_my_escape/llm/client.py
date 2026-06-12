@@ -5,7 +5,10 @@ from __future__ import annotations
 from functools import cached_property
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from watch_my_escape.llm.config import (
     DEFAULT_TEMPERATURE,
@@ -36,7 +39,10 @@ def _zero_gpu_startup_probe() -> None:
     return None
 
 
-def _decorate_zero_gpu_function(function: Any, *, duration: int) -> Any | None:
+ZERO_GPU_NON_THINKING_DURATION = 15
+
+
+def _decorate_zero_gpu_function(function: Any, *, duration: int | Callable[..., int]) -> Any | None:
     try:
         gpu_decorator = import_module("spaces").__dict__["GPU"]
     except ImportError:
@@ -236,12 +242,17 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
     def _build_gpu_completion(self) -> Any:
         complete_on_gpu = _decorate_zero_gpu_function(
             self._complete_with_loaded_model,
-            duration=self._config.zerogpu_duration,
+            duration=self._zero_gpu_duration,
         )
         if complete_on_gpu is None:
             msg = "The `spaces` package is required for WME_LLM_PROVIDER=zerogpu."
             raise LlmConfigurationError(msg)
         return complete_on_gpu
+
+    def _zero_gpu_duration(self, request: InferenceRequest) -> int:
+        if request.enable_thinking is True:
+            return self._config.zerogpu_duration
+        return ZERO_GPU_NON_THINKING_DURATION
 
     def _prepare_runtime_dependencies(self) -> None:
         try:
