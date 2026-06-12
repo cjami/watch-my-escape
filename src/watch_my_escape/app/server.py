@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import secrets
 import time
 from dataclasses import dataclass
@@ -100,8 +99,6 @@ class CustomMapRunStore:
 
 
 custom_map_run_store: Final = CustomMapRunStore()
-PERF_LOGGER: Final = logging.getLogger("watch_my_escape.perf")
-PERF_LOGGER.setLevel(logging.INFO)
 
 
 def create_app() -> Server:
@@ -133,23 +130,12 @@ def create_app() -> Server:
         startup_delay_ms: int = Query(default=0, ge=0, le=10_000),
     ) -> StreamingResponse:
         try:
-            setup_started = time.perf_counter()
             config = config_for_model_preset(model_preset)
             game_map = _selected_stream_map(map_id=map_id, custom_map_token=custom_map_token)
-            provider_started = time.perf_counter()
             provider = create_provider(config)
-            provider_ms = _elapsed_ms(provider_started)
             settings = think_act_settings_for_config(config)
         except (ModelPresetError, PremadeMapError, CustomMapTokenError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        PERF_LOGGER.info(
-            "perf escape_stream_setup model_preset=%s map_id=%s custom_map=%s provider_ms=%.1f total_ms=%.1f",
-            model_preset,
-            map_id or "",
-            custom_map_token is not None,
-            provider_ms,
-            _elapsed_ms(setup_started),
-        )
         return StreamingResponse(
             _escape_event_stream(
                 provider=provider,
@@ -351,7 +337,3 @@ def _entity_detail_payload(detail: object) -> dict[str, str]:
             "color": str(values.get("color", "")),
         }
     return {"id": str(detail), "icon": "", "description": "", "color": ""}
-
-
-def _elapsed_ms(started_at: float) -> float:
-    return (time.perf_counter() - started_at) * 1000

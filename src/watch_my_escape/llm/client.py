@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import logging
-import time
 from functools import cached_property
 from importlib import import_module
 from pathlib import Path
@@ -32,10 +30,6 @@ class InferenceProvider(Protocol):
 
 class LlmConfigurationError(RuntimeError):
     """Raised when inference cannot be configured."""
-
-
-PERF_LOGGER = logging.getLogger("watch_my_escape.perf")
-PERF_LOGGER.setLevel(logging.INFO)
 
 
 def _zero_gpu_startup_probe() -> None:
@@ -76,27 +70,15 @@ class EmbeddedLlamaCppProvider:
 
     def complete(self, request: InferenceRequest) -> InferenceResponse:
         """Run one local llama.cpp chat completion."""
-        started_at = time.perf_counter()
         traced_complete = observe_if_enabled(
             self._complete_with_loaded_model,
             name="llm.complete",
             as_type="generation",
             enabled=self._config.langfuse.tracing_enabled,
         )
-        response = traced_complete(request)
-        PERF_LOGGER.info(
-            "perf provider_complete provider=%s model_preset=%s structured=%s tools=%s thinking=%s elapsed_ms=%.1f",
-            type(self).__name__,
-            self._config.model_preset or "",
-            request.structured_output is not None,
-            bool(request.tools),
-            request.enable_thinking,
-            _elapsed_ms(started_at),
-        )
-        return response
+        return traced_complete(request)
 
     def _complete_with_loaded_model(self, request: InferenceRequest) -> InferenceResponse:
-        started_at = time.perf_counter()
         payload: dict[str, Any] = {
             "messages": [message.as_llama_message() for message in request.messages],
         }
@@ -114,32 +96,14 @@ class EmbeddedLlamaCppProvider:
 
         raw_response = self._create_chat_completion(payload, request)
         choice_message = raw_response["choices"][0]["message"]
-        response = InferenceResponse(
+        return InferenceResponse(
             content=choice_message.get("content") or "",
             tool_call=parse_tool_call(choice_message),
             raw=raw_response,
         )
-        PERF_LOGGER.info(
-            (
-                "perf llama_completion model_preset=%s structured=%s thinking=%s prompt_chars=%s "
-                "content_chars=%s usage=%s elapsed_ms=%.1f"
-            ),
-            self._config.model_preset or "",
-            request.structured_output is not None,
-            request.enable_thinking,
-            sum(len(message.content) for message in request.messages),
-            len(response.content),
-            _usage_summary(raw_response),
-            _elapsed_ms(started_at),
-        )
-        return response
 
     def _load_llama(self) -> Any:
-        started_at = time.perf_counter()
-        runtime_started = time.perf_counter()
         self._prepare_runtime_dependencies()
-        runtime_ms = _elapsed_ms(runtime_started)
-        import_started = time.perf_counter()
         try:
             llama_module = import_module("llama_cpp")
             llama_cls = llama_module.__dict__["Llama"]
@@ -149,9 +113,7 @@ class EmbeddedLlamaCppProvider:
                 "`uv run python -m watch_my_escape.setup_llm cpu`."
             )
             raise LlmConfigurationError(msg) from exc
-        import_ms = _elapsed_ms(import_started)
 
-        init_started = time.perf_counter()
         llama_kwargs: dict[str, Any] = {
             "model_path": str(self._model_path),
             "n_ctx": self._config.context_tokens,
@@ -161,24 +123,7 @@ class EmbeddedLlamaCppProvider:
         llama_kwargs["flash_attn"] = self._resolve_flash_attn(llama_module)
         if self._config.chat_format:
             llama_kwargs["chat_format"] = self._config.chat_format
-        llama = llama_cls(**llama_kwargs)
-        PERF_LOGGER.info(
-            (
-                "perf llama_load model_preset=%s repo_id=%s filename=%s n_ctx=%s gpu_layers=%s "
-                "flash_attn=%s runtime_ms=%.1f import_ms=%.1f init_ms=%.1f total_ms=%.1f"
-            ),
-            self._config.model_preset or "",
-            self._config.model_repo_id or "",
-            self._config.model_filename or "",
-            self._config.context_tokens,
-            self._config.gpu_layers,
-            llama_kwargs["flash_attn"],
-            runtime_ms,
-            import_ms,
-            _elapsed_ms(init_started),
-            _elapsed_ms(started_at),
-        )
-        return llama
+        return llama_cls(**llama_kwargs)
 
     def _prepare_runtime_dependencies(self) -> None:
         """Prepare optional runtime dependencies before importing llama.cpp."""
@@ -197,10 +142,6 @@ class EmbeddedLlamaCppProvider:
             if not self._config.model_path.is_file():
                 msg = f"Configured WME_MODEL_PATH does not exist: {self._config.model_path}"
                 raise LlmConfigurationError(msg)
-            PERF_LOGGER.info(
-                "perf model_path_resolve source=local path=%s elapsed_ms=0.0",
-                self._config.model_path,
-            )
             return str(self._config.model_path)
 
         if self._config.model_repo_id and self._config.model_filename:
@@ -209,15 +150,7 @@ class EmbeddedLlamaCppProvider:
             except (AttributeError, ImportError) as exc:
                 msg = "huggingface-hub is required to download WME_MODEL_REPO_ID/WME_MODEL_FILENAME."
                 raise LlmConfigurationError(msg) from exc
-            started_at = time.perf_counter()
-            path = hf_hub_download(repo_id=self._config.model_repo_id, filename=self._config.model_filename)
-            PERF_LOGGER.info(
-                "perf model_path_resolve source=hub repo_id=%s filename=%s elapsed_ms=%.1f",
-                self._config.model_repo_id,
-                self._config.model_filename,
-                _elapsed_ms(started_at),
-            )
-            return path
+            return hf_hub_download(repo_id=self._config.model_repo_id, filename=self._config.model_filename)
 
         msg = "Configure WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME before running inference."
         raise LlmConfigurationError(msg)
@@ -296,16 +229,7 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
 
     def complete(self, request: InferenceRequest) -> InferenceResponse:
         """Run one ZeroGPU-backed chat completion."""
-        started_at = time.perf_counter()
-        response = self._complete_on_gpu(request)
-        PERF_LOGGER.info(
-            "perf zerogpu_complete model_preset=%s structured=%s thinking=%s elapsed_ms=%.1f",
-            self._config.model_preset or "",
-            request.structured_output is not None,
-            request.enable_thinking,
-            _elapsed_ms(started_at),
-        )
-        return response
+        return self._complete_on_gpu(request)
 
     def _build_gpu_completion(self) -> Any:
         complete_on_gpu = _decorate_zero_gpu_function(
@@ -318,13 +242,11 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
         return complete_on_gpu
 
     def _prepare_runtime_dependencies(self) -> None:
-        started_at = time.perf_counter()
         try:
             import_module("torch")
         except ImportError as exc:
             msg = "ZeroGPU llama.cpp inference requires torch. Install the hf-zerogpu setup profile."
             raise LlmConfigurationError(msg) from exc
-        PERF_LOGGER.info("perf zerogpu_runtime_prepare elapsed_ms=%.1f", _elapsed_ms(started_at))
 
 
 def create_provider(config: LlamaCppConfig | None = None) -> InferenceProvider:
@@ -354,12 +276,3 @@ def _first_int(*values: int | None) -> int:
             return value
     msg = "At least one integer fallback is required."
     raise AssertionError(msg)
-
-
-def _elapsed_ms(started_at: float) -> float:
-    return (time.perf_counter() - started_at) * 1000
-
-
-def _usage_summary(raw_response: dict[str, Any]) -> str:
-    usage = raw_response.get("usage")
-    return str(usage) if isinstance(usage, dict) else ""
