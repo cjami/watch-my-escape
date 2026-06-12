@@ -250,7 +250,7 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
         return complete_on_gpu
 
     def _zero_gpu_duration(self, request: InferenceRequest) -> int:
-        if request.enable_thinking is True:
+        if request.phase in {"warmup", "deliberation"} or request.enable_thinking is True:
             return self._config.zerogpu_duration
         return ZERO_GPU_NON_THINKING_DURATION
 

@@ -88,6 +88,7 @@ def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
     assert response.status_code == 200
     assert payload == {"warmed": True}
     assert seen["request"].messages[0].content == "Reply with OK."
+    assert seen["request"].phase == "warmup"
     assert seen["request"].settings.max_tokens == 8
     assert seen["request"].settings.temperature == 0.0
     assert seen["request"].enable_thinking is False
@@ -108,6 +109,7 @@ def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
     assert response.status_code == 200
     assert response.json() == {"warmed": True}
     assert provider.requests
+    assert provider.requests[0].phase == "warmup"
     assert provider.requests[0].enable_thinking is False
     assert provider.requests[0].settings.max_tokens == 8
     assert server.warm_provider_store.get(session_id=session_id, model_preset=preset_id) is provider

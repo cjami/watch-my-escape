@@ -91,6 +91,7 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
                 action_model=turn.action_model,
                 history=turn.history,
             ),
+            phase="deliberation",
             settings=turn.settings.deliberation,
             enable_thinking=True,
         )
@@ -106,6 +107,7 @@ def _run_think_act_turn(provider: InferenceProvider, turn: ThinkActTurn) -> Thin
                 action_model=turn.action_model,
                 history=turn.history,
             ),
+            phase="action",
             structured_output=StructuredOutputSpec.from_pydantic_model(turn.action_model),
             settings=turn.settings.action,
             enable_thinking=False,

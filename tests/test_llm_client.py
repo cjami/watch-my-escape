@@ -63,6 +63,9 @@ def test_create_provider_returns_zerogpu_provider_when_configured(monkeypatch):
     provider = create_provider(_config(LlmProviderName.ZEROGPU))
 
     assert isinstance(provider, ZeroGpuLlamaCppProvider)
+    assert seen["duration"](InferenceRequest(messages=(), phase="warmup", enable_thinking=False)) == 60
+    assert seen["duration"](InferenceRequest(messages=(), phase="deliberation", enable_thinking=True)) == 60
+    assert seen["duration"](InferenceRequest(messages=(), phase="action", enable_thinking=False)) == 15
     assert seen["duration"](InferenceRequest(messages=(), enable_thinking=True)) == 60
     assert seen["duration"](InferenceRequest(messages=(), enable_thinking=False)) == 15
     assert seen["duration"](InferenceRequest(messages=())) == 15
@@ -70,6 +73,7 @@ def test_create_provider_returns_zerogpu_provider_when_configured(monkeypatch):
 
 def test_zerogpu_provider_imports_torch_before_llama_cpp(monkeypatch, tmp_path):
     def gpu_decorator(duration):
+        assert duration(InferenceRequest(messages=(), phase="warmup", enable_thinking=False)) == 60
         assert duration(InferenceRequest(messages=(), enable_thinking=True)) == 60
         assert duration(InferenceRequest(messages=(), enable_thinking=False)) == 15
         return lambda function: function

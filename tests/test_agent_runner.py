@@ -41,6 +41,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
         root=ExamineAction(action="examine", target="brass key", emotion="curious")
     )
     assert provider.requests[0].structured_output is None
+    assert provider.requests[0].phase == "deliberation"
     assert provider.requests[0].enable_thinking is True
     assert provider.requests[0].settings.temperature == 1.0
     assert provider.requests[0].settings.max_tokens == 4096
@@ -65,6 +66,7 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "target: a visible object" not in deliberation_prompt
     assert "item: an item currently in inventory" not in deliberation_prompt
     assert provider.requests[1].structured_output is not None
+    assert provider.requests[1].phase == "action"
     assert provider.requests[1].enable_thinking is False
     assert provider.requests[1].settings.temperature == 0.0
     assert provider.requests[1].settings.max_tokens == 256

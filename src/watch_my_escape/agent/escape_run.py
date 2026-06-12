@@ -391,6 +391,7 @@ def _run_escape_turn(
                 action_model=action_model,
                 history=history,
             ),
+            phase="deliberation",
             settings=resolved_settings.deliberation,
             enable_thinking=True,
         )
@@ -405,6 +406,7 @@ def _run_escape_turn(
                 action_model=action_model,
                 history=history,
             ),
+            phase="action",
             structured_output=StructuredOutputSpec.from_pydantic_model(action_model),
             settings=resolved_settings.action,
             enable_thinking=False,

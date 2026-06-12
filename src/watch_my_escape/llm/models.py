@@ -10,6 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 MessageRole = Literal["system", "user", "assistant", "tool"]
+InferencePhase = Literal["completion", "warmup", "deliberation", "action"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +86,7 @@ class InferenceRequest:
     """A chat completion request."""
 
     messages: tuple[ChatMessage, ...]
+    phase: InferencePhase = "completion"
     tools: tuple[ToolSpec, ...] = ()
     structured_output: StructuredOutputSpec | None = None
     settings: InferenceSettings = field(default_factory=InferenceSettings)

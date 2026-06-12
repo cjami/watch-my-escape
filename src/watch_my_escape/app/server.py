@@ -295,6 +295,7 @@ def _run_warmup_completion(provider: InferenceProvider) -> None:
     provider.complete(
         InferenceRequest(
             messages=(ChatMessage(role="user", content="Reply with OK."),),
+            phase="warmup",
             settings=InferenceSettings(max_tokens=8, temperature=0.0),
             enable_thinking=False,
         )
