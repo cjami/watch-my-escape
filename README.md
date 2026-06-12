@@ -20,7 +20,7 @@ make lint
 Run the app:
 
 ```shell
-make dev
+make app
 ```
 
 ## LLM setup
