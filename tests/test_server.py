@@ -200,6 +200,7 @@ def test_model_preset_options_include_selector_metadata():
 def test_premade_map_options_include_preview_metadata():
     options = premade_map_options()
     key_door_room = next(option for option in options if option["id"] == "key-door-room")
+    exit_tax = next(option for option in options if option["id"] == "exit-tax")
 
     assert key_door_room["name"] == "Key Door Room"
     assert key_door_room["description"]
@@ -208,6 +209,9 @@ def test_premade_map_options_include_preview_metadata():
     assert len(key_door_room["preview_map_colors"].splitlines()) == 15
     assert all(len(row.split(" ")) == 15 for row in key_door_room["preview_map"].splitlines())
     assert all(len(row.split(" ")) == 15 for row in key_door_room["preview_map_colors"].splitlines())
+    assert exit_tax["name"] == "exit tax"
+    assert exit_tax["description"] == "someone is hungry."
+    assert len(exit_tax["preview_map"].splitlines()) == 15
 
 
 def test_escape_run_response_reports_model_configuration_error(monkeypatch):
