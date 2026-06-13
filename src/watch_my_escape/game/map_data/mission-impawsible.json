@@ -1,8 +1,8 @@
 {
   "description": "someone is hungry.",
   "map": {
-    "id": "exit-tax",
-    "name": "exit tax",
+    "id": "mission-impawsible",
+    "name": "Mission: Impawsible",
     "entities": [
       {
         "entity": {
@@ -827,7 +827,7 @@
               "effects": [
                 {
                   "type": "message",
-                  "text": "there are snacks for you to pick up."
+                  "text": "there are snacks here for you to pick up."
                 }
               ]
             }

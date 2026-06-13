@@ -92,8 +92,8 @@ def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
     return "\n\n".join(
         [
             f"Sanity: {sanity}/100",
-            _render_inventory(session),
             render_agent_view(session),
+            _render_inventory(session),
         ]
     )
 

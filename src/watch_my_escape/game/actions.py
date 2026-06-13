@@ -23,7 +23,7 @@ class ActionBase(BaseModel):
 
 
 class UseItemAction(ActionBase):
-    """Use an object from your inventory on another object."""
+    """Use your inventory item on another object."""
 
     action: Literal["use_item"]
     item: InventoryItem
@@ -40,7 +40,7 @@ class OperateAction(ActionBase):
 
 
 class PickUpAction(ActionBase):
-    """Pick up an object and add it to your inventory."""
+    """Pick up an item and add it to your inventory."""
 
     action: Literal["pick_up"]
     target: Target

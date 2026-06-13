@@ -326,6 +326,14 @@ def test_render_game_state_for_agent_describes_inventory_items():
     assert "- folded-note: A folded note marked unread." in game_state
 
 
+def test_render_game_state_for_agent_lists_surroundings_before_inventory():
+    session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()))
+
+    game_state = render_game_state_for_agent(session, STARTING_SANITY)
+
+    assert game_state.index("Nearby objects in view:") < game_state.index("Inventory (items you are carrying):")
+
+
 def test_render_game_state_for_agent_keeps_unknown_inventory_items_readable():
     session = GameSessionState(map=GameMap.model_validate(_duplicate_name_map_payload()), inventory=("missing-item",))
 

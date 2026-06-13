@@ -199,7 +199,7 @@ def render_agent_view(session: GameSessionState) -> str:
     visible_entities = visible_notable_entities(session)
 
     lines = [
-        "Surrounding objects:",
+        "Nearby objects in view:",
     ]
     lines.extend(_render_visible_entity_lines(visible_entities))
     return "\n".join(lines)

@@ -161,12 +161,10 @@ def test_run_model_escape_prompts_include_full_action_vocabulary():
     assert "- pull(target): Pull an object." in deliberation_system_prompt
     assert "- talk_to(target, text): Say something to an object or character." in deliberation_system_prompt
     assert "- operate(target): Operate a device, mechanism, or control." in deliberation_system_prompt
-    assert (
-        "- use_item(item, target): Use an object from your inventory on another object." in deliberation_system_prompt
-    )
-    assert "- use_item(item, target): Use an object from your inventory on another object." not in deliberation_prompt
+    assert "- use_item(item, target): Use your inventory item on another object." in deliberation_system_prompt
+    assert "- use_item(item, target): Use your inventory item on another object." not in deliberation_prompt
     assert "- close(target): Close an object." not in action_prompt
-    assert "- use_item(item, target): Use an object from your inventory on another object." not in action_prompt
+    assert "- use_item(item, target): Use your inventory item on another object." not in action_prompt
 
 
 def test_run_model_escape_keeps_general_action_descriptions_in_deliberation_prompt():

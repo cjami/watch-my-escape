@@ -102,7 +102,7 @@ export function starterEditorState() {
           {
             trigger: { action: "examine" },
             conditions: [],
-            effects: [{ type: "message", text: "It is small enough to carry." }],
+            effects: [{ type: "message", text: "It looks small but useful." }],
           },
           {
             trigger: { action: "pick_up", actions: ["pick_up", "pull"] },
