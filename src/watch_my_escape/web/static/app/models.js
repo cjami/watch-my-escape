@@ -72,6 +72,7 @@ export function createModelSelector({ dom, models, onSelected, pixelSprite }) {
   function handleKeydown(event) {
     if (event.key === "Escape" && isAdvancedSettingsOpen()) {
       event.preventDefault();
+      event.stopPropagation();
       closeAdvancedSettings();
       dom.modelSettingsToggle.focus();
       return;
@@ -81,16 +82,19 @@ export function createModelSelector({ dom, models, onSelected, pixelSprite }) {
     }
     if (event.key === "ArrowLeft") {
       event.preventDefault();
+      event.stopPropagation();
       changeModel(-1);
       return;
     }
     if (event.key === "ArrowRight") {
       event.preventDefault();
+      event.stopPropagation();
       changeModel(1);
       return;
     }
     if ((event.key === "Enter" || event.key === " ") && event.target === dom.modelOptions) {
       event.preventDefault();
+      event.stopPropagation();
       chooseSelectedModel();
     }
   }

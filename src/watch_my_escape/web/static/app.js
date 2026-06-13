@@ -27,6 +27,7 @@ const mapRenderer = createMapRenderer({
 });
 const modelWarmup = createModelWarmup({
   dom,
+  focusScreen: screens.focusScreen,
   getSelectedModel: () => appState.selectedModel,
   getSessionId: () => browserSessionId,
   showScreen: screens.showScreen,
@@ -38,10 +39,7 @@ const mapSelector = createMapSelector({
   premadeMaps: appData.maps,
   onSelected: (gameMap) => {
     appState.selectedMap = gameMap;
-    modelWarmup.runBeforeGame(() => {
-      gameRunner.resetGame();
-      screens.showScreen("game");
-    });
+    modelWarmup.runBeforeGame(showGameScreen);
   },
   pixelSprite: sprites.pixelSprite,
 });
@@ -64,6 +62,7 @@ const gameRunner = createGameRunner({
   mapRenderer,
   pixelSprite: sprites.pixelSprite,
   showScreen: screens.showScreen,
+  showSetupScreen: backToModelSelect,
 });
 const editor = createEditor({
   customMapStore,
@@ -81,6 +80,7 @@ sprites.refreshWhenFontsLoad([editor.refreshSprites, mapSelector.refresh, mapRen
 
 dom.screens.get("splash").addEventListener("click", screens.showMainMenu, { once: true });
 window.addEventListener("keydown", handleGlobalKeydown);
+dom.screens.get("menu").addEventListener("keydown", screens.handleMainMenuKeydown);
 dom.menuOptions.forEach((button, index) => {
   button.addEventListener("focus", () => screens.selectMenuOption(index));
   button.addEventListener("pointerenter", () => screens.selectMenuOption(index));
@@ -112,26 +112,8 @@ function handleGlobalKeydown(event) {
     screens.showMainMenu();
     return;
   }
-  if (screens.isScreenActive("menu")) {
-    screens.handleMainMenuKeydown(event);
-    return;
-  }
   if (event.key === "Escape" && handleBackAction()) {
     event.preventDefault();
-    return;
-  }
-  if (screens.isScreenActive("models")) {
-    if (event.target === dom.modelOptions || dom.modelOptions.contains(event.target)) {
-      return;
-    }
-    modelSelector.handleKeydown(event);
-    return;
-  }
-  if (screens.isScreenActive("maps")) {
-    if (event.target === dom.mapOptions || dom.mapOptions.contains(event.target)) {
-      return;
-    }
-    mapSelector.handleKeydown(event);
   }
 }
 
@@ -147,6 +129,7 @@ function handleBackAction() {
   if (screens.isScreenActive("warmup")) {
     modelWarmup.cancel();
     screens.showScreen("maps");
+    mapSelector.focusSelectedMapOption();
     return true;
   }
   if (screens.isScreenActive("game")) {
@@ -166,6 +149,12 @@ function handleBackAction() {
 function backToModelSelect() {
   screens.showScreen("models");
   modelSelector.focus();
+}
+
+function showGameScreen() {
+  gameRunner.resetGame();
+  screens.showScreen("game");
+  screens.focusElement(dom.runButton, { silent: true });
 }
 
 function browserSessionIdFromStorage() {

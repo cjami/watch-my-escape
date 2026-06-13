@@ -32,6 +32,47 @@ def test_web_assets_live_inside_package():
     assert SOURCE_STATIC_DIR.joinpath("app.js").is_file()
 
 
+def test_keyboard_flow_focus_contract_is_wired():
+    app_script = SOURCE_STATIC_DIR.joinpath("app.js").read_text(encoding="utf-8")
+    base_styles = SOURCE_STATIC_DIR.joinpath("styles", "base.css").read_text(encoding="utf-8")
+    game_runner_script = SOURCE_STATIC_DIR.joinpath("app", "game-runner.js").read_text(encoding="utf-8")
+    maps_script = SOURCE_STATIC_DIR.joinpath("app", "maps.js").read_text(encoding="utf-8")
+    screens_script = SOURCE_STATIC_DIR.joinpath("app", "screens.js").read_text(encoding="utf-8")
+    warmup_script = SOURCE_STATIC_DIR.joinpath("app", "model-warmup.js").read_text(encoding="utf-8")
+
+    assert 'dom.screens.get("menu").addEventListener("keydown", screens.handleMainMenuKeydown);' in app_script
+    assert 'if (event.key === "Escape" && handleBackAction())' in app_script
+    assert "screens.handleMainMenuKeydown(event)" not in app_script
+    assert "modelSelector.handleKeydown(event)" not in app_script
+    assert "mapSelector.handleKeydown(event)" not in app_script
+    assert 'screen.toggleAttribute("aria-hidden", !isActive);' in screens_script
+    assert "screen.inert = !isActive;" in screens_script
+    assert 'focusScreen("warmup");' in warmup_script
+    assert "focusElement(dom.screens.get(name), { silent: true });" in screens_script
+    assert "screens.focusElement(dom.runButton, { silent: true });" in app_script
+    assert 'if (event.key === "Enter" || event.key === " ")' not in screens_script
+    assert 'if (event.key === "Enter" || event.key === " ")' not in maps_script
+    assert 'element.dataset.silentFocus = "true";' in screens_script
+    assert "[data-silent-focus]:focus" in base_styles
+    assert "outline: none !important;" in base_styles
+    assert "mapSelector.focusSelectedMapOption();" in app_script
+    assert "showSetupScreen: backToModelSelect" in app_script
+    assert "showSetupScreen();" in game_runner_script
+
+
+def test_keyboard_escape_in_model_settings_stays_on_model_screen():
+    models_script = SOURCE_STATIC_DIR.joinpath("app", "models.js").read_text(encoding="utf-8")
+
+    assert "event.stopPropagation();" in models_script
+
+
+def test_main_menu_keyboard_focus_does_not_add_visual_border():
+    screens_styles = SOURCE_STATIC_DIR.joinpath("styles", "screens.css").read_text(encoding="utf-8")
+
+    assert ".main-menu-option:focus-visible" in screens_styles
+    assert "outline: none;" in screens_styles
+
+
 def test_generated_assets_live_outside_package_source():
     assert GENERATED_STATIC_DIR.parts[-3:] == ("build", "web", "static")
     assert "src" not in GENERATED_STATIC_DIR.parts

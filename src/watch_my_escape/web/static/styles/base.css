@@ -80,4 +80,9 @@
     outline: 2px solid var(--arcade-cyan);
     outline-offset: 3px;
   }
+
+  [data-silent-focus]:focus,
+  [data-silent-focus]:focus-visible {
+    outline: none !important;
+  }
 }

@@ -24,6 +24,7 @@ export function createGameRunner({
   mapRenderer,
   pixelSprite,
   showScreen,
+  showSetupScreen = () => showScreen("models"),
 }) {
   let activeStream = null;
   let gameIntroTimer = null;
@@ -41,7 +42,7 @@ export function createGameRunner({
     const selectedModel = getSelectedModel();
     const selectedMap = getSelectedMap();
     if (!selectedModel || !selectedMap) {
-      showScreen("models");
+      showSetupScreen();
       return;
     }
 
@@ -112,7 +113,7 @@ export function createGameRunner({
     runEpoch += 1;
     stopStream();
     resetGame();
-    showScreen("models");
+    showSetupScreen();
   }
 
   function gameIntroDuration() {

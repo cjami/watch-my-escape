@@ -2,7 +2,7 @@ const progressTickMs = 360;
 const progressFloor = 7;
 const progressCeiling = 92;
 
-export function createModelWarmup({ dom, getSelectedModel, getSessionId, showScreen }) {
+export function createModelWarmup({ dom, focusScreen = () => {}, getSelectedModel, getSessionId, showScreen }) {
   let warmupEpoch = 0;
   let progressTimer = null;
   let abortController = null;
@@ -18,6 +18,7 @@ export function createModelWarmup({ dom, getSelectedModel, getSessionId, showScr
     abortActiveRequest();
     abortController = new AbortController();
     showScreen("warmup");
+    focusScreen("warmup");
     startProgress(model);
 
     try {

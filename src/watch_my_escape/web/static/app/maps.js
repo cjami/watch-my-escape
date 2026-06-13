@@ -91,17 +91,14 @@ export function createMapSelector({
   function handleKeydown(event) {
     if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
       event.preventDefault();
+      event.stopPropagation();
       moveMapSelection(-1);
       return;
     }
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
       event.preventDefault();
+      event.stopPropagation();
       moveMapSelection(1);
-      return;
-    }
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      chooseSelectedMap();
     }
   }
 
