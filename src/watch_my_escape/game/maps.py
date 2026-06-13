@@ -24,6 +24,7 @@ from watch_my_escape.game.models import (
     SetEntityStateEffect,
     StrictModel,
     evaluate_entity_behavior,
+    render_state_template,
 )
 
 
@@ -397,7 +398,7 @@ def _render_visible_entity_lines(visible_entities: tuple[PlacedEntity, ...]) -> 
 
 
 def _render_entity_description(entity: Entity) -> str:
-    return entity.description.replace("{state}", entity.state)
+    return render_state_template(entity.description, entity.state)
 
 
 def _apply_entity_updates(game_map: GameMap, updates: dict[str, EntityUpdate]) -> GameMap:

@@ -150,6 +150,32 @@ def test_message_effect_can_interpolate_current_entity_state():
     assert result.messages == ("The door is closed.", "The door is open.")
 
 
+def test_message_effect_state_interpolation_is_case_insensitive():
+    entity = Entity.model_validate(
+        {
+            "id": "screen",
+            "icon": "screen",
+            "description": "A dormant screen.",
+            "passable": False,
+            "state": "awake",
+            "behaviors": [
+                {
+                    "trigger": {"action": "examine"},
+                    "effects": [{"type": "message", "text": "The screen is {STATE}."}],
+                }
+            ],
+        }
+    )
+
+    result = evaluate_entity_behavior(
+        entity,
+        action="examine",
+        context=BehaviorContext(entities={entity.id: entity}),
+    )
+
+    assert result.messages == ("The screen is awake.",)
+
+
 def test_pick_up_behavior_adds_item_to_inventory():
     entity = Entity.model_validate(
         {

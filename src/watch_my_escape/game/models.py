@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Final, Literal, Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -11,6 +12,7 @@ type SimpleActionName = Literal["examine", "pick_up", "open", "close", "push", "
 type HexColor = Annotated[str, Field(pattern=r"^#[0-9A-Fa-f]{6}$")]
 MAP_SIZE: Final = 15
 MAX_COORDINATE: Final = MAP_SIZE - 1
+STATE_PLACEHOLDER_PATTERN: Final = re.compile(r"\{state\}", re.IGNORECASE)
 
 
 class StrictModel(BaseModel):
@@ -304,4 +306,9 @@ def _effect_entity_id(
 
 def _render_message_text(text: str, current_entity: Entity, accumulator: _BehaviorAccumulator) -> str:
     state = accumulator.entity_updates.get(current_entity.id, EntityUpdate()).state or current_entity.state
-    return text.replace("{state}", state)
+    return render_state_template(text, state)
+
+
+def render_state_template(text: str, state: str) -> str:
+    """Render state placeholders in authored entity text."""
+    return STATE_PLACEHOLDER_PATTERN.sub(state, text)

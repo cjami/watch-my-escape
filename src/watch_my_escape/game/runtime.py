@@ -19,7 +19,7 @@ from watch_my_escape.game.maps import (
     render_agent_view,
     visible_notable_entities,
 )
-from watch_my_escape.game.models import Coordinate, Entity
+from watch_my_escape.game.models import Coordinate, Entity, render_state_template
 
 STARTING_SANITY = 100
 DEFAULT_NO_EFFECT_MESSAGE = "Nothing happens."
@@ -115,7 +115,7 @@ def _render_inventory_item(item: str, entities: dict[str, Entity]) -> str:
 
 
 def _render_entity_description(entity: Entity) -> str:
-    return entity.description.replace("{state}", entity.state)
+    return render_state_template(entity.description, entity.state)
 
 
 def _session_after_path(session: GameSessionState, path: tuple[Coordinate, ...]) -> GameSessionState:

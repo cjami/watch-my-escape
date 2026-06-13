@@ -20,6 +20,7 @@ from watch_my_escape.game.maps import (
     render_user_visibility_view,
     visible_notable_entities,
 )
+from watch_my_escape.game.models import render_state_template
 from watch_my_escape.game.premade_maps import get_premade_map
 from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
 from watch_my_escape.llm.client import InferenceProvider, create_provider
@@ -343,7 +344,7 @@ def _unknown_entity_detail(entity_id: str) -> EntityDisplay:
 
 
 def _entity_description(entity: Entity) -> str:
-    return entity.description.replace("{state}", entity.state)
+    return render_state_template(entity.description, entity.state)
 
 
 def _history_action_text(action: EscapeRoomAction) -> str:
