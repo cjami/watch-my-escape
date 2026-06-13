@@ -297,7 +297,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
         const row = document.createElement("div");
         row.className = "block-grid";
         row.innerHTML = `
-          <label class="block-field">Entity ${entitySelectHtml(condition.entity_id, `data-condition-field="entity_id"`, { emptyLabel: "Any entity" })}</label>
+          <label class="block-field">Entity ${entitySelectHtml(condition.entity_id, `data-condition-field="entity_id"`, { emptyLabel: "Current entity" })}</label>
           <label class="block-field">State <input data-condition-field="state" type="text" value="${escapeAttribute(condition.state ?? "")}" /></label>
           <button type="button" class="mini-button" data-remove-condition="${index}">Remove</button>
         `;

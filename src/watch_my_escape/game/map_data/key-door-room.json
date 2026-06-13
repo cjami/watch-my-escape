@@ -1,5 +1,5 @@
 {
-  "description": "A compact training room with a brass key, a locked door, and one clear escape route.",
+  "description": "A room with a brass key, a locked door, and one clear escape route.",
   "map": {
     "id": "key-door-room",
     "name": "Key Door Room",
@@ -952,7 +952,10 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -968,7 +971,9 @@
                 "actions": [
                   "pick_up",
                   "pull"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -982,7 +987,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -1006,10 +1012,14 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "locked"
                 }
               ],
@@ -1023,10 +1033,13 @@
             {
               "trigger": {
                 "action": "use_item",
-                "item": "brass-key"
+                "actions": [],
+                "item": "brass-key",
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "locked"
                 }
               ],
@@ -1041,7 +1054,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 },
                 {
                   "type": "escape_map"
@@ -1055,10 +1069,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "locked"
                 }
               ],
