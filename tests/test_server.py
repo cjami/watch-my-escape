@@ -65,10 +65,12 @@ def test_keyboard_flow_focus_contract_is_wired():
     assert "showSetupScreen: backToModelSelect" in app_script
     assert "showSetupScreen();" in game_runner_script
     assert "renderTranscript(dom.transcriptOutput, frame, pixelSprite);" in game_runner_script
-    assert "transcriptCard(event, pixelSprite)" in game_runner_script
+    assert "transcriptCard(event, pixelSprite, deliberationOpenStates)" in game_runner_script
     assert 'event.kind === "turn"' in game_runner_script
     assert "pixelSprite(event.action_emoji" in game_runner_script
     assert 'pixelSprite(item.icon || "?"' in game_runner_script
+    assert "transcriptDeliberationOpenStates(element)" in game_runner_script
+    assert "details.dataset.transcriptKey = key;" in game_runner_script
     assert 'fetch("/runs/cancel"' in game_runner_script
     assert "run_id: runId" in game_runner_script
 

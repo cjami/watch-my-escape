@@ -361,8 +361,9 @@ function renderTranscript(element, frame, pixelSprite) {
     return;
   }
 
+  const deliberationOpenStates = transcriptDeliberationOpenStates(element);
   element.dataset.transcriptSignature = signature;
-  element.replaceChildren(...events.map((event) => transcriptCard(event, pixelSprite)));
+  element.replaceChildren(...events.map((event) => transcriptCard(event, pixelSprite, deliberationOpenStates)));
 }
 
 function renderTranscriptMessage(element, message) {
@@ -378,9 +379,9 @@ function renderTranscriptMessage(element, message) {
   element.replaceChildren(empty);
 }
 
-function transcriptCard(event, pixelSprite) {
+function transcriptCard(event, pixelSprite, deliberationOpenStates = new Map()) {
   if (event.kind === "turn") {
-    return transcriptTurnCard(event, pixelSprite);
+    return transcriptTurnCard(event, pixelSprite, deliberationOpenStates);
   }
   return transcriptIntroCard(event, pixelSprite);
 }
@@ -420,7 +421,7 @@ function transcriptIntroCard(event, pixelSprite) {
   return card;
 }
 
-function transcriptTurnCard(event, pixelSprite) {
+function transcriptTurnCard(event, pixelSprite, deliberationOpenStates) {
   const card = document.createElement("article");
   const actionType = String(event.action_type || "unknown");
   card.className = `transcript-card transcript-card-turn transcript-action-${cssIdentifier(actionType)}`;
@@ -464,7 +465,7 @@ function transcriptTurnCard(event, pixelSprite) {
   }
 
   if (event.deliberation) {
-    card.append(transcriptDeliberation(event.deliberation));
+    card.append(transcriptDeliberation(event.deliberation, transcriptEventKey(event), deliberationOpenStates));
   }
 
   return card;
@@ -531,9 +532,11 @@ function transcriptEntityChip(item, pixelSprite) {
   return chip;
 }
 
-function transcriptDeliberation(text) {
+function transcriptDeliberation(text, key, openStates) {
   const details = document.createElement("details");
   details.className = "transcript-deliberation";
+  details.dataset.transcriptKey = key;
+  details.open = openStates.get(key) === true;
 
   const summary = document.createElement("summary");
   summary.textContent = "Deliberation";
@@ -543,6 +546,19 @@ function transcriptDeliberation(text) {
 
   details.append(summary, copy);
   return details;
+}
+
+function transcriptDeliberationOpenStates(element) {
+  return new Map(
+    [...element.querySelectorAll(".transcript-deliberation[data-transcript-key]")].map((details) => [
+      details.dataset.transcriptKey,
+      details.open,
+    ]),
+  );
+}
+
+function transcriptEventKey(event) {
+  return `turn-${event.turn_number ?? "unknown"}`;
 }
 
 function fallbackActionEmoji(actionType) {
