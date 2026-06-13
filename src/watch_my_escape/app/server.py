@@ -17,7 +17,14 @@ from fastapi.templating import Jinja2Templates
 from gradio import Server
 from pydantic import BaseModel, Field, ValidationError
 
-from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, run_model_escape, run_model_escape_steps
+from watch_my_escape.agent.escape_run import (
+    EntityDisplay,
+    EscapeRunFrame,
+    TranscriptIntroEvent,
+    TranscriptTurnEvent,
+    run_model_escape,
+    run_model_escape_steps,
+)
 from watch_my_escape.agent.runner import ThinkActSettings, think_act_settings_for_config
 from watch_my_escape.game.maps import GameSessionState, render_user_map_color_view, render_user_map_view
 from watch_my_escape.game.premade_maps import (
@@ -26,6 +33,7 @@ from watch_my_escape.game.premade_maps import (
     get_premade_map,
     list_premade_maps,
 )
+from watch_my_escape.game.runtime import ActionEffectSummary
 from watch_my_escape.llm.client import LlmConfigurationError, create_provider
 from watch_my_escape.llm.config import MODEL_PRESETS, ModelPreset, ModelPresetError, config_for_model_preset
 from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceSettings
@@ -261,6 +269,13 @@ def build_escape_run_response() -> dict[str, Any]:
             "map_colors": "",
             "visibility": "",
             "transcript": str(exc),
+            "transcript_events": (
+                {
+                    "kind": "intro",
+                    "message": str(exc),
+                    "visible_entities": (),
+                },
+            ),
         }
 
     return {
@@ -274,6 +289,7 @@ def build_escape_run_response() -> dict[str, Any]:
         "map_colors": _format_map(getattr(result, "map_color_view", ())),
         "visibility": _format_visibility(result.visibility_view),
         "transcript": result.transcript or "No turns were run.",
+        "transcript_events": _transcript_events_payload(getattr(result, "transcript_events", ())),
     }
 
 
@@ -418,6 +434,13 @@ def _escape_event_stream(
             "map_colors": "",
             "visibility": "",
             "transcript": str(exc),
+            "transcript_events": (
+                {
+                    "kind": "intro",
+                    "message": str(exc),
+                    "visible_entities": (),
+                },
+            ),
             "escaped": False,
         }
         yield f"data: {json.dumps(payload)}\n\n"
@@ -437,8 +460,66 @@ def _frame_payload(frame: EscapeRunFrame) -> dict[str, object]:
         "map_colors": _format_map(frame.map_color_view),
         "visibility": _format_visibility(frame.visibility_view),
         "transcript": frame.transcript or "Waiting for the first turn.",
+        "transcript_events": _transcript_events_payload(frame.transcript_events),
         "escaped": frame.escaped,
     }
+
+
+def _transcript_events_payload(events: object) -> tuple[dict[str, object], ...]:
+    if not isinstance(events, tuple):
+        return ()
+    return tuple(_transcript_event_payload(event) for event in events)
+
+
+def _transcript_event_payload(event: object) -> dict[str, object]:
+    if isinstance(event, TranscriptIntroEvent):
+        return {
+            "kind": "intro",
+            "message": event.message,
+            "visible_entities": _entity_details_payload(event.visible_entities),
+        }
+    if isinstance(event, TranscriptTurnEvent):
+        payload: dict[str, object] = {
+            "kind": "turn",
+            "turn_number": event.turn_number,
+            "sanity_before": event.sanity_before,
+            "sanity_after": event.sanity_after,
+            "deliberation": event.deliberation,
+            "action_type": event.action_type,
+            "action_emoji": event.action_emoji,
+            "action_text": event.action_text,
+            "result": event.result,
+            "effects": _action_effects_payload(event.effects),
+        }
+        if event.spoken_text is not None:
+            payload["spoken_text"] = event.spoken_text
+        return payload
+    if isinstance(event, dict):
+        return cast("dict[str, object]", event)
+    return {"kind": "intro", "message": str(event), "visible_entities": ()}
+
+
+def _action_effects_payload(effects: object) -> tuple[dict[str, str], ...]:
+    if not isinstance(effects, tuple):
+        return ()
+    return tuple(_action_effect_payload(effect) for effect in effects)
+
+
+def _action_effect_payload(effect: object) -> dict[str, str]:
+    if isinstance(effect, ActionEffectSummary):
+        return {
+            "kind": effect.kind,
+            "text": effect.text,
+            "entity_id": effect.entity_id or "",
+        }
+    if isinstance(effect, dict):
+        values = cast("dict[object, object]", effect)
+        return {
+            "kind": str(values.get("kind", "")),
+            "text": str(values.get("text", "")),
+            "entity_id": str(values.get("entity_id", "")),
+        }
+    return {"kind": "", "text": str(effect), "entity_id": ""}
 
 
 def _entity_details_payload(details: object) -> tuple[dict[str, str], ...]:

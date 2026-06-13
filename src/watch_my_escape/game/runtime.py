@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from pydantic import ValidationError
 
@@ -19,10 +20,26 @@ from watch_my_escape.game.maps import (
     render_agent_view,
     visible_notable_entities,
 )
-from watch_my_escape.game.models import Coordinate, Entity, render_state_template
+from watch_my_escape.game.models import BehaviorResult, Coordinate, Entity, render_state_template
 
 STARTING_SANITY = 100
 DEFAULT_NO_EFFECT_MESSAGE = "Nothing happens."
+
+
+@dataclass(frozen=True, slots=True)
+class ActionEffectSummary:
+    """User-facing summary of a non-message behavior effect."""
+
+    kind: Literal[
+        "add_inventory",
+        "remove_inventory",
+        "set_entity_active",
+        "set_entity_passable",
+        "set_entity_state",
+        "escape",
+    ]
+    text: str
+    entity_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +50,7 @@ class AppliedAction:
     sanity: int
     message: str
     movement_path: tuple[Coordinate, ...] = ()
+    effects: tuple[ActionEffectSummary, ...] = ()
 
 
 def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoomAction) -> AppliedAction:
@@ -47,12 +65,7 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
     if inventory_target is not None and root.action != "pick_up":
         text = root.text if isinstance(root, TalkToAction) else None
         behavior_result = session.evaluate_entity_action(inventory_target.id, root.action, text=text)
-        updated_session = session.apply_behavior_result(behavior_result)
-        return AppliedAction(
-            session=updated_session,
-            sanity=next_sanity,
-            message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
-        )
+        return _applied_behavior_action(session, next_sanity, behavior_result)
 
     target = _resolve_visible_target(session, root.target)
     if target is None:
@@ -78,13 +91,7 @@ def apply_agent_action(session: GameSessionState, sanity: int, action: EscapeRoo
 
     text = root.text if isinstance(root, TalkToAction) else None
     behavior_result = action_session.evaluate_entity_action(nearby_target.entity.id, root.action, text=text)
-    updated_session = action_session.apply_behavior_result(behavior_result)
-    return AppliedAction(
-        session=updated_session,
-        sanity=next_sanity,
-        message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
-        movement_path=movement_path,
-    )
+    return _applied_behavior_action(action_session, next_sanity, behavior_result, movement_path=movement_path)
 
 
 def render_game_state_for_agent(session: GameSessionState, sanity: int) -> str:
@@ -124,6 +131,87 @@ def _session_after_path(session: GameSessionState, path: tuple[Coordinate, ...])
     return session.model_copy(update={"agent_position": path[-1]})
 
 
+def _applied_behavior_action(
+    session: GameSessionState,
+    sanity: int,
+    behavior_result: BehaviorResult,
+    *,
+    movement_path: tuple[Coordinate, ...] = (),
+) -> AppliedAction:
+    effects = _effect_summaries(behavior_result)
+    return AppliedAction(
+        session=session.apply_behavior_result(behavior_result),
+        sanity=sanity,
+        message=_behavior_message(behavior_result, effects),
+        movement_path=movement_path,
+        effects=effects,
+    )
+
+
+def _behavior_message(result: BehaviorResult, effects: tuple[ActionEffectSummary, ...]) -> str:
+    if result.text:
+        return result.text
+    if effects:
+        return ""
+    return DEFAULT_NO_EFFECT_MESSAGE
+
+
+def _effect_summaries(result: BehaviorResult) -> tuple[ActionEffectSummary, ...]:
+    summaries: list[ActionEffectSummary] = []
+    summaries.extend(
+        ActionEffectSummary(
+            kind="add_inventory",
+            entity_id=entity_id,
+            text=f"Added {entity_id} to inventory.",
+        )
+        for entity_id in result.add_inventory
+    )
+    summaries.extend(
+        ActionEffectSummary(
+            kind="remove_inventory",
+            entity_id=entity_id,
+            text=f"Removed {entity_id} from inventory.",
+        )
+        for entity_id in result.remove_inventory
+    )
+    for entity_id, update in result.entity_updates.items():
+        if update.state is not None:
+            summaries.append(
+                ActionEffectSummary(
+                    kind="set_entity_state",
+                    entity_id=entity_id,
+                    text=f"{entity_id} state changed to {update.state}.",
+                )
+            )
+        if update.passable is not None:
+            summaries.append(
+                ActionEffectSummary(
+                    kind="set_entity_passable",
+                    entity_id=entity_id,
+                    text=f"{entity_id} became {_passable_text(passable=update.passable)}.",
+                )
+            )
+        if update.active is not None:
+            summaries.append(
+                ActionEffectSummary(
+                    kind="set_entity_active",
+                    entity_id=entity_id,
+                    text=f"{entity_id} became {_active_text(active=update.active)}.",
+                )
+            )
+    if result.escaped:
+        summaries.append(ActionEffectSummary(kind="escape", entity_id=None, text="Escape triggered."))
+    return tuple(summaries)
+
+
+def _passable_text(*, passable: bool) -> str:
+    return "passable" if passable else "impassable"
+
+
+def _active_text(*, active: bool) -> str:
+    return "active" if active else "inactive"
+
+
 def _apply_use_item_action(session: GameSessionState, sanity: int, action: UseItemAction) -> AppliedAction:
     if action.item not in session.inventory:
         return AppliedAction(
@@ -135,12 +223,7 @@ def _apply_use_item_action(session: GameSessionState, sanity: int, action: UseIt
     inventory_target = _resolve_inventory_target(session, action.target)
     if inventory_target is not None:
         behavior_result = session.evaluate_entity_action(inventory_target.id, action.action, item=action.item)
-        updated_session = session.apply_behavior_result(behavior_result)
-        return AppliedAction(
-            session=updated_session,
-            sanity=sanity,
-            message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
-        )
+        return _applied_behavior_action(session, sanity, behavior_result)
 
     target = _resolve_visible_target(session, action.target)
     if target is None:
@@ -165,13 +248,7 @@ def _apply_use_item_action(session: GameSessionState, sanity: int, action: UseIt
         )
 
     behavior_result = action_session.evaluate_entity_action(nearby_target.entity.id, action.action, item=action.item)
-    updated_session = action_session.apply_behavior_result(behavior_result)
-    return AppliedAction(
-        session=updated_session,
-        sanity=sanity,
-        message=behavior_result.text or DEFAULT_NO_EFFECT_MESSAGE,
-        movement_path=movement_path,
-    )
+    return _applied_behavior_action(action_session, sanity, behavior_result, movement_path=movement_path)
 
 
 def _resolve_nearby_target(session: GameSessionState, target: str) -> PlacedEntity | None:

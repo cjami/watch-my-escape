@@ -1,4 +1,4 @@
-from watch_my_escape.agent.escape_run import run_model_escape, run_model_escape_steps
+from watch_my_escape.agent.escape_run import TranscriptTurnEvent, run_model_escape, run_model_escape_steps
 from watch_my_escape.agent.runner import ThinkActSettings
 from watch_my_escape.game.maps import GameMap
 from watch_my_escape.llm.models import InferenceRequest, InferenceResponse
@@ -57,11 +57,35 @@ def test_run_model_escape_stops_when_the_model_escapes():
     assert "Available actions:" not in result.transcript
     assert "Deliberation: I will choose the next useful action." in result.transcript
     assert "direction: one of" not in result.transcript
-    assert "Position: (13, 7)" in result.transcript
+    assert "Position:" not in result.transcript
+    assert "Action: Pick up brass-key" in result.transcript
+    assert "Action: Use brass-key on locked-door" in result.transcript
     assert len(result.frames) == 7
     assert [frame.position for frame in result.frames[:4]] == ["(7, 7)", "(8, 7)", "(9, 7)", "(10, 7)"]
     assert [frame.delay_ms for frame in result.frames[1:]] == [150] * 6
     assert [frame.action_label for frame in result.frames] == ["", "pick up", "", "", "", "", "use item"]
+    intro_event = result.frames[0].transcript_events[0]
+    assert intro_event.kind == "intro"
+    turn_events = [event for event in result.frames[-1].transcript_events if isinstance(event, TranscriptTurnEvent)]
+    assert [event.kind for event in turn_events] == ["turn", "turn"]
+    assert intro_event.message == ""
+    assert [entity.id for entity in intro_event.visible_entities] == ["brass-key", "locked-door"]
+    assert turn_events[0].action_type == "pick_up"
+    assert turn_events[0].action_emoji == "\U0001f590\ufe0f"
+    assert turn_events[0].action_text == "Pick up brass-key"
+    assert turn_events[0].deliberation == "I will choose the next useful action."
+    assert [(effect.kind, effect.text) for effect in turn_events[0].effects] == [
+        ("add_inventory", "Added brass-key to inventory."),
+        ("set_entity_active", "brass-key became inactive."),
+    ]
+    assert turn_events[1].action_type == "use_item"
+    assert turn_events[1].action_emoji == "\U0001f9f0"
+    assert turn_events[1].action_text == "Use brass-key on locked-door"
+    assert [(effect.kind, effect.text) for effect in turn_events[1].effects] == [
+        ("remove_inventory", "Removed brass-key from inventory."),
+        ("set_entity_active", "locked-door became inactive."),
+        ("escape", "Escape triggered."),
+    ]
 
 
 def test_run_model_escape_steps_can_delay_before_first_model_request():
@@ -118,6 +142,9 @@ def test_run_model_escape_stops_when_no_actions_are_available():
     assert result.status == "No available actions remain before the model escaped."
     assert provider.requests == []
     assert "Action: none" in result.transcript
+    turn_event = _last_turn_event(result)
+    assert turn_event.action_type == "none"
+    assert turn_event.action_text == "No action available"
 
 
 def test_run_model_escape_offers_use_item_on_visible_distant_door_after_picking_up_key():
@@ -209,6 +236,10 @@ def test_run_model_escape_rejects_missing_discriminator_when_multiple_actions_ar
     assert result.frames[-1].action_label == ""
     assert "Deliberation: I will pick up the brass key." in result.transcript
     assert "Model returned an action outside the current grammar" in result.transcript
+    turn_event = _last_turn_event(result)
+    assert turn_event.action_type == "invalid"
+    assert turn_event.action_emoji == "\u26a0\ufe0f"
+    assert turn_event.deliberation == "I will pick up the brass key."
 
 
 def test_run_model_escape_omits_thinking_sections_from_transcript():
@@ -227,6 +258,7 @@ def test_run_model_escape_omits_thinking_sections_from_transcript():
     assert "</think>" not in result.transcript
     assert "quietly reason" not in result.transcript
     assert "Deliberation: I will pick up the key." in result.transcript
+    assert _last_turn_event(result).deliberation == "I will pick up the key."
 
 
 def test_run_model_escape_omits_gemma_thought_channel_from_transcript():
@@ -245,6 +277,50 @@ def test_run_model_escape_omits_gemma_thought_channel_from_transcript():
     assert "<channel|>" not in result.transcript
     assert "quietly reason" not in result.transcript
     assert "Deliberation: I will pick up the key." in result.transcript
+    assert _last_turn_event(result).deliberation == "I will pick up the key."
+
+
+def test_run_model_escape_transcript_event_highlights_talk_actions():
+    provider = PairedProvider(
+        (
+            (
+                "I should say the passphrase.",
+                f'{{"action":"talk_to","target":"gatekeeper","text":"silver moon","emotion":"{EMOTION_JSON}"}}',
+            ),
+        )
+    )
+    game_map = GameMap.model_validate(
+        {
+            "id": "talk-room",
+            "name": "Talk Room",
+            "agent_start": {"x": 1, "y": 1},
+            "entities": [
+                {
+                    "position": {"x": 2, "y": 1},
+                    "entity": {
+                        "id": "gatekeeper",
+                        "icon": "!",
+                        "description": "A silent gatekeeper.",
+                        "passable": True,
+                        "behaviors": [
+                            {
+                                "trigger": {"action": "talk_to", "phrase": "silver moon"},
+                                "effects": [{"type": "message", "text": "The gatekeeper steps aside."}],
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+    result = run_model_escape(provider=provider, game_map=game_map, starting_sanity=1)
+
+    turn_event = _last_turn_event(result)
+    assert turn_event.action_type == "talk_to"
+    assert turn_event.action_emoji == "\U0001f4ac"
+    assert turn_event.action_text == "Talk to gatekeeper"
+    assert turn_event.spoken_text == "silver moon"
 
 
 def test_run_model_escape_renders_action_emotion_as_agent_icon():
@@ -269,3 +345,9 @@ def test_run_model_escape_uses_selected_map():
 
     assert result.frames[0].position == "(3, 4)"
     assert result.frames[0].map_view[4][3] == "\U0001f642"
+
+
+def _last_turn_event(result):
+    event = result.frames[-1].transcript_events[-1]
+    assert isinstance(event, TranscriptTurnEvent)
+    return event

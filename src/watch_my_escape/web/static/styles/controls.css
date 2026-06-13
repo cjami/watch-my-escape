@@ -241,11 +241,14 @@
     white-space: normal;
   }
 
-  .panel-section pre {
-    height: calc(3lh + 1.5rem + 4px);
+  .transcript-log {
+    display: grid;
+    height: clamp(16rem, 42vh, 29rem);
     min-height: 0;
+    align-content: start;
+    gap: 0.48rem;
     margin: 0;
-    padding: 0.75rem;
+    padding: 0.54rem;
     overflow: auto;
     border: 2px solid rgb(248 255 232 / 13%);
     border-radius: 2px;
@@ -257,20 +260,227 @@
       auto;
     box-shadow: inset 0 0 28px rgb(0 0 0 / 42%);
     color: #e0e1cf;
-    font-size: 0.88rem;
-    line-height: 1.45;
+    font-size: 0.84rem;
+    line-height: 1.38;
   }
 
   #transcript {
-    height: clamp(16rem, 42vh, 29rem);
     max-height: none !important;
-    min-height: 0;
     overflow-x: hidden;
-    overflow-y: auto;
     overflow-wrap: anywhere;
     overscroll-behavior: contain;
-    white-space: pre-wrap;
+    white-space: normal;
     word-break: break-word;
+  }
+
+  .transcript-empty {
+    margin: 0;
+    color: #85908c;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-transform: uppercase;
+  }
+
+  .transcript-card {
+    display: grid;
+    gap: 0.42rem;
+    padding: 0.58rem 0.62rem;
+    border: 2px solid rgb(248 255 232 / 11%);
+    border-left-color: rgb(89 228 255 / 38%);
+    border-radius: 2px;
+    background:
+      linear-gradient(rgb(255 255 255 / 3%) 50%, rgb(0 0 0 / 8%) 50%),
+      rgb(3 8 14 / 68%);
+    background-size:
+      100% 4px,
+      auto;
+    box-shadow:
+      inset 0 0 0 1px rgb(0 0 0 / 62%),
+      0 3px 0 rgb(0 0 0 / 32%);
+  }
+
+  .transcript-card-talk {
+    border-color: rgb(255 212 71 / 22%);
+    border-left-color: rgb(255 212 71 / 66%);
+    background:
+      linear-gradient(rgb(255 255 255 / 4%) 50%, rgb(0 0 0 / 8%) 50%),
+      linear-gradient(180deg, rgb(18 17 8 / 74%), rgb(4 8 13 / 72%));
+    background-size:
+      100% 4px,
+      auto;
+  }
+
+  .transcript-card-header {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .transcript-kicker,
+  .transcript-sanity {
+    color: #85908c;
+    font-size: 0.68rem;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .transcript-title {
+    color: var(--arcade-cyan);
+    font-size: 0.76rem;
+    font-weight: 400;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .transcript-action-line {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .transcript-action-icon {
+    display: grid;
+    width: 1.6rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border: 1px solid rgb(89 228 255 / 26%);
+    border-radius: 2px;
+    background: rgb(2 2 4 / 50%);
+    font-size: 0.96rem;
+    line-height: 1;
+  }
+
+  .transcript-action-icon .pixel-sprite,
+  .transcript-entity-icon .pixel-sprite {
+    width: 82%;
+    height: 82%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .transcript-action-text {
+    min-width: 0;
+    color: #fff7c2;
+    font-size: 0.86rem;
+    font-weight: 400;
+    line-height: 1.24;
+  }
+
+  .transcript-result,
+  .transcript-card-copy,
+  .transcript-speech,
+  .transcript-deliberation p {
+    margin: 0;
+    max-height: none;
+    overflow: visible;
+    color: #cfd6ce;
+    font-size: 0.8rem;
+    line-height: 1.38;
+    text-overflow: clip;
+    white-space: pre-wrap;
+  }
+
+  .transcript-result {
+    padding-left: 2.05rem;
+    overflow-wrap: anywhere;
+  }
+
+  .transcript-speech {
+    margin-left: 2.05rem;
+    padding: 0.34rem 0.44rem;
+    border-left: 2px solid rgb(255 212 71 / 54%);
+    background: rgb(255 212 71 / 7%);
+    color: #fff7c2;
+  }
+
+  .transcript-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    margin-left: 2.05rem;
+  }
+
+  .transcript-effect {
+    max-width: 100%;
+    padding: 0.2rem 0.36rem;
+    border: 1px solid rgb(113 247 177 / 24%);
+    border-radius: 2px;
+    background: rgb(113 247 177 / 7%);
+    color: #d9ffe9;
+    font-size: 0.7rem;
+    line-height: 1.28;
+    overflow-wrap: anywhere;
+  }
+
+  .transcript-effect-escape {
+    border-color: rgb(255 212 71 / 34%);
+    background: rgb(255 212 71 / 9%);
+    color: #fff7c2;
+  }
+
+  .transcript-entity-list {
+    display: grid;
+    gap: 0.32rem;
+  }
+
+  .transcript-entity-chip {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.1rem 0.28rem;
+    padding: 0.26rem 0.38rem;
+    border: 1px solid rgb(89 228 255 / 22%);
+    border-radius: 2px;
+    background: rgb(2 2 4 / 44%);
+    color: #e0e1cf;
+    font-size: 0.72rem;
+    line-height: 1.2;
+  }
+
+  .transcript-entity-icon {
+    display: grid;
+    grid-row: span 2;
+    align-self: start;
+    place-items: center;
+    width: 1.05rem;
+    aspect-ratio: 1;
+    font-size: 0.82rem;
+    line-height: 1;
+  }
+
+  .transcript-entity-name {
+    color: #fff7c2;
+    font-size: 0.72rem;
+    line-height: 1.12;
+  }
+
+  .transcript-entity-description {
+    color: #aeb8b0;
+    font-size: 0.68rem;
+    line-height: 1.22;
+  }
+
+  .transcript-deliberation {
+    margin-left: 2.05rem;
+  }
+
+  .transcript-deliberation summary {
+    width: fit-content;
+    cursor: pointer;
+    color: #85908c;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .transcript-deliberation[open] {
+    display: grid;
+    gap: 0.28rem;
   }
 
   .editor-validation {

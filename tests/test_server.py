@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from gradio import Server
 
-from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame
+from watch_my_escape.agent.escape_run import EntityDisplay, EscapeRunFrame, TranscriptIntroEvent, TranscriptTurnEvent
 from watch_my_escape.app import server
 from watch_my_escape.app.server import (
     GENERATED_STATIC_DIR,
@@ -14,6 +14,7 @@ from watch_my_escape.app.server import (
     model_preset_options,
     premade_map_options,
 )
+from watch_my_escape.game.runtime import ActionEffectSummary
 from watch_my_escape.llm.client import LlmConfigurationError
 from watch_my_escape.llm.config import MODEL_PRESETS
 from watch_my_escape.llm.models import InferenceResponse
@@ -58,6 +59,11 @@ def test_keyboard_flow_focus_contract_is_wired():
     assert "mapSelector.focusSelectedMapOption();" in app_script
     assert "showSetupScreen: backToModelSelect" in app_script
     assert "showSetupScreen();" in game_runner_script
+    assert "renderTranscript(dom.transcriptOutput, frame, pixelSprite);" in game_runner_script
+    assert "transcriptCard(event, pixelSprite)" in game_runner_script
+    assert 'event.kind === "turn"' in game_runner_script
+    assert "pixelSprite(event.action_emoji" in game_runner_script
+    assert 'pixelSprite(item.icon || "?"' in game_runner_script
 
 
 def test_keyboard_escape_in_model_settings_stays_on_model_screen():
@@ -115,6 +121,7 @@ def test_homepage_renders_without_request_query_parameter():
     assert 'id="delete-saved-map"' in response.text
     assert 'id="escape-result-icon"' in response.text
     assert 'id="escape-result-message"' in response.text
+    assert 'id="transcript" class="transcript-log" role="log"' in response.text
     assert 'aria-label="Undo"' in response.text
     assert 'aria-label="Redo"' in response.text
     assert "Main Menu" in response.text
@@ -344,6 +351,36 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
             transcript="Turn 1 - sanity 100 -> 99",
             status="Still searching with 99 sanity remaining.",
             action_label="open",
+            transcript_events=(
+                TranscriptIntroEvent(
+                    visible_entities=(
+                        EntityDisplay(
+                            id="locked-door",
+                            icon="\U0001f6aa",
+                            description="A locked door bars the exit.",
+                            color="#C8793A",
+                        ),
+                    ),
+                    message="",
+                ),
+                TranscriptTurnEvent(
+                    turn_number=1,
+                    sanity_before=100,
+                    sanity_after=99,
+                    deliberation="I should try the door.",
+                    action_type="open",
+                    action_emoji="\U0001f6aa",
+                    action_text="Open locked-door",
+                    result="The door is locked.",
+                    effects=(
+                        ActionEffectSummary(
+                            kind="set_entity_state",
+                            entity_id="locked-door",
+                            text="locked-door state changed to unlocked.",
+                        ),
+                    ),
+                ),
+            ),
         )
 
     provider = object()
@@ -371,6 +408,12 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert '"visible_entity_details": [{"id": "locked-door"' in response.text
     assert '"color": "#C8793A"' in response.text
     assert '"inventory_details": [{"id": "brass-key"' in response.text
+    assert '"transcript_events": [{"kind": "intro"' in response.text
+    assert '"kind": "turn"' in response.text
+    assert '"action_type": "open"' in response.text
+    assert '"action_text": "Open locked-door"' in response.text
+    assert '"effects": [{"kind": "set_entity_state"' in response.text
+    assert '"text": "locked-door state changed to unlocked."' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
 

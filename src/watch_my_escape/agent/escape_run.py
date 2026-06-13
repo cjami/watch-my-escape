@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ValidationError
 
@@ -22,7 +22,13 @@ from watch_my_escape.game.maps import (
 )
 from watch_my_escape.game.models import render_state_template
 from watch_my_escape.game.premade_maps import get_premade_map
-from watch_my_escape.game.runtime import STARTING_SANITY, apply_agent_action, render_game_state_for_agent
+from watch_my_escape.game.runtime import (
+    STARTING_SANITY,
+    ActionEffectSummary,
+    AppliedAction,
+    apply_agent_action,
+    render_game_state_for_agent,
+)
 from watch_my_escape.llm.client import InferenceProvider, create_provider
 from watch_my_escape.llm.models import InferenceRequest, StructuredOutputSpec
 from watch_my_escape.llm.structured import StructuredOutputError, strip_thinking_sections, validate_structured_output
@@ -34,6 +40,19 @@ if TYPE_CHECKING:
     from watch_my_escape.game.models import Entity
 
 DEFAULT_MAP_ID = "key-door-room"
+ACTION_EMOJIS = {
+    "close": "↩️",
+    "examine": "🔍",
+    "invalid": "⚠️",
+    "none": "·",
+    "open": "🚪",
+    "operate": "⚙️",
+    "pick_up": "🖐️",
+    "pull": "⬇️",
+    "push": "⬆️",
+    "talk_to": "💬",
+    "use_item": "🧰",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +63,52 @@ class EntityDisplay:
     icon: str
     description: str
     color: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptIntroEvent:
+    """Initial room context shown before the first turn."""
+
+    visible_entities: tuple[EntityDisplay, ...]
+    message: str = ""
+    kind: Literal["intro"] = "intro"
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptTurnEvent:
+    """Browser-facing transcript details for one model turn."""
+
+    turn_number: int
+    sanity_before: int
+    sanity_after: int
+    deliberation: str
+    action_type: str
+    action_emoji: str
+    action_text: str
+    result: str
+    effects: tuple[ActionEffectSummary, ...] = ()
+    spoken_text: str | None = None
+    kind: Literal["turn"] = "turn"
+
+
+type TranscriptEvent = TranscriptIntroEvent | TranscriptTurnEvent
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptLog:
+    """Accumulated legacy and structured transcript output."""
+
+    entries: list[str]
+    events: list[TranscriptEvent]
+
+
+@dataclass(frozen=True, slots=True)
+class TranscriptTurnContext:
+    """Shared turn metadata for transcript output."""
+
+    turn_number: int
+    sanity_before: int
+    sanity_after: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +129,7 @@ class EscapeRunFrame:
     visibility_view: tuple[tuple[bool, ...], ...] = ()
     visible_entity_details: tuple[EntityDisplay, ...] = ()
     inventory_details: tuple[EntityDisplay, ...] = ()
+    transcript_events: tuple[TranscriptEvent, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,6 +148,7 @@ class EscapeRunResult:
     visibility_view: tuple[tuple[bool, ...], ...] = ()
     visible_entity_details: tuple[EntityDisplay, ...] = ()
     inventory_details: tuple[EntityDisplay, ...] = ()
+    transcript_events: tuple[TranscriptEvent, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,6 +201,7 @@ def run_model_escape(
         visibility_view=final_frame.visibility_view,
         visible_entity_details=final_frame.visible_entity_details,
         inventory_details=final_frame.inventory_details,
+        transcript_events=final_frame.transcript_events,
     )
 
 
@@ -147,15 +215,11 @@ def run_model_escape_steps(
 ) -> Iterator[EscapeRunFrame]:
     """Yield visible state after each model turn in an escape-room map."""
     resolved_provider = create_provider() if provider is None else provider
-    premade_map = get_premade_map(DEFAULT_MAP_ID) if game_map is None else None
-    selected_map = premade_map.map if premade_map else game_map
-    if selected_map is None:
-        msg = "a game map is required"
-        raise ValueError(msg)
+    selected_map = _selected_escape_map(game_map)
     session = GameSessionState(map=selected_map)
     sanity = starting_sanity
     history: list[str] = []
-    transcript: list[str] = []
+    transcript = TranscriptLog(entries=[], events=[_intro_event(session)])
 
     yield _frame(
         session,
@@ -166,21 +230,13 @@ def run_model_escape_steps(
     )
 
     while sanity > 0 and not session.escaped:
-        turn_number = len(transcript) + 1
+        turn_number = len(transcript.entries) + 1
         game_state = render_game_state_for_agent(session, sanity)
         action_model = build_available_action_model(session)
         if action_model is None:
             status = "No available actions remain before the model escaped."
-            transcript.append(
-                "\n".join(
-                    [
-                        f"Turn {turn_number} - sanity {sanity} -> {sanity}",
-                        "Action: none",
-                        f"Result: {status}",
-                        _position_line(session),
-                    ]
-                )
-            )
+            turn_context = TranscriptTurnContext(turn_number, sanity, sanity)
+            _record_no_action_turn(transcript, turn_context, status=status)
             yield _frame(session, sanity, transcript, status)
             break
         try:
@@ -194,38 +250,35 @@ def run_model_escape_steps(
         except EscapeTurnActionError as exc:
             next_sanity = max(0, sanity - 1)
             message = f"Model returned an action outside the current grammar: {exc}"
-            transcript.append(
-                "\n".join(
-                    [
-                        f"Turn {turn_number} - sanity {sanity} -> {next_sanity}",
-                        *_deliberation_lines(exc.deliberation),
-                        "Action: invalid",
-                        f"Result: {message}",
-                        _position_line(session),
-                    ]
-                )
+            turn_context = TranscriptTurnContext(turn_number, sanity, next_sanity)
+            _record_invalid_action_turn(
+                transcript,
+                turn_context,
+                deliberation=exc.deliberation,
+                message=message,
             )
             history.append(f"Invalid action -> {message}")
             sanity = next_sanity
-            yield _frame(session, sanity, transcript, _status(escaped=session.escaped, sanity=sanity))
+            yield _frame(
+                session,
+                sanity,
+                transcript,
+                _status(escaped=session.escaped, sanity=sanity),
+            )
             continue
         action = EscapeRoomAction.model_validate(result.action.model_dump(mode="json"))
         applied = apply_agent_action(session, sanity, action)
         action_emotion = emotion_to_emoji(action.root.emotion)
         action_label = _action_label(action)
-        action_text = action.model_dump_json()
-        transcript.append(
-            "\n".join(
-                [
-                    f"Turn {turn_number} - sanity {sanity} -> {applied.sanity}",
-                    *_deliberation_lines(result.deliberation),
-                    f"Action: {action_text}",
-                    f"Result: {applied.message}",
-                    _position_line(applied.session),
-                ]
-            )
+        turn_context = TranscriptTurnContext(turn_number, sanity, applied.sanity)
+        _record_action_turn(
+            transcript,
+            turn_context,
+            action=action,
+            deliberation=result.deliberation,
+            applied=applied,
         )
-        history.append(f"{_history_action_text(action)} -> {applied.message}")
+        history.append(f"{_history_action_text(action)} -> {_history_result_text(applied)}")
         sanity = applied.sanity
         if applied.movement_path:
             for index, step in enumerate(applied.movement_path):
@@ -254,14 +307,20 @@ def run_model_escape_steps(
             presentation=FramePresentation(agent_icon=action_emotion, action_label=action_label),
         )
 
-    if not transcript:
+    if not transcript.entries:
         yield _frame(session, sanity, transcript, _status(escaped=session.escaped, sanity=sanity))
+
+
+def _selected_escape_map(game_map: GameMap | None) -> GameMap:
+    if game_map is not None:
+        return game_map
+    return get_premade_map(DEFAULT_MAP_ID).map
 
 
 def _frame(
     session: GameSessionState,
     sanity: int,
-    transcript: list[str],
+    transcript: TranscriptLog,
     status: str,
     *,
     presentation: FramePresentation = DEFAULT_FRAME_PRESENTATION,
@@ -276,7 +335,8 @@ def _frame(
         inventory_details=_inventory_details(session),
         map_view=render_user_map_view(session, agent_icon=presentation.agent_icon),
         map_color_view=render_user_map_color_view(session),
-        transcript="\n\n".join(transcript),
+        transcript="\n\n".join(transcript.entries),
+        transcript_events=tuple(transcript.events),
         status=status,
         delay_ms=presentation.delay_ms,
         action_label=presentation.action_label,
@@ -292,15 +352,117 @@ def _status(*, escaped: bool, sanity: int) -> str:
     return f"Still searching with {sanity} sanity remaining."
 
 
-def _position_line(session: GameSessionState) -> str:
-    return f"Position: {_position_text(session)}"
+def _record_no_action_turn(transcript: TranscriptLog, context: TranscriptTurnContext, *, status: str) -> None:
+    transcript.entries.append(
+        "\n".join(
+            [
+                _turn_header(context),
+                "Action: none",
+                f"Result: {status}",
+            ]
+        )
+    )
+    transcript.events.append(
+        TranscriptTurnEvent(
+            turn_number=context.turn_number,
+            sanity_before=context.sanity_before,
+            sanity_after=context.sanity_after,
+            deliberation="",
+            action_type="none",
+            action_emoji=ACTION_EMOJIS["none"],
+            action_text="No action available",
+            result=status,
+        )
+    )
+
+
+def _record_invalid_action_turn(
+    transcript: TranscriptLog,
+    context: TranscriptTurnContext,
+    *,
+    deliberation: str,
+    message: str,
+) -> None:
+    transcript.entries.append(
+        "\n".join(
+            [
+                _turn_header(context),
+                *_deliberation_lines(deliberation),
+                "Action: invalid",
+                f"Result: {message}",
+            ]
+        )
+    )
+    transcript.events.append(
+        TranscriptTurnEvent(
+            turn_number=context.turn_number,
+            sanity_before=context.sanity_before,
+            sanity_after=context.sanity_after,
+            deliberation=_deliberation_text(deliberation),
+            action_type="invalid",
+            action_emoji=ACTION_EMOJIS["invalid"],
+            action_text="Invalid action",
+            result=message,
+        )
+    )
+
+
+def _record_action_turn(
+    transcript: TranscriptLog,
+    context: TranscriptTurnContext,
+    *,
+    action: EscapeRoomAction,
+    deliberation: str,
+    applied: AppliedAction,
+) -> None:
+    action_text = _action_text(action)
+    transcript.entries.append(
+        "\n".join(
+            [
+                _turn_header(context),
+                *_deliberation_lines(deliberation),
+                f"Action: {action_text}",
+                *_result_lines(applied),
+            ]
+        )
+    )
+    transcript.events.append(
+        TranscriptTurnEvent(
+            turn_number=context.turn_number,
+            sanity_before=context.sanity_before,
+            sanity_after=context.sanity_after,
+            deliberation=_deliberation_text(deliberation),
+            action_type=action.root.action,
+            action_emoji=_action_emoji(action.root.action),
+            action_text=action_text,
+            result=applied.message,
+            effects=applied.effects,
+            spoken_text=getattr(action.root, "text", None),
+        )
+    )
+
+
+def _result_lines(applied: AppliedAction) -> tuple[str, ...]:
+    lines: list[str] = []
+    if applied.message:
+        lines.append(f"Result: {applied.message}")
+    lines.extend(f"Effect: {effect.text}" for effect in applied.effects)
+    return tuple(lines)
+
+
+def _turn_header(context: TranscriptTurnContext) -> str:
+    return f"Turn {context.turn_number} - sanity {context.sanity_before} -> {context.sanity_after}"
 
 
 def _deliberation_lines(deliberation: str) -> tuple[str, ...]:
-    stripped = strip_thinking_sections(deliberation).strip()
+    stripped = _deliberation_text(deliberation)
     if not stripped:
         return ()
     return (f"Deliberation: {stripped}",)
+
+
+def _deliberation_text(deliberation: str) -> str:
+    return strip_thinking_sections(deliberation).strip()
 
 
 def _position_text(session: GameSessionState) -> str:
@@ -343,8 +505,34 @@ def _unknown_entity_detail(entity_id: str) -> EntityDisplay:
     return EntityDisplay(id=entity_id, icon="?", description="")
 
 
+def _intro_event(session: GameSessionState) -> TranscriptIntroEvent:
+    return TranscriptIntroEvent(visible_entities=_visible_entity_details(session))
+
+
 def _entity_description(entity: Entity) -> str:
     return render_state_template(entity.description, entity.state)
+
+
+def _action_text(action: EscapeRoomAction) -> str:
+    root = action.root
+    if root.action == "talk_to":
+        return f"Talk to {root.target}"
+    if root.action == "use_item":
+        return f"Use {root.item} on {root.target}"
+    action_phrases = {
+        "close": "Close",
+        "examine": "Examine",
+        "open": "Open",
+        "operate": "Operate",
+        "pick_up": "Pick up",
+        "pull": "Pull",
+        "push": "Push",
+    }
+    return f"{action_phrases[root.action]} {root.target}"
+
+
+def _action_emoji(action_type: str) -> str:
+    return ACTION_EMOJIS.get(action_type, ACTION_EMOJIS["invalid"])
 
 
 def _history_action_text(action: EscapeRoomAction) -> str:
@@ -363,6 +551,11 @@ def _history_action_text(action: EscapeRoomAction) -> str:
         "pick_up": "picked up",
     }
     return f"You {past_tense_verbs[root.action]} {root.target}"
+
+
+def _history_result_text(applied: AppliedAction) -> str:
+    parts = [applied.message, *(effect.text for effect in applied.effects)]
+    return " ".join(part for part in parts if part)
 
 
 def _action_label(action: EscapeRoomAction) -> str:

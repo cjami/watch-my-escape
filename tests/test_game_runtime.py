@@ -83,6 +83,9 @@ def test_inventory_entities_can_be_used_with_each_other():
     assert result.sanity == 99
     assert result.movement_path == ()
     assert result.message == "The box clicks open."
+    assert [(effect.kind, effect.entity_id, effect.text) for effect in result.effects] == [
+        ("set_entity_state", "locked-box", "locked-box state changed to open.")
+    ]
     assert result.session.map.entities_by_id()["locked-box"].state == "open"
 
 
@@ -111,6 +114,7 @@ def test_action_without_matching_behavior_reports_only_no_effect():
     result = apply_agent_action(session, STARTING_SANITY, _action("open", target="locked-door"))
 
     assert result.message == "Nothing happens."
+    assert result.effects == ()
 
 
 def test_use_item_without_matching_behavior_reports_only_no_effect():
@@ -140,6 +144,7 @@ def test_use_item_without_matching_behavior_reports_only_no_effect():
     result = apply_agent_action(session, STARTING_SANITY, _action("use_item", item="small-key", target="locked-box"))
 
     assert result.message == "Nothing happens."
+    assert result.effects == ()
 
 
 def test_inventory_entity_can_be_opened_without_movement():
@@ -179,6 +184,9 @@ def test_inventory_entity_can_be_opened_without_movement():
     assert result.sanity == 99
     assert result.movement_path == ()
     assert result.message == "The box opens."
+    assert [(effect.kind, effect.entity_id, effect.text) for effect in result.effects] == [
+        ("set_entity_state", "small-box", "small-box state changed to open.")
+    ]
     assert result.session.map.entities_by_id()["small-box"].state == "open"
 
 
@@ -248,7 +256,48 @@ def test_add_inventory_can_add_unplaced_entity():
     result = apply_agent_action(session, STARTING_SANITY, _action("open", target="wooden-box"))
 
     assert result.message == "There is a folded note inside."
+    assert [(effect.kind, effect.entity_id, effect.text) for effect in result.effects] == [
+        ("add_inventory", "folded-note", "Added folded-note to inventory.")
+    ]
     assert result.session.inventory == ("folded-note",)
+
+
+def test_silent_state_change_reports_effect_instead_of_no_effect():
+    session = GameSessionState(
+        map=GameMap.model_validate(
+            {
+                "id": "silent-state-map",
+                "name": "Silent State Map",
+                "agent_start": {"x": 1, "y": 1},
+                "entities": [
+                    {
+                        "position": {"x": 1, "y": 1},
+                        "entity": {
+                            "id": "button",
+                            "icon": "\U0001f534",
+                            "description": "A button marked {state}.",
+                            "passable": True,
+                            "state": "unpressed",
+                            "behaviors": [
+                                {
+                                    "trigger": {"action": "push"},
+                                    "effects": [{"type": "set_entity_state", "state": "pressed"}],
+                                }
+                            ],
+                        },
+                    }
+                ],
+            }
+        )
+    )
+
+    result = apply_agent_action(session, STARTING_SANITY, _action("push", target="button"))
+
+    assert result.message == ""
+    assert [(effect.kind, effect.entity_id, effect.text) for effect in result.effects] == [
+        ("set_entity_state", "button", "button state changed to pressed.")
+    ]
+    assert result.session.map.entities_by_id()["button"].state == "pressed"
 
 
 def test_available_action_model_schema_requires_action_discriminator():
