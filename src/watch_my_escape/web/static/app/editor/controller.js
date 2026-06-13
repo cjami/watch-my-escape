@@ -134,6 +134,7 @@ export function createEditor({ customMapStore, dom, onBack, onCustomMapsChanged,
     });
     document.addEventListener("keydown", documents.handleValidationPopupKeydown);
     document.addEventListener("keydown", handleMapDocumentPopupKeydown);
+    document.addEventListener("pointerdown", behaviorEditor.handleDocumentPointerDown);
     document.addEventListener("click", behaviorEditor.handleDocumentClick);
     document.addEventListener("pointermove", grid.handleDragPointerMove);
     document.addEventListener("pointerup", grid.finishGridDrag);

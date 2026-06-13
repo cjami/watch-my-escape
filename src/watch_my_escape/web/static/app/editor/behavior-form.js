@@ -12,6 +12,8 @@ import {
 import { defaultBehavior, defaultEffect } from "./state.js";
 
 export function createBehaviorEditor({ context, history, renderEditor, validation }) {
+  let outsidePointerDown = null;
+
   function addBehavior() {
     const entity = context.selectedEntity();
     if (!entity) {
@@ -66,10 +68,37 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     if (!context.openBehaviorEditor) {
       return;
     }
+    const pointerDown = outsidePointerDown;
+    outsidePointerDown = null;
     if (eventStartedInside(event, context.dom.behaviorEditorPanel, context.dom.behaviorList, context.dom.addBehaviorButton)) {
       return;
     }
+    if (!pointerDown || pointerMoved(pointerDown, event) || hasTextSelection()) {
+      return;
+    }
     closeBehaviorEditor();
+  }
+
+  function handleDocumentPointerDown(event) {
+    outsidePointerDown = null;
+    if (!context.openBehaviorEditor || (event.button !== undefined && event.button !== 0)) {
+      return;
+    }
+    if (eventStartedInside(event, context.dom.behaviorEditorPanel, context.dom.behaviorList, context.dom.addBehaviorButton)) {
+      return;
+    }
+    outsidePointerDown = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+  }
+
+  function pointerMoved(start, event) {
+    return Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6;
+  }
+
+  function hasTextSelection() {
+    return Boolean(window.getSelection()?.toString().trim());
   }
 
   function eventStartedInside(event, ...elements) {
@@ -476,5 +505,5 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     });
   }
 
-  return { addBehavior, handleDocumentClick, render };
+  return { addBehavior, handleDocumentClick, handleDocumentPointerDown, render };
 }
