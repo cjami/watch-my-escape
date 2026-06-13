@@ -1,6 +1,6 @@
 import { presets } from "./constants.js";
 
-export function createPresetPicker({ context }) {
+export function createPresetPicker({ beginPresetDrag, context }) {
   function render() {
     context.dom.entityPresets.replaceChildren(
       ...presets.map((preset) => {
@@ -15,8 +15,14 @@ export function createPresetPicker({ context }) {
         name.className = "preset-name";
         name.textContent = preset.name;
         button.append(icon, name);
+        button.title = "Click to select, or drag onto the map to place once.";
         button.classList.toggle("is-selected", preset === context.selectedPreset);
+        button.addEventListener("pointerdown", (event) => beginPresetDrag(event, button, preset));
         button.addEventListener("click", () => {
+          if (context.suppressNextPresetClick) {
+            context.suppressNextPresetClick = false;
+            return;
+          }
           context.selectedPreset = preset;
           context.setEditorTool("place");
           render();

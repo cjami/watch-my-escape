@@ -13,7 +13,11 @@ export function createEditor({ customMapStore, dom, onBack, onCustomMapsChanged,
   const context = createEditorContext({ dom, pixelSprite });
   const iconCatalog = createIconCatalog({ context });
   const tabs = createEditorTabs({ context });
-  const presetPicker = createPresetPicker({ context });
+  let beginPresetDrag = () => {};
+  const presetPicker = createPresetPicker({
+    beginPresetDrag: (...args) => beginPresetDrag(...args),
+    context,
+  });
   const history = createEditorHistory({
     context,
     renderEditor,
@@ -35,6 +39,7 @@ export function createEditor({ customMapStore, dom, onBack, onCustomMapsChanged,
     history,
     renderEditor,
   });
+  beginPresetDrag = grid.beginPresetDrag;
   const behaviorEditor = createBehaviorEditor({
     context,
     history,

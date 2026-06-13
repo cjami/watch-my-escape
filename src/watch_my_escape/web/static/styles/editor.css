@@ -127,7 +127,18 @@
     min-height: 4.5rem;
     min-width: 0;
     place-items: center;
+    cursor: grab;
     text-align: center;
+    touch-action: none;
+  }
+
+  .preset-button.is-drag-source {
+    border-color: var(--arcade-amber);
+    background:
+      radial-gradient(circle, rgb(255 212 71 / 18%), transparent 62%),
+      linear-gradient(180deg, rgb(34 28 12 / 96%), rgb(9 12 18 / 96%));
+    cursor: grabbing;
+    transform: translateY(-2px);
   }
 
   .preset-name {
