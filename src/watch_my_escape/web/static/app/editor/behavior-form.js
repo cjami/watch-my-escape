@@ -188,9 +188,10 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
         if (input.dataset.triggerField === "action") {
           resetTriggerForAction(behavior.trigger);
           render();
+          validation.schedule();
         } else {
           normalizeTrigger(behavior.trigger);
-          renderEditor();
+          scheduleFieldValidation(input);
         }
       });
     });
@@ -199,6 +200,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
         history.record();
         updateTriggerActions(behavior.trigger, input.value, input.checked);
         render();
+        validation.schedule();
       });
     });
     block.querySelector("[data-remove-behavior]").addEventListener("click", () => {
@@ -334,7 +336,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
           input.addEventListener("input", () => {
             history.record();
             condition[input.dataset.conditionField] = input.value.trim() || null;
-            validation.schedule();
+            scheduleFieldValidation(input);
           });
         });
         row.querySelector("[data-remove-condition]").addEventListener("click", () => {
@@ -364,7 +366,7 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
             if (input.dataset.effectField === "type") {
               renderEditor();
             } else {
-              validation.schedule();
+              scheduleFieldValidation(input);
             }
           });
         });
@@ -503,6 +505,14 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
     requestAnimationFrame(() => {
       context.dom.behaviorEditorPanel.scrollTop = context.dom.behaviorEditorPanel.scrollHeight;
     });
+  }
+
+  function scheduleFieldValidation(input) {
+    if (input.tagName === "INPUT" && input.type === "text") {
+      validation.scheduleTyping();
+      return;
+    }
+    validation.schedule();
   }
 
   return { addBehavior, handleDocumentClick, handleDocumentPointerDown, render };

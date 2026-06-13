@@ -73,6 +73,21 @@ def test_main_menu_keyboard_focus_does_not_add_visual_border():
     assert "outline: none;" in screens_styles
 
 
+def test_editor_typing_uses_quiet_validation_schedule():
+    behavior_form_script = SOURCE_STATIC_DIR.joinpath("app", "editor", "behavior-form.js").read_text(encoding="utf-8")
+    controller_script = SOURCE_STATIC_DIR.joinpath("app", "editor", "controller.js").read_text(encoding="utf-8")
+    entity_form_script = SOURCE_STATIC_DIR.joinpath("app", "editor", "entity-form.js").read_text(encoding="utf-8")
+    validation_script = SOURCE_STATIC_DIR.joinpath("app", "editor", "validation.js").read_text(encoding="utf-8")
+
+    assert "function scheduleTyping()" in validation_script
+    assert "showPendingImmediately: false" in validation_script
+    assert 'dom.editorMapName.addEventListener("input"' in controller_script
+    assert "validation.scheduleTyping();" in controller_script
+    assert 'input.type === "checkbox" ? validation.schedule : validation.scheduleTyping' in entity_form_script
+    assert "function scheduleFieldValidation(input)" in behavior_form_script
+    assert "validation.scheduleTyping();" in behavior_form_script
+
+
 def test_generated_assets_live_outside_package_source():
     assert GENERATED_STATIC_DIR.parts[-3:] == ("build", "web", "static")
     assert "src" not in GENERATED_STATIC_DIR.parts

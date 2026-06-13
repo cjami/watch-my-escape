@@ -112,17 +112,17 @@ export function createEntityForm({
     } else {
       placed.entity[field] = input.value;
     }
-    updateEditorAfterEntityFieldChange(field);
+    updateEditorAfterEntityFieldChange(field, input.type === "checkbox" ? validation.schedule : validation.scheduleTyping);
   }
 
-  function updateEditorAfterEntityFieldChange(field) {
+  function updateEditorAfterEntityFieldChange(field, scheduleValidation) {
     renderGrid();
     renderTray();
     if (field === "id" || field === "notable") {
       renderBehaviors();
     }
     history.updateButtons();
-    validation.schedule();
+    scheduleValidation();
   }
 
   return { render };

@@ -115,11 +115,11 @@ export function createEditor({ customMapStore, dom, onBack, onCustomMapsChanged,
     dom.addBehaviorButton.addEventListener("click", behaviorEditor.addBehavior);
     dom.editorMapName.addEventListener("input", () => {
       history.record();
-      validation.schedule();
+      validation.scheduleTyping();
     });
     dom.editorDescription.addEventListener("input", () => {
       history.record();
-      validation.schedule();
+      validation.scheduleTyping();
     });
     dom.editorToolButtons.forEach((button) => {
       button.addEventListener("click", () => {

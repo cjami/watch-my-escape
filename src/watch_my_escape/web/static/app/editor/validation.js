@@ -7,10 +7,23 @@ export function createEditorValidation({ buildEditorDocument, context }) {
   let validationEpoch = 0;
 
   function schedule() {
+    scheduleValidation({ showPendingImmediately: true });
+  }
+
+  function scheduleTyping() {
+    scheduleValidation({ showPendingImmediately: false });
+  }
+
+  function scheduleValidation({ showPendingImmediately }) {
     window.clearTimeout(validationTimer);
     validationEpoch += 1;
-    updateState("pending", "Validation pending.");
-    validationTimer = window.setTimeout(() => validateEditorDocument(validationEpoch), editorValidationDelayMs);
+    if (showPendingImmediately) {
+      updateState("pending", "Validation pending.");
+    }
+    validationTimer = window.setTimeout(() => {
+      updateState("pending", "Validation pending.");
+      validateEditorDocument(validationEpoch);
+    }, editorValidationDelayMs);
   }
 
   async function validateEditorDocument(currentEpoch) {
@@ -106,6 +119,7 @@ export function createEditorValidation({ buildEditorDocument, context }) {
   return {
     issues: editorValidationIssues,
     schedule,
+    scheduleTyping,
     updateState,
   };
 }
