@@ -280,7 +280,7 @@
     display: none;
   }
 
-  .escape-victory {
+  .escape-result {
     display: grid;
     width: min(92%, 30rem);
     gap: clamp(1rem, 3vw, 1.8rem);
@@ -336,6 +336,13 @@
     font-weight: 400;
     line-height: 0.92;
     text-transform: uppercase;
+  }
+
+  .escape-banner[data-result="loss"] .escape-message {
+    font-size: clamp(2rem, 7.8vw, 5.1rem);
+    max-width: min(96%, 18ch);
+    flex-wrap: nowrap;
+    white-space: nowrap;
   }
 
   .escape-banner:not([hidden]) .escape-message {

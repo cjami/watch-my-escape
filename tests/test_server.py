@@ -57,6 +57,8 @@ def test_homepage_renders_without_request_query_parameter():
     assert 'id="save-map-dialog"' in response.text
     assert 'id="load-saved-map"' in response.text
     assert 'id="delete-saved-map"' in response.text
+    assert 'id="escape-result-icon"' in response.text
+    assert 'id="escape-result-message"' in response.text
     assert 'aria-label="Undo"' in response.text
     assert 'aria-label="Redo"' in response.text
     assert "Main Menu" in response.text

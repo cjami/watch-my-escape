@@ -40,11 +40,7 @@ export function createMapRenderer({ dom, getSelectedModel, pixelSprite }) {
     renderMap(lastMapText, lastAgentPosition, lastVisibilityText, lastActionLabel, lastColorText);
   }
 
-  function renderEscapeCelebration() {
-    dom.escapeAgentIcon.replaceChildren(pixelSprite("\u{1F973}", "Escaped agent", getSelectedModel()?.brand_color, 40));
-  }
-
-  return { refresh, renderEscapeCelebration, renderMap };
+  return { refresh, renderMap };
 }
 
 export function renderMapInto({

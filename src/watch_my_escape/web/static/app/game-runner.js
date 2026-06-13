@@ -1,6 +1,20 @@
 import { formatValidationError } from "./shared/strings.js";
 
-const escapeCelebrationDelayMs = 2000;
+const escapeResultDelayMs = 2000;
+const escapeResults = {
+  victory: {
+    ariaLabel: "I did it",
+    icon: "\u{1F973}",
+    iconLabel: "Escaped agent",
+    words: ["I", "DID", "IT!"],
+  },
+  loss: {
+    ariaLabel: "I give up",
+    icon: "\u{1F62D}",
+    iconLabel: "Overwhelmed agent",
+    words: ["I", "GIVE", "UP"],
+  },
+};
 
 export function createGameRunner({
   dom,
@@ -13,7 +27,7 @@ export function createGameRunner({
 }) {
   let activeStream = null;
   let gameIntroTimer = null;
-  let escapeCelebrationTimer = null;
+  let escapeResultTimer = null;
   let runEpoch = 0;
   const transcriptScroll = createTranscriptScrollController(dom.transcriptOutput);
 
@@ -71,10 +85,11 @@ export function createGameRunner({
       dom.transcriptOutput.textContent = frame.transcript;
       transcriptScroll.scrollToBottomIfFollowing(shouldFollowTranscript);
       if (frame.escaped) {
-        scheduleEscapeCelebration(currentRunEpoch);
+        scheduleEscapeResult(currentRunEpoch, "victory");
+      } else if (frame.sanity === "0") {
+        scheduleEscapeResult(currentRunEpoch, "loss");
       } else {
-        clearEscapeCelebrationTimer();
-        dom.escapeBanner.hidden = true;
+        hideEscapeResult();
       }
       if (frame.escaped || frame.sanity === "0" || frame.status === "Model is not configured.") {
         stopStream();
@@ -141,22 +156,44 @@ export function createGameRunner({
     activeStream = null;
   }
 
-  function scheduleEscapeCelebration(currentRunEpoch) {
-    clearEscapeCelebrationTimer();
+  function scheduleEscapeResult(currentRunEpoch, resultName) {
+    clearEscapeResultTimer();
     dom.escapeBanner.hidden = true;
-    escapeCelebrationTimer = window.setTimeout(() => {
+    escapeResultTimer = window.setTimeout(() => {
       if (currentRunEpoch !== runEpoch) {
         return;
       }
-      mapRenderer.renderEscapeCelebration();
+      renderEscapeResult(resultName);
       dom.escapeBanner.hidden = false;
-      escapeCelebrationTimer = null;
-    }, escapeCelebrationDelayMs);
+      escapeResultTimer = null;
+    }, escapeResultDelayMs);
   }
 
-  function clearEscapeCelebrationTimer() {
-    window.clearTimeout(escapeCelebrationTimer);
-    escapeCelebrationTimer = null;
+  function renderEscapeResult(resultName) {
+    const result = escapeResults[resultName];
+    dom.escapeBanner.dataset.result = resultName;
+    dom.escapeResultIcon.replaceChildren(
+      pixelSprite(result.icon, result.iconLabel, getSelectedModel()?.brand_color, 40),
+    );
+    dom.escapeResultMessage.setAttribute("aria-label", result.ariaLabel);
+    dom.escapeResultMessage.replaceChildren(...result.words.map(escapeWord));
+  }
+
+  function escapeWord(text) {
+    const word = document.createElement("span");
+    word.className = "escape-word";
+    word.textContent = text;
+    return word;
+  }
+
+  function hideEscapeResult() {
+    clearEscapeResultTimer();
+    dom.escapeBanner.hidden = true;
+  }
+
+  function clearEscapeResultTimer() {
+    window.clearTimeout(escapeResultTimer);
+    escapeResultTimer = null;
   }
 
   function resetGame() {
@@ -166,9 +203,10 @@ export function createGameRunner({
     renderEntityStrip(dom.inventoryOutput, [], "Empty.");
     dom.transcriptOutput.textContent = "The model has not tried the room yet.";
     transcriptScroll.scrollToBottom();
-    clearEscapeCelebrationTimer();
+    clearEscapeResultTimer();
     dom.escapeBanner.hidden = true;
-    dom.escapeAgentIcon.replaceChildren();
+    dom.escapeBanner.dataset.result = "victory";
+    dom.escapeResultIcon.replaceChildren();
     mapRenderer.renderMap("", "", "", "");
     dom.runButton.disabled = false;
   }
