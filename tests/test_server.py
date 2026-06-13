@@ -1,3 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock
+
+import pytest
 from fastapi.testclient import TestClient
 from gradio import Server
 
@@ -7,6 +11,7 @@ from watch_my_escape.app.server import (
     GENERATED_STATIC_DIR,
     SOURCE_STATIC_DIR,
     TEMPLATES_DIR,
+    SynchronizedInferenceProvider,
     WarmProviderStore,
     app_data,
     build_escape_run_response,
@@ -17,7 +22,7 @@ from watch_my_escape.app.server import (
 from watch_my_escape.game.runtime import ActionEffectSummary
 from watch_my_escape.llm.client import LlmConfigurationError
 from watch_my_escape.llm.config import MODEL_PRESETS
-from watch_my_escape.llm.models import InferenceResponse
+from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceResponse
 
 
 def test_create_app_returns_gradio_server():
@@ -64,6 +69,8 @@ def test_keyboard_flow_focus_contract_is_wired():
     assert 'event.kind === "turn"' in game_runner_script
     assert "pixelSprite(event.action_emoji" in game_runner_script
     assert 'pixelSprite(item.icon || "?"' in game_runner_script
+    assert 'fetch("/runs/cancel"' in game_runner_script
+    assert "run_id: runId" in game_runner_script
 
 
 def test_keyboard_escape_in_model_settings_stays_on_model_screen():
@@ -157,7 +164,7 @@ def test_model_warmup_endpoint_uses_short_non_thinking_completion(monkeypatch):
     assert seen["request"].settings.max_tokens == 8
     assert seen["request"].settings.temperature == 0.0
     assert seen["request"].enable_thinking is False
-    assert server.warm_provider_store.get(session_id=session_id, model_preset=preset_id) is provider
+    assert _inner_provider(server.warm_provider_store.get(session_id=session_id, model_preset=preset_id)) is provider
 
 
 def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
@@ -177,7 +184,7 @@ def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
     assert provider.requests[0].phase == "warmup"
     assert provider.requests[0].enable_thinking is False
     assert provider.requests[0].settings.max_tokens == 8
-    assert server.warm_provider_store.get(session_id=session_id, model_preset=preset_id) is provider
+    assert _inner_provider(server.warm_provider_store.get(session_id=session_id, model_preset=preset_id)) is provider
 
 
 def test_escape_stream_uses_session_warmed_provider(monkeypatch):
@@ -194,7 +201,7 @@ def test_escape_stream_uses_session_warmed_provider(monkeypatch):
     response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
 
     assert response.status_code == 200
-    assert seen["provider"] is provider
+    assert _inner_provider(seen["provider"]) is provider
 
 
 def test_escape_stream_reuses_session_provider_for_multiple_runs(monkeypatch):
@@ -218,7 +225,7 @@ def test_escape_stream_reuses_session_provider_for_multiple_runs(monkeypatch):
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert seen_providers == [warmed_provider, warmed_provider]
+    assert [_inner_provider(provider) for provider in seen_providers] == [warmed_provider, warmed_provider]
 
 
 def test_escape_stream_ignores_session_provider_for_different_preset(monkeypatch):
@@ -236,8 +243,11 @@ def test_escape_stream_ignores_session_provider_for_different_preset(monkeypatch
     response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
 
     assert response.status_code == 200
-    assert seen["provider"] is fallback_provider
-    assert server.warm_provider_store.get(session_id=session_id, model_preset=other_preset_id) is warmed_provider
+    assert _inner_provider(seen["provider"]) is fallback_provider
+    assert (
+        _inner_provider(server.warm_provider_store.get(session_id=session_id, model_preset=other_preset_id))
+        is warmed_provider
+    )
 
 
 def test_warm_provider_store_drops_expired_sessions():
@@ -246,6 +256,83 @@ def test_warm_provider_store_drops_expired_sessions():
     store.add(session_id="expired-session", model_preset="example", provider=provider)
 
     assert store.get(session_id="expired-session", model_preset="example") is None
+
+
+def test_synchronized_provider_prevents_instance_reentry():
+    first_entered = Event()
+    first_release = Event()
+    second_entered = Event()
+    state_lock = Lock()
+    active_completions = 0
+    max_active_completions = 0
+    entered_phases: list[str] = []
+
+    class BlockingProvider:
+        def complete(self, request):
+            nonlocal active_completions, max_active_completions
+            marker = request.messages[0].content
+            with state_lock:
+                active_completions += 1
+                max_active_completions = max(max_active_completions, active_completions)
+                entered_phases.append(marker)
+            if marker == "first":
+                first_entered.set()
+                assert first_release.wait(timeout=2)
+            if marker == "second":
+                second_entered.set()
+            with state_lock:
+                active_completions -= 1
+            return InferenceResponse(content=marker)
+
+    provider = SynchronizedInferenceProvider(BlockingProvider())
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(provider.complete, _inference_request("first"))
+        assert first_entered.wait(timeout=1)
+
+        second = executor.submit(provider.complete, _inference_request("second"))
+        assert not second_entered.wait(timeout=0.1)
+
+        first_release.set()
+        assert first.result(timeout=2).content == "first"
+        assert second.result(timeout=2).content == "second"
+
+    assert entered_phases == ["first", "second"]
+    assert max_active_completions == 1
+
+
+def test_cancellable_provider_stops_before_cancelled_completion():
+    cancelled = False
+    provider = _RecordingProvider()
+
+    def is_cancelled():
+        return cancelled
+
+    wrapped_provider = server.CancellableInferenceProvider(provider, is_cancelled)
+    cancelled = True
+
+    with pytest.raises(server.EscapeRunCancelledError):
+        wrapped_provider.complete(_inference_request("after-cancel"))
+
+    assert not provider.requests
+
+
+def test_cancellable_provider_stops_after_inflight_completion_is_cancelled():
+    cancelled = False
+
+    class CancellingProvider:
+        def complete(self, request):
+            nonlocal cancelled
+            cancelled = True
+            return InferenceResponse(content=request.messages[0].content)
+
+    def is_cancelled():
+        return cancelled
+
+    wrapped_provider = server.CancellableInferenceProvider(CancellingProvider(), is_cancelled)
+
+    with pytest.raises(server.EscapeRunCancelledError):
+        wrapped_provider.complete(_inference_request("during-call"))
 
 
 def test_model_preset_options_include_selector_metadata():
@@ -391,7 +478,7 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&startup_delay_ms=2000")
 
     assert response.status_code == 200
-    assert seen["provider"] is provider
+    assert _inner_provider(seen["provider"]) is provider
     assert seen["game_map"].id == "key-door-room"
     assert seen["startup_delay_ms"] == 2000
     assert seen["settings"].deliberation.temperature == preset.thinking_temperature
@@ -416,6 +503,62 @@ def test_escape_stream_returns_turn_frames(monkeypatch):
     assert '"text": "locked-door state changed to unlocked."' in response.text
     assert "locked-door" in response.text
     assert "Turn 1 - sanity 100 -> 99" in response.text
+
+
+def test_escape_stream_handles_unexpected_provider_errors(monkeypatch):
+    preset_id = next(iter(MODEL_PRESETS))
+
+    def raise_error(**_kwargs):
+        message = "index 1510 is out of bounds for axis 0 with size 1"
+        raise IndexError(message)
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: object())
+    monkeypatch.setattr(server, "run_model_escape_steps", raise_error)
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room")
+
+    assert response.status_code == 200
+    assert '"status": "Model run failed."' in response.text
+    assert "index 1510 is out of bounds" in response.text
+
+
+def test_escape_stream_stops_after_cancellation(monkeypatch):
+    cancel_checks = 0
+
+    def fake_steps(**_kwargs):
+        yield _frame_with_transcript("first")
+        yield _frame_with_transcript("second")
+
+    def is_cancelled():
+        nonlocal cancel_checks
+        cancel_checks += 1
+        return cancel_checks > 1
+
+    monkeypatch.setattr(server, "run_model_escape_steps", fake_steps)
+
+    chunks = tuple(
+        server._escape_event_stream(  # noqa: SLF001
+            lifecycle=server.EscapeStreamLifecycle(is_cancelled=is_cancelled, on_complete=lambda: None)
+        )
+    )
+
+    assert len(chunks) == 1
+    assert "first" in chunks[0]
+    assert "second" not in chunks[0]
+
+
+def test_cancel_escape_run_endpoint_marks_run_cancelled():
+    client = TestClient(create_app())
+    session_id = "cancel-session"
+    run_id = "cancel-run"
+    server.escape_run_store.start(session_id=session_id, run_id=run_id)
+
+    response = client.post("/runs/cancel", json={"session_id": session_id, "run_id": run_id})
+
+    assert response.status_code == 200
+    assert response.json() == {"cancelled": True}
+    assert server.escape_run_store.is_cancelled(session_id=session_id, run_id=run_id) is True
 
 
 def test_escape_stream_applies_deliberation_query_overrides(monkeypatch):
@@ -538,7 +681,7 @@ def test_escape_stream_returns_custom_map_turn_frames(monkeypatch):
     response = client.get(f"/escape-stream?model_preset={preset_id}&custom_map_token={token}")
 
     assert response.status_code == 200
-    assert seen["provider"] is provider
+    assert _inner_provider(seen["provider"]) is provider
     assert seen["game_map"].id == "custom-room"
     assert "Turn 1 - custom map" in response.text
 
@@ -654,6 +797,34 @@ class _RecordingProvider:
     def complete(self, request):
         self.requests.append(request)
         return InferenceResponse(content="OK")
+
+
+def _inner_provider(provider):
+    if isinstance(provider, SynchronizedInferenceProvider):
+        return provider.inner
+    return provider
+
+
+def _inference_request(phase: str) -> InferenceRequest:
+    return InferenceRequest(messages=(ChatMessage(role="user", content=phase),), phase="warmup")
+
+
+def _frame_with_transcript(transcript: str) -> EscapeRunFrame:
+    return EscapeRunFrame(
+        escaped=False,
+        sanity=99,
+        position="(1, 1)",
+        visible_entities=(),
+        inventory=(),
+        visible_entity_details=(),
+        inventory_details=(),
+        map_view=((".",),),
+        map_color_view=((".",),),
+        visibility_view=((True,),),
+        transcript=transcript,
+        status="Still searching with 99 sanity remaining.",
+        action_label="wait",
+    )
 
 
 def _custom_map_document():

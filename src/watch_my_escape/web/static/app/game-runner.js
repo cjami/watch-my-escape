@@ -27,6 +27,7 @@ export function createGameRunner({
   showSetupScreen = () => showScreen("models"),
 }) {
   let activeStream = null;
+  let activeRunId = null;
   let gameIntroTimer = null;
   let escapeResultTimer = null;
   let runEpoch = 0;
@@ -46,9 +47,12 @@ export function createGameRunner({
       return;
     }
 
+    cancelActiveRun();
     stopStream();
     resetGame();
     const currentRunEpoch = (runEpoch += 1);
+    const currentRunId = newRunId();
+    activeRunId = currentRunId;
     dom.runButton.disabled = true;
     renderTranscriptMessage(dom.transcriptOutput, "Waiting for the first turn...");
     transcriptScroll.scrollToBottom();
@@ -56,11 +60,12 @@ export function createGameRunner({
 
     let params;
     try {
-      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay, getSessionId());
+      params = await escapeStreamParams(selectedModel, selectedMap, startupDelay, getSessionId(), currentRunId);
     } catch (error) {
       if (currentRunEpoch !== runEpoch) {
         return;
       }
+      clearActiveRun(currentRunId);
       renderTranscriptMessage(dom.transcriptOutput, error.message);
       transcriptScroll.scrollToBottom();
       dom.runButton.disabled = false;
@@ -92,8 +97,14 @@ export function createGameRunner({
       } else {
         hideEscapeResult();
       }
-      if (frame.escaped || frame.sanity === "0" || frame.status === "Model is not configured.") {
+      if (
+        frame.escaped ||
+        frame.sanity === "0" ||
+        frame.status === "Model is not configured." ||
+        frame.status === "Model run failed."
+      ) {
         stopStream();
+        clearActiveRun(currentRunId);
         dom.runButton.disabled = false;
       }
     };
@@ -105,12 +116,14 @@ export function createGameRunner({
       renderTranscriptMessage(dom.transcriptOutput, "The room stream closed.");
       transcriptScroll.scrollToBottomIfFollowing(shouldFollowTranscript);
       stopStream();
+      clearActiveRun(currentRunId);
       dom.runButton.disabled = false;
     };
   }
 
   function restartSetup() {
     runEpoch += 1;
+    cancelActiveRun();
     stopStream();
     resetGame();
     showSetupScreen();
@@ -155,6 +168,26 @@ export function createGameRunner({
     }
     activeStream.close();
     activeStream = null;
+  }
+
+  function cancelActiveRun() {
+    if (!activeRunId) {
+      return;
+    }
+    const runId = activeRunId;
+    activeRunId = null;
+    void fetch("/runs/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: getSessionId(), run_id: runId }),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
+  function clearActiveRun(runId) {
+    if (activeRunId === runId) {
+      activeRunId = null;
+    }
   }
 
   function scheduleEscapeResult(currentRunEpoch, resultName) {
@@ -265,9 +298,10 @@ export function createGameRunner({
   return { init, resetGame, restartSetup, runEscape, stopStream };
 }
 
-async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sessionId) {
+async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sessionId, runId) {
   const params = new URLSearchParams({
     model_preset: selectedModel.id,
+    run_id: runId,
     session_id: sessionId,
     startup_delay_ms: String(startupDelay),
   });
@@ -281,6 +315,10 @@ async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sess
   }
   params.set("map_id", selectedMap.id);
   return params;
+}
+
+function newRunId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
 async function customMapToken(selectedMap) {

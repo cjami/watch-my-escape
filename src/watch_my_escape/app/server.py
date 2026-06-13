@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import secrets
 import time
 from dataclasses import dataclass, replace
@@ -39,7 +40,7 @@ from watch_my_escape.llm.config import MODEL_PRESETS, ModelPreset, ModelPresetEr
 from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceSettings
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from fastapi.responses import Response
 
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
     from watch_my_escape.game.premade_maps import PremadeMap
     from watch_my_escape.llm.client import InferenceProvider
     from watch_my_escape.llm.config import LlamaCppConfig
+    from watch_my_escape.llm.models import InferenceResponse
 
 PACKAGE_DIR: Final = Path(__file__).resolve().parents[1]
 PROJECT_DIR: Final = PACKAGE_DIR.parents[1]
@@ -57,6 +59,8 @@ TEMPLATES_DIR: Final = WEB_DIR / "templates"
 templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
 CUSTOM_MAP_TOKEN_TTL_SECONDS: Final = 15 * 60
 WARM_PROVIDER_SESSION_TTL_SECONDS: Final = 5 * 60
+ESCAPE_RUN_TTL_SECONDS: Final = 30 * 60
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,8 +81,33 @@ class WarmProviderRun:
     expires_at: float
 
 
+@dataclass(frozen=True, slots=True)
+class EscapeRunRecord:
+    """A cancellable escape run for one browser session."""
+
+    session_id: str
+    run_id: str
+    cancelled: bool
+    expires_at: float
+
+
+@dataclass(frozen=True, slots=True)
+class EscapeStreamLifecycle:
+    """Cancellation hooks for a streaming run."""
+
+    is_cancelled: Callable[[], bool]
+    on_complete: Callable[[], None]
+
+
+DEFAULT_STREAM_LIFECYCLE: Final = EscapeStreamLifecycle(is_cancelled=lambda: False, on_complete=lambda: None)
+
+
 class CustomMapTokenError(ValueError):
     """Raised when a custom map run token cannot be used."""
+
+
+class EscapeRunCancelledError(RuntimeError):
+    """Raised when a cancelled run tries to continue inference."""
 
 
 class ModelWarmupRequest(BaseModel):
@@ -95,9 +124,54 @@ class EscapeStreamRequest(BaseModel):
     map_id: str | None = Field(default=None, min_length=1)
     custom_map_token: str | None = Field(default=None, min_length=1)
     session_id: str | None = Field(default=None, min_length=1)
+    run_id: str | None = Field(default=None, min_length=1)
     startup_delay_ms: int = Field(default=0, ge=0, le=10_000)
     deliberation_enable_thinking: bool | None = None
     deliberation_temperature: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class CancelEscapeRunRequest(BaseModel):
+    """Request to cancel one browser session's active run."""
+
+    session_id: str = Field(min_length=1)
+    run_id: str | None = Field(default=None, min_length=1)
+
+
+class SynchronizedInferenceProvider:
+    """Serialize calls into a single provider instance."""
+
+    def __init__(self, provider: InferenceProvider) -> None:
+        self.inner = provider
+        self._lock = Lock()
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Run one completion without re-entering the wrapped provider."""
+        with self._lock:
+            return self.inner.complete(request)
+
+
+def synchronized_provider(provider: InferenceProvider) -> InferenceProvider:
+    """Return a provider guarded against instance-level re-entry."""
+    if isinstance(provider, SynchronizedInferenceProvider):
+        return provider
+    return SynchronizedInferenceProvider(provider)
+
+
+class CancellableInferenceProvider:
+    """Stop a stream before entering inference after cancellation."""
+
+    def __init__(self, provider: InferenceProvider, is_cancelled: Callable[[], bool]) -> None:
+        self.inner = provider
+        self._is_cancelled = is_cancelled
+
+    def complete(self, request: InferenceRequest) -> InferenceResponse:
+        """Run one completion unless the owning stream has been cancelled."""
+        if self._is_cancelled():
+            raise EscapeRunCancelledError
+        response = self.inner.complete(request)
+        if self._is_cancelled():
+            raise EscapeRunCancelledError
+        return response
 
 
 class WarmProviderStore:
@@ -115,7 +189,7 @@ class WarmProviderStore:
             self._runs[(session_id, model_preset)] = WarmProviderRun(
                 session_id=session_id,
                 model_preset=model_preset,
-                provider=provider,
+                provider=synchronized_provider(provider),
                 expires_at=time.monotonic() + self._ttl_seconds,
             )
 
@@ -131,6 +205,60 @@ class WarmProviderStore:
                 expires_at=time.monotonic() + self._ttl_seconds,
             )
         return run.provider
+
+    def _prune_expired(self) -> None:
+        now = time.monotonic()
+        with self._lock:
+            expired_keys = [key for key, run in self._runs.items() if run.expires_at <= now]
+            for key in expired_keys:
+                del self._runs[key]
+
+
+class EscapeRunStore:
+    """Short-lived cancellation state for browser escape runs."""
+
+    def __init__(self, *, ttl_seconds: int = ESCAPE_RUN_TTL_SECONDS) -> None:
+        self._ttl_seconds = ttl_seconds
+        self._runs: dict[tuple[str, str], EscapeRunRecord] = {}
+        self._lock = Lock()
+
+    def start(self, *, session_id: str, run_id: str) -> None:
+        """Register an active run."""
+        self._prune_expired()
+        with self._lock:
+            self._runs[(session_id, run_id)] = EscapeRunRecord(
+                session_id=session_id,
+                run_id=run_id,
+                cancelled=False,
+                expires_at=time.monotonic() + self._ttl_seconds,
+            )
+
+    def cancel(self, *, session_id: str, run_id: str | None = None) -> None:
+        """Mark one run, or all known session runs, as cancelled."""
+        self._prune_expired()
+        with self._lock:
+            for key, run in tuple(self._runs.items()):
+                if run.session_id != session_id or (run_id is not None and run.run_id != run_id):
+                    continue
+                self._runs[key] = replace(
+                    run,
+                    cancelled=True,
+                    expires_at=time.monotonic() + self._ttl_seconds,
+                )
+
+    def is_cancelled(self, *, session_id: str, run_id: str) -> bool:
+        """Return whether a run has been cancelled."""
+        self._prune_expired()
+        with self._lock:
+            run = self._runs.get((session_id, run_id))
+            if run is None:
+                return False
+            return run.cancelled
+
+    def finish(self, *, session_id: str, run_id: str) -> None:
+        """Drop completed run state."""
+        with self._lock:
+            self._runs.pop((session_id, run_id), None)
 
     def _prune_expired(self) -> None:
         now = time.monotonic()
@@ -180,6 +308,7 @@ class CustomMapRunStore:
 
 custom_map_run_store: Final = CustomMapRunStore()
 warm_provider_store: Final = WarmProviderStore()
+escape_run_store: Final = EscapeRunStore()
 
 
 def create_app() -> Server:
@@ -215,12 +344,14 @@ def create_app() -> Server:
             )
         except (ModelPresetError, PremadeMapError, CustomMapTokenError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        lifecycle = _stream_run_lifecycle(session_id=query.session_id, run_id=query.run_id)
         return StreamingResponse(
             _escape_event_stream(
                 provider=provider,
                 game_map=game_map,
                 startup_delay_ms=query.startup_delay_ms,
                 settings=settings,
+                lifecycle=lifecycle,
             ),
             media_type="text/event-stream",
         )
@@ -244,6 +375,8 @@ def create_app() -> Server:
     @app.post("/models/warmup")
     def warmup_model(request: ModelWarmupRequest) -> dict[str, object]:
         return warm_model_preset(session_id=request.session_id, model_preset=request.model_preset)
+
+    app.post("/runs/cancel")(cancel_escape_run)
 
     return app
 
@@ -293,6 +426,12 @@ def build_escape_run_response() -> dict[str, Any]:
     }
 
 
+def cancel_escape_run(request: CancelEscapeRunRequest) -> dict[str, bool]:
+    """Cancel one browser session's active escape run."""
+    escape_run_store.cancel(session_id=request.session_id, run_id=request.run_id)
+    return {"cancelled": True}
+
+
 def app_data() -> dict[str, object]:
     """Return JSON-safe application data for the browser."""
     return {
@@ -306,7 +445,7 @@ def warm_model_preset(*, session_id: str, model_preset: str) -> dict[str, object
     try:
         provider = warm_provider_store.get(session_id=session_id, model_preset=model_preset)
         if provider is None:
-            provider = create_provider(config_for_model_preset(model_preset))
+            provider = synchronized_provider(create_provider(config_for_model_preset(model_preset)))
             warm_provider_store.add(session_id=session_id, model_preset=model_preset, provider=provider)
         _run_warmup_completion(provider)
     except ModelPresetError as exc:
@@ -333,7 +472,22 @@ def _stream_provider(*, config: LlamaCppConfig, model_preset: str, session_id: s
         provider = warm_provider_store.get(session_id=session_id, model_preset=model_preset)
         if provider is not None:
             return provider
-    return create_provider(config)
+    return synchronized_provider(create_provider(config))
+
+
+def _stream_run_lifecycle(
+    *,
+    session_id: str | None,
+    run_id: str | None,
+) -> EscapeStreamLifecycle:
+    if session_id is None or run_id is None:
+        return DEFAULT_STREAM_LIFECYCLE
+
+    escape_run_store.start(session_id=session_id, run_id=run_id)
+    return EscapeStreamLifecycle(
+        is_cancelled=lambda: escape_run_store.is_cancelled(session_id=session_id, run_id=run_id),
+        on_complete=lambda: escape_run_store.finish(session_id=session_id, run_id=run_id),
+    )
 
 
 def model_preset_options() -> tuple[dict[str, object], ...]:
@@ -409,17 +563,21 @@ def _escape_event_stream(
     game_map: GameMap | None = None,
     startup_delay_ms: int = 0,
     settings: ThinkActSettings | None = None,
+    lifecycle: EscapeStreamLifecycle = DEFAULT_STREAM_LIFECYCLE,
 ) -> Iterator[str]:
+    stream_provider = _cancellable_stream_provider(provider, lifecycle=lifecycle)
     try:
         for frame in run_model_escape_steps(
-            provider=provider,
+            provider=stream_provider,
             game_map=game_map,
             startup_delay_ms=startup_delay_ms,
             settings=settings,
         ):
+            if lifecycle.is_cancelled():
+                break
             yield f"data: {json.dumps(_frame_payload(frame))}\n\n"
-            if frame.delay_ms:
-                time.sleep(frame.delay_ms / 1000)
+            if frame.delay_ms and _sleep_frame_delay(frame.delay_ms, is_cancelled=lifecycle.is_cancelled):
+                break
     except LlmConfigurationError as exc:
         payload = {
             "status": "Model is not configured.",
@@ -444,6 +602,59 @@ def _escape_event_stream(
             "escaped": False,
         }
         yield f"data: {json.dumps(payload)}\n\n"
+    except EscapeRunCancelledError:
+        return
+    except Exception as exc:
+        LOGGER.exception("Escape stream failed.")
+        yield f"data: {json.dumps(_stream_error_payload(exc))}\n\n"
+    finally:
+        lifecycle.on_complete()
+
+
+def _cancellable_stream_provider(
+    provider: InferenceProvider | None,
+    *,
+    lifecycle: EscapeStreamLifecycle,
+) -> InferenceProvider | None:
+    if provider is None or lifecycle is DEFAULT_STREAM_LIFECYCLE:
+        return provider
+    return CancellableInferenceProvider(provider, lifecycle.is_cancelled)
+
+
+def _sleep_frame_delay(delay_ms: int, *, is_cancelled: Callable[[], bool]) -> bool:
+    remaining_seconds = delay_ms / 1000
+    while remaining_seconds > 0:
+        if is_cancelled():
+            return True
+        sleep_seconds = min(0.1, remaining_seconds)
+        time.sleep(sleep_seconds)
+        remaining_seconds -= sleep_seconds
+    return is_cancelled()
+
+
+def _stream_error_payload(exc: Exception) -> dict[str, object]:
+    return {
+        "status": "Model run failed.",
+        "sanity": "100",
+        "position": "",
+        "action_label": "",
+        "visible_entities": "- None.",
+        "inventory": "- Empty.",
+        "visible_entity_details": (),
+        "inventory_details": (),
+        "map": "",
+        "map_colors": "",
+        "visibility": "",
+        "transcript": f"Model run failed: {exc}",
+        "transcript_events": (
+            {
+                "kind": "intro",
+                "message": f"Model run failed: {exc}",
+                "visible_entities": (),
+            },
+        ),
+        "escaped": False,
+    }
 
 
 def _frame_payload(frame: EscapeRunFrame) -> dict[str, object]:
