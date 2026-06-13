@@ -427,10 +427,10 @@ export function createBehaviorEditor({ context, history, renderEditor, validatio
       return `Passable ${effect.passable ? "yes" : "no"} ${effect.entity_id || "self"}`;
     }
     if (effect.type === "add_inventory") {
-      return `Give ${effect.entity_id || "self"}`;
+      return `Add item ${effect.entity_id || "self"}`;
     }
     if (effect.type === "remove_inventory") {
-      return `Take ${effect.entity_id || "item"}`;
+      return `Remove item ${effect.entity_id || "item"}`;
     }
     return optionLabel(effectLabels, effect.type);
   }

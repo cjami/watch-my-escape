@@ -27,8 +27,8 @@ export const effectOptions = [
 ];
 export const effectLabels = {
   message: "Message",
-  add_inventory: "Give",
-  remove_inventory: "Take",
+  add_inventory: "Add Item",
+  remove_inventory: "Remove Item",
   set_entity_state: "State",
   set_entity_passable: "Passable",
   set_entity_active: "Active",

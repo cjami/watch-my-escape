@@ -7,5 +7,3 @@ Reply with a short paragraph of your reasoning followed by a named action and ta
 
 Available actions:
 {action_options}
-
-Actions may target any surrounding objects or inventory items.

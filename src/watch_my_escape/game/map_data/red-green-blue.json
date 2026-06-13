@@ -944,7 +944,7 @@
           "id": "exit-door",
           "icon": "🚪",
           "color": "#ffd447",
-          "description": "A yellow exit door is {state}.",
+          "description": "A closed yellow exit door is {state}.",
           "passable": false,
           "active": true,
           "notable": true,
@@ -952,10 +952,14 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "locked"
                 }
               ],
@@ -968,10 +972,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -989,10 +997,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "locked"
                 }
               ],
@@ -1010,10 +1021,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1024,7 +1038,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 },
                 {
                   "type": "escape_map"
@@ -1162,19 +1177,23 @@
           "id": "door",
           "icon": "🚪",
           "color": null,
-          "description": "A door is {state}.",
+          "description": "A closed door.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "closed",
+          "state": "locked",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1186,10 +1205,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1203,11 +1226,14 @@
             {
               "trigger": {
                 "action": "use_item",
-                "item": "key"
+                "actions": [],
+                "item": "key",
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1217,7 +1243,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked"
+                  "state": "unlocked",
+                  "entity_id": null
                 },
                 {
                   "type": "remove_inventory",
@@ -1232,11 +1259,14 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1253,10 +1283,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1267,7 +1300,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -1291,7 +1325,10 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -1307,7 +1344,9 @@
                 "actions": [
                   "pick_up",
                   "pull"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -1321,7 +1360,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -1439,19 +1479,23 @@
           "id": "red-door",
           "icon": "🚪",
           "color": "#ff6b6b",
-          "description": "A red door is {state}.",
+          "description": "A closed red door.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "closed",
+          "state": "locked",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1463,10 +1507,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1480,11 +1528,14 @@
             {
               "trigger": {
                 "action": "use_item",
-                "item": "red-key"
+                "actions": [],
+                "item": "red-key",
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": "red-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1494,7 +1545,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked"
+                  "state": "unlocked",
+                  "entity_id": null
                 },
                 {
                   "type": "remove_inventory",
@@ -1509,11 +1561,14 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1530,10 +1585,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1544,7 +1602,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -1577,19 +1636,23 @@
           "id": "green-door",
           "icon": "🚪",
           "color": "#71f7b1",
-          "description": "A green door is {state}.",
+          "description": "A closed green door.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "closed",
+          "state": "locked",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1601,10 +1664,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1618,11 +1685,14 @@
             {
               "trigger": {
                 "action": "use_item",
-                "item": "green-key"
+                "actions": [],
+                "item": "green-key",
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": "green-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1632,7 +1702,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked"
+                  "state": "unlocked",
+                  "entity_id": null
                 },
                 {
                   "type": "remove_inventory",
@@ -1647,11 +1718,14 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": "green-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1668,10 +1742,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": "green-door",
                   "state": "unlocked"
                 }
               ],
@@ -1682,7 +1759,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -1698,19 +1776,23 @@
           "id": "blue-door",
           "icon": "🚪",
           "color": "#2563eb",
-          "description": "A blue door is {state}.",
+          "description": "A closed blue door.",
           "passable": false,
           "active": true,
           "notable": true,
-          "state": "closed",
+          "state": "locked",
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": "blue-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1722,10 +1804,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1739,11 +1825,14 @@
             {
               "trigger": {
                 "action": "use_item",
-                "item": "blue-key"
+                "actions": [],
+                "item": "blue-key",
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1753,7 +1842,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "unlocked"
+                  "state": "unlocked",
+                  "entity_id": null
                 },
                 {
                   "type": "remove_inventory",
@@ -1768,11 +1858,14 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "closed"
+                  "entity_id": null,
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1789,10 +1882,13 @@
                   "open",
                   "pull",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unlocked"
                 }
               ],
@@ -1803,7 +1899,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -1827,10 +1924,14 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unpressed"
                 }
               ],
@@ -1843,10 +1944,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "pressed"
                 }
               ],
@@ -1863,10 +1968,13 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unpressed"
                 }
               ],
@@ -1877,7 +1985,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "pressed"
+                  "state": "pressed",
+                  "entity_id": null
                 }
               ]
             },
@@ -1887,10 +1996,13 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "pressed"
                 }
               ],
@@ -1907,20 +2019,22 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "pressed",
-                  "entity_id": "button-2"
+                  "entity_id": "button-2",
+                  "state": "pressed"
                 },
                 {
-                  "state": "pressed",
-                  "entity_id": "button-3"
+                  "entity_id": "button-3",
+                  "state": "pressed"
                 },
                 {
-                  "state": "locked",
-                  "entity_id": "exit-door"
+                  "entity_id": "exit-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -1955,10 +2069,14 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unpressed"
                 }
               ],
@@ -1971,10 +2089,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "pressed"
                 }
               ],
@@ -1991,10 +2113,13 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unpressed"
                 }
               ],
@@ -2005,7 +2130,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "pressed"
+                  "state": "pressed",
+                  "entity_id": null
                 }
               ]
             },
@@ -2015,10 +2141,13 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "pressed"
                 }
               ],
@@ -2035,20 +2164,22 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "pressed",
-                  "entity_id": "button-1"
+                  "entity_id": "button-1",
+                  "state": "pressed"
                 },
                 {
-                  "state": "pressed",
-                  "entity_id": "button-3"
+                  "entity_id": "button-3",
+                  "state": "pressed"
                 },
                 {
-                  "state": "locked",
-                  "entity_id": "exit-door"
+                  "entity_id": "exit-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -2083,10 +2214,14 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unpressed"
                 }
               ],
@@ -2099,10 +2234,14 @@
             },
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "pressed"
                 }
               ],
@@ -2119,10 +2258,13 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "unpressed"
                 }
               ],
@@ -2133,7 +2275,8 @@
                 },
                 {
                   "type": "set_entity_state",
-                  "state": "pressed"
+                  "state": "pressed",
+                  "entity_id": null
                 }
               ]
             },
@@ -2143,10 +2286,13 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
+                  "entity_id": null,
                   "state": "pressed"
                 }
               ],
@@ -2163,20 +2309,22 @@
                 "actions": [
                   "push",
                   "operate"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [
                 {
-                  "state": "pressed",
-                  "entity_id": "button-1"
+                  "entity_id": "button-1",
+                  "state": "pressed"
                 },
                 {
-                  "state": "pressed",
-                  "entity_id": "button-2"
+                  "entity_id": "button-2",
+                  "state": "pressed"
                 },
                 {
-                  "state": "locked",
-                  "entity_id": "exit-door"
+                  "entity_id": "exit-door",
+                  "state": "locked"
                 }
               ],
               "effects": [
@@ -2432,7 +2580,10 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -2448,7 +2599,9 @@
                 "actions": [
                   "pick_up",
                   "pull"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -2462,7 +2615,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -2486,7 +2640,10 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -2502,7 +2659,9 @@
                 "actions": [
                   "pick_up",
                   "pull"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -2516,7 +2675,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }
@@ -2540,7 +2700,10 @@
           "behaviors": [
             {
               "trigger": {
-                "action": "examine"
+                "action": "examine",
+                "actions": [],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -2556,7 +2719,9 @@
                 "actions": [
                   "pick_up",
                   "pull"
-                ]
+                ],
+                "item": null,
+                "phrase": null
               },
               "conditions": [],
               "effects": [
@@ -2570,7 +2735,8 @@
                 },
                 {
                   "type": "set_entity_active",
-                  "active": false
+                  "active": false,
+                  "entity_id": null
                 }
               ]
             }

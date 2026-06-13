@@ -490,7 +490,7 @@
                 },
                 {
                   "type": "message",
-                  "text": "the dog wags its tail happily and takes the snack to a corner."
+                  "text": "the dog wags its tail happily and takes the snack to a corner. the door is no longer blocked."
                 },
                 {
                   "type": "set_entity_active",
@@ -545,7 +545,7 @@
           "id": "DOOR",
           "icon": "🚪",
           "color": "#ffd447",
-          "description": "a closed door to outside.",
+          "description": "a closed door to freedom.",
           "passable": false,
           "active": true,
           "notable": true,
