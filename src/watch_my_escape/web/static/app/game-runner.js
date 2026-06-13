@@ -39,7 +39,16 @@ export function createGameRunner({
     dom.runButton.addEventListener("click", runEscape);
   }
 
+  function promptRunEscape() {
+    dom.screens.get("game").classList.add("is-awaiting-run");
+  }
+
+  function hideRunPrompt() {
+    dom.screens.get("game").classList.remove("is-awaiting-run");
+  }
+
   async function runEscape() {
+    hideRunPrompt();
     const selectedModel = getSelectedModel();
     const selectedMap = getSelectedMap();
     if (!selectedModel || !selectedMap) {
@@ -123,6 +132,7 @@ export function createGameRunner({
 
   function restartSetup() {
     runEpoch += 1;
+    hideRunPrompt();
     cancelActiveRun();
     stopStream();
     resetGame();
@@ -295,7 +305,7 @@ export function createGameRunner({
     return token;
   }
 
-  return { init, resetGame, restartSetup, runEscape, stopStream };
+  return { init, promptRunEscape, resetGame, restartSetup, runEscape, stopStream };
 }
 
 async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sessionId, runId) {

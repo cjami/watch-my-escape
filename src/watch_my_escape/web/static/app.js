@@ -154,6 +154,7 @@ function backToModelSelect() {
 function showGameScreen() {
   gameRunner.resetGame();
   screens.showScreen("game");
+  gameRunner.promptRunEscape();
   screens.focusElement(dom.runButton, { silent: true });
 }
 

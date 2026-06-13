@@ -197,6 +197,16 @@
     white-space: nowrap;
   }
 
+  .game-screen.is-awaiting-run #run-escape:not(:disabled) {
+    animation: run-button-ready 1.45s steps(2, end) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .game-screen.is-awaiting-run #run-escape:not(:disabled) {
+      animation: none;
+    }
+  }
+
   .escape-door {
     background: linear-gradient(90deg, #223446, #2f4a56 50%, #172433);
     box-shadow: 0 24px 80px rgb(0 0 0 / 35%);
