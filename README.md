@@ -45,11 +45,11 @@ Supported Hub presets use Q4_K_M where available:
 
 | Preset | Repository | Filename |
 | --- | --- | --- |
-| `gemma-4-12b-it` | `ggml-org/gemma-4-12B-it-GGUF` | `gemma-4-12B-it-Q4_K_M.gguf` |
+| `mellum2-12b-a2.5b-thinking` | `JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M` | `Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf` |
 | `nvidia-nemotron-3-nano-4b` | `nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF` | `NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` |
 | `minicpm5-1b` | `openbmb/MiniCPM5-1B-GGUF` | `MiniCPM5-1B-Q4_K_M.gguf` |
 | `tiny-aya-global` | `CohereLabs/tiny-aya-global-GGUF` | `tiny-aya-global-q4_k_m.gguf` |
-| `mellum2-12b-a2.5b-thinking` | `JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M` | `Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf` |
+| `gemma-4-12b-it` | `ggml-org/gemma-4-12B-it-GGUF` | `gemma-4-12B-it-Q4_K_M.gguf` |
 
 Sampling settings prefer explicit environment overrides, then GGUF model metadata, then reasoning-model fallbacks:
 

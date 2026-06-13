@@ -54,17 +54,18 @@ class LangfuseConfig:
 
 MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
     {
-        "gemma-4-12b-it": ModelPreset(
-            display_name="Gemma 4 12B",
-            company="Google",
-            brand_color="#4285F4",
-            agent_icon="🤓",
+        "mellum2-12b-a2.5b-thinking": ModelPreset(
+            display_name="Mellum2 12B",
+            company="JetBrains",
+            brand_color="#A855F7",
+            agent_icon="🤔",
             parameter_size_b=12,
-            repo_id="ggml-org/gemma-4-12B-it-GGUF",
-            filename="gemma-4-12B-it-Q4_K_M.gguf",
-            thinking_temperature=1.0,
+            repo_id="JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M",
+            filename="Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf",
+            active_parameter_size_b=2.5,
+            thinking_temperature=0.6,
             thinking_top_p=0.95,
-            thinking_top_k=64,
+            thinking_top_k=20,
         ),
         "nvidia-nemotron-3-nano-4b": ModelPreset(
             display_name="Nemotron 3 Nano 4B",
@@ -99,18 +100,17 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             thinking_temperature=0.2,
             thinking_top_p=0.95,
         ),
-        "mellum2-12b-a2.5b-thinking": ModelPreset(
-            display_name="Mellum2 12B",
-            company="JetBrains",
-            brand_color="#A855F7",
-            agent_icon="🤔",
+        "gemma-4-12b-it": ModelPreset(
+            display_name="Gemma 4 12B",
+            company="Google",
+            brand_color="#4285F4",
+            agent_icon="🤓",
             parameter_size_b=12,
-            repo_id="JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M",
-            filename="Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf",
-            active_parameter_size_b=2.5,
-            thinking_temperature=0.6,
+            repo_id="ggml-org/gemma-4-12B-it-GGUF",
+            filename="gemma-4-12B-it-Q4_K_M.gguf",
+            thinking_temperature=1.0,
             thinking_top_p=0.95,
-            thinking_top_k=20,
+            thinking_top_k=64,
         ),
     }
 )

@@ -10,14 +10,14 @@ pinned: false
 license: mit
 short_description: An LLM tries to escape your puzzle room.
 models:
-  - ggml-org/gemma-4-12B-it-GGUF
+  - JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M
   - nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF
   - openbmb/MiniCPM5-1B-GGUF
   - CohereLabs/tiny-aya-global-GGUF
-  - JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M
+  - ggml-org/gemma-4-12B-it-GGUF
 preload_from_hub:
-  - ggml-org/gemma-4-12B-it-GGUF gemma-4-12B-it-Q4_K_M.gguf
+  - JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf
   - nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf
   - openbmb/MiniCPM5-1B-GGUF MiniCPM5-1B-Q4_K_M.gguf
   - CohereLabs/tiny-aya-global-GGUF tiny-aya-global-q4_k_m.gguf
-  - JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf
+  - ggml-org/gemma-4-12B-it-GGUF gemma-4-12B-it-Q4_K_M.gguf
