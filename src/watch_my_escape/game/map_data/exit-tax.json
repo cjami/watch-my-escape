@@ -888,6 +888,11 @@
                 {
                   "type": "add_inventory",
                   "entity_id": "toy"
+                },
+                {
+                  "type": "set_entity_active",
+                  "active": false,
+                  "entity_id": "toy"
                 }
               ]
             }

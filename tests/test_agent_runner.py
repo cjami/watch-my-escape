@@ -50,18 +50,23 @@ def test_run_think_act_turn_deliberates_before_constrained_action():
     assert "consider all possible actions and targets" in deliberation_system_prompt
     assert "short paragraph of your reasoning" in deliberation_system_prompt
     assert "named action and target" in deliberation_system_prompt
+    assert "Available actions:" in deliberation_system_prompt
+    assert "- examine(target)" in deliberation_system_prompt
+    assert "- use_item(item, target)" in deliberation_system_prompt
+    assert "- pick_up(target): Pick up an object and add it to your inventory." in deliberation_system_prompt
+    assert "- open(target): Open an object." in deliberation_system_prompt
+    assert "Actions may target any surrounding objects or inventory items." in deliberation_system_prompt
     deliberation_prompt = provider.requests[0].messages[-1].content
     assert "Game state:" in deliberation_prompt
     assert "Objective:" not in deliberation_prompt
-    assert "Available actions:" in deliberation_prompt
+    assert "Available actions:" not in deliberation_prompt
     assert "Recent actions, oldest to newest:" in deliberation_prompt
     assert "History:" not in deliberation_prompt
-    assert "- examine(target)" in deliberation_prompt
-    assert "- use_item(item, target)" in deliberation_prompt
-    assert "- pick_up(target): Pick up an object and add it to your inventory." in deliberation_prompt
-    assert "- open(target): Open an object." in deliberation_prompt
-    assert "\n\nActions may target any surrounding objects or inventory items." in deliberation_prompt
-    assert "Actions may target any surrounding objects or inventory items." in deliberation_prompt
+    assert "- examine(target)" not in deliberation_prompt
+    assert "- use_item(item, target)" not in deliberation_prompt
+    assert "- pick_up(target): Pick up an object and add it to your inventory." not in deliberation_prompt
+    assert "- open(target): Open an object." not in deliberation_prompt
+    assert "Actions may target any surrounding objects or inventory items." not in deliberation_prompt
     assert "entity" not in deliberation_prompt.casefold()
     assert "target: a visible object" not in deliberation_prompt
     assert "item: an item currently in inventory" not in deliberation_prompt

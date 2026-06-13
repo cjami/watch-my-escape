@@ -33,13 +33,12 @@ def build_deliberation_messages(
     return (
         ChatMessage(
             role="system",
-            content=_load_prompt_template("deliberation-system.md"),
+            content=_load_prompt_template("deliberation-system.md").format(action_options=action_options),
         ),
         ChatMessage(
             role="user",
             content=_load_prompt_template("deliberation-user.md").format(
                 turn_context=turn_context,
-                action_options=action_options,
             ),
         ),
     )

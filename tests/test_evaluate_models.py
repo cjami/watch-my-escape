@@ -62,7 +62,7 @@ def test_evaluate_model_scores_think_then_act_turns():
     assert len(requests) == len(CASES) * 2
     assert all(request.structured_output is None for request in requests[::2])
     assert all(request.structured_output is not None for request in requests[1::2])
-    deliberation_prompts = "\n".join(request.messages[-1].content for request in requests[::2])
+    deliberation_prompts = "\n".join(message.content for request in requests[::2] for message in request.messages)
     assert "Evaluation-specific constraints" not in deliberation_prompts
     assert "- pick_up(target)" in deliberation_prompts
     assert "- use_item(item, target)" in deliberation_prompts
