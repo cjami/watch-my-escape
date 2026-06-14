@@ -7,14 +7,23 @@
 ## Project Structure
 
 - `src/watch_my_escape/app/` contains Gradio/FastAPI app wiring and API schemas.
-- `src/watch_my_escape/game/` contains escape-room state, maps, rules, and tool wrappers.
-- `src/watch_my_escape/agent/` contains LLM agent orchestration, prompts, history, and emotions.
-- `src/watch_my_escape/llm/` contains local model integration and tool-call parsing.
-- `src/watch_my_escape/web/` contains the Jinja2 templates and custom frontend assets.
+- `src/watch_my_escape/game/` contains escape-room state, actions, runtime rules, and map loading.
+- `src/watch_my_escape/game/map_data/` contains built-in JSON room maps.
+- `src/watch_my_escape/agent/` contains LLM agent orchestration, prompts, runs, and emotions.
+- `src/watch_my_escape/agent/prompt_templates/` contains Markdown prompt templates.
+- `src/watch_my_escape/llm/` contains model configuration, provider integration, tracing, evaluation, and tool-call parsing.
+- `src/watch_my_escape/web/` contains Jinja2 templates and source frontend assets.
+- `src/watch_my_escape/web/static/app/` contains browser-side application modules.
+- `src/watch_my_escape/__main__.py`, `doctor.py`, and `setup_llm.py` contain package entry points and helper commands.
+- `build/web/static/` contains generated frontend assets from `make assets`.
+- `requirements/` contains platform-specific LLM dependency inputs.
+- `space/` contains the Hugging Face Space deployment entry point and requirements.
 - `tests/` contains pytest tests for backend behavior.
-- `pyproject.toml` defines dependencies, Ruff linting, pytest settings, and package metadata.
+- `pyproject.toml` defines dependencies, Ruff linting, pytest settings, package metadata, and console scripts.
 - `.pre-commit-config.yaml` defines Git pre-commit hooks that run formatting, linting, type checking, and tests.
-- `Makefile` provides the common development commands.
+- `package.json` and `package-lock.json` define frontend build dependencies.
+- `.github/workflows/` contains deployment automation.
+- `Makefile` provides the common development commands, including asset builds, linting, tests, app launch, doctor, and LLM setup helpers.
 
 ## Development Workflow
 

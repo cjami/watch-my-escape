@@ -1,1 +1,0 @@
-"""Game tool wrapper placeholders."""
