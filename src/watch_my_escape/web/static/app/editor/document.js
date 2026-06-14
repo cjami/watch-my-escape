@@ -18,7 +18,10 @@ export function createEditorDocuments({ context, customMapStore, onCustomMapsCha
     if (!normalized) {
       return false;
     }
-    downloadJson(`${normalized.map.id}.json`, normalized);
+    if (!(await downloadJson(`${normalized.map.id}.json`, normalized))) {
+      context.setStatus("Export canceled.");
+      return false;
+    }
     validation.updateState("valid", "Map is valid.");
     context.setStatus("Map validated and exported.");
     return true;

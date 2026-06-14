@@ -1408,7 +1408,7 @@
         "entity": {
           "id": "1w",
           "icon": "🇼",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1441,7 +1441,7 @@
         "entity": {
           "id": "2m",
           "icon": "🇲",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1458,7 +1458,7 @@
         "entity": {
           "id": "3e",
           "icon": "🇪",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1467,7 +1467,7 @@
           "behaviors": []
         },
         "position": {
-          "x": 4,
+          "x": 5,
           "y": 12
         }
       },
@@ -1475,7 +1475,7 @@
         "entity": {
           "id": "1a",
           "icon": "🇦",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1492,7 +1492,7 @@
         "entity": {
           "id": "1t",
           "icon": "🇹",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1509,7 +1509,7 @@
         "entity": {
           "id": "1c",
           "icon": "🇨",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1526,7 +1526,7 @@
         "entity": {
           "id": "1h",
           "icon": "🇭",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1543,7 +1543,7 @@
         "entity": {
           "id": "2y",
           "icon": "🇾",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1560,24 +1560,7 @@
         "entity": {
           "id": "3s",
           "icon": "🇸",
-          "color": null,
-          "description": "A solid wall.",
-          "passable": false,
-          "active": false,
-          "notable": true,
-          "state": "default",
-          "behaviors": []
-        },
-        "position": {
-          "x": 5,
-          "y": 12
-        }
-      },
-      {
-        "entity": {
-          "id": "3c",
-          "icon": "🇨",
-          "color": null,
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1592,9 +1575,9 @@
       },
       {
         "entity": {
-          "id": "3a",
-          "icon": "🇦",
-          "color": null,
+          "id": "3c",
+          "icon": "🇨",
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1609,9 +1592,9 @@
       },
       {
         "entity": {
-          "id": "3p",
-          "icon": "🇵",
-          "color": null,
+          "id": "3a",
+          "icon": "🇦",
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1626,9 +1609,9 @@
       },
       {
         "entity": {
-          "id": "3e-2",
-          "icon": "🇪",
-          "color": null,
+          "id": "3p",
+          "icon": "🇵",
+          "color": "#ffd447",
           "description": "A solid wall.",
           "passable": false,
           "active": false,
@@ -1638,6 +1621,23 @@
         },
         "position": {
           "x": 9,
+          "y": 12
+        }
+      },
+      {
+        "entity": {
+          "id": "3e-2",
+          "icon": "🇪",
+          "color": "#ffd447",
+          "description": "A solid wall.",
+          "passable": false,
+          "active": false,
+          "notable": true,
+          "state": "default",
+          "behaviors": []
+        },
+        "position": {
+          "x": 10,
           "y": 12
         }
       },
