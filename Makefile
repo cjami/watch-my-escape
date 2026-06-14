@@ -44,4 +44,4 @@ format:
 	uv run ruff format .
 
 app:
-	uv run watch-my-escape
+	uv run watch-my-escape --no-browser
