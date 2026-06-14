@@ -6,7 +6,7 @@ hf_transfer
 huggingface-hub
 jinja2
 langfuse
-llama-cpp-python
+llama-cpp-python==0.3.26
 pydantic
 python-dotenv
 spaces==0.50.4
