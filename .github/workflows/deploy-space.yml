@@ -16,7 +16,7 @@ jobs:
     environment: huggingface-space
     env:
       DEPLOY_DIR: dist/huggingface-space
-      HF_SPACE_REPO: https://huggingface.co/spaces/cjami/watch-my-escape
+      HF_SPACE_REPO: build-small-hackathon/watch-my-escape
 
     steps:
       - name: Check out repository
@@ -97,5 +97,5 @@ jobs:
           git add -f build/web/static
           git commit -m "Deploy Space"
           git branch -M main
-          git remote add origin "https://cjami:${HF_TOKEN}@huggingface.co/spaces/cjami/watch-my-escape"
+          git remote add origin "https://build-small-hackathon:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO}"
           git push --force origin main
