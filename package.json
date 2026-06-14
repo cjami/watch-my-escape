@@ -3,7 +3,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4",
     "emojibase-data": "^17.0.0",
-    "esbuild": "^0.25",
+    "esbuild": "^0.28.1",
     "tailwindcss": "^4"
   }
 }
