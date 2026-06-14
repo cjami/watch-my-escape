@@ -97,7 +97,7 @@ MODEL_PRESETS: Final[Mapping[str, ModelPreset]] = MappingProxyType(
             filename="tiny-aya-global-q4_k_m.gguf",
             thinking_supported=False,
             thinking_enabled=False,
-            thinking_temperature=0.2,
+            thinking_temperature=0.4,
             thinking_top_p=0.95,
         ),
         "gemma-4-12b-it": ModelPreset(

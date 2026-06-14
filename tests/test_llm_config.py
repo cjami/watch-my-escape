@@ -192,7 +192,7 @@ def test_model_presets_include_publisher_thinking_sampling_where_known():
     assert MODEL_PRESETS["gemma-4-12b-it"].thinking_top_k == 64
     assert MODEL_PRESETS["tiny-aya-global"].thinking_supported is False
     assert MODEL_PRESETS["tiny-aya-global"].thinking_enabled is False
-    assert MODEL_PRESETS["tiny-aya-global"].thinking_temperature == 0.2
+    assert MODEL_PRESETS["tiny-aya-global"].thinking_temperature == 0.4
     assert MODEL_PRESETS["mellum2-12b-a2.5b-thinking"].thinking_top_k == 20
     assert MODEL_PRESETS["nvidia-nemotron-3-nano-4b"].thinking_temperature is None
 
