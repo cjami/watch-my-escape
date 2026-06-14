@@ -1,4 +1,4 @@
-"""Watch My Escape backend package."""
+"""WATCH MY ESCAPE backend package."""
 
 from watch_my_escape.app.server import create_app
 

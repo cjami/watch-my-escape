@@ -1,4 +1,4 @@
-"""Hugging Face Space entry point for Watch My Escape."""
+"""Hugging Face Space entry point for WATCH MY ESCAPE."""
 
 import sys
 from pathlib import Path

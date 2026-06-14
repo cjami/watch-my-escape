@@ -1,4 +1,4 @@
-"""Local setup and launch command for Watch My Escape."""
+"""Local setup and launch command for WATCH MY ESCAPE."""
 
 from __future__ import annotations
 
@@ -6,8 +6,10 @@ import argparse
 import importlib.util
 import json
 import shutil
+import socket
 import subprocess
 import sys
+from ipaddress import ip_address
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
@@ -21,6 +23,7 @@ PROJECT_DIR: Final = Path(__file__).resolve().parents[2]
 SOURCE_STATIC_DIR: Final = PROJECT_DIR / "src" / "watch_my_escape" / "web" / "static"
 GENERATED_STATIC_DIR: Final = PROJECT_DIR / "build" / "web" / "static"
 SETUP_STATE_PATH: Final = PROJECT_DIR / "build" / "setup-state.json"
+DEFAULT_SERVER_PORT: Final = 7860
 ASSET_OUTPUTS: Final = (
     GENERATED_STATIC_DIR / "styles.css",
     GENERATED_STATIC_DIR / "app.js",
@@ -38,12 +41,17 @@ def main(argv: Sequence[str] | None = None) -> None:
         print("Setup is complete.")
         return
 
-    create_app().launch(
-        show_error=True,
-        inbrowser=not args.no_browser,
-        server_name=args.server_name,
-        server_port=args.server_port,
-    )
+    if args.allow_multiple:
+        _launch_app(args)
+        return
+
+    port = args.server_port or DEFAULT_SERVER_PORT
+    if server_port_in_use(args.server_name, port):
+        host = _connect_host(args.server_name)
+        print(f"WATCH MY ESCAPE appears to already be running at http://{host}:{port}/.")
+        return
+
+    _launch_app(args)
 
 
 def ensure_project_ready(*, llm_profile: str, force: bool = False) -> None:
@@ -55,7 +63,7 @@ def ensure_project_ready(*, llm_profile: str, force: bool = False) -> None:
 
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Set up Watch My Escape, then launch the local game.")
+    parser = argparse.ArgumentParser(description="Set up WATCH MY ESCAPE, then launch the local game.")
     parser.add_argument(
         "--llm-profile",
         choices=("auto", *MANUAL_LOCAL_PROFILES),
@@ -67,7 +75,37 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--no-browser", action="store_true", help="Start the server without opening a browser.")
     parser.add_argument("--server-name", help="Host/interface for the local Gradio server.")
     parser.add_argument("--server-port", type=int, help="Port for the local Gradio server.")
+    parser.add_argument("--allow-multiple", action="store_true", help="Start even if another local server is running.")
     return parser.parse_args(argv)
+
+
+def _launch_app(args: argparse.Namespace) -> None:
+    create_app().launch(
+        show_error=True,
+        inbrowser=not args.no_browser,
+        server_name=args.server_name,
+        server_port=args.server_port,
+    )
+
+
+def server_port_in_use(server_name: str | None, server_port: int) -> bool:
+    """Return whether the target launch port is already accepting connections."""
+    try:
+        with socket.create_connection((_connect_host(server_name), server_port), timeout=0.2):
+            return True
+    except OSError:
+        return False
+
+
+def _connect_host(server_name: str | None) -> str:
+    if not server_name:
+        return "127.0.0.1"
+    try:
+        if ip_address(server_name).is_unspecified:
+            return "127.0.0.1"
+    except ValueError:
+        return server_name
+    return server_name
 
 
 def _ensure_python_environment(*, force: bool) -> None:

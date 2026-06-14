@@ -70,6 +70,7 @@ def test_main_launches_browser_by_default(monkeypatch):
         def launch(self, **kwargs):
             captured.update(kwargs)
 
+    monkeypatch.setattr(cli, "server_port_in_use", lambda *_args: False)
     monkeypatch.setattr(cli, "ensure_project_ready", lambda **_kwargs: None)
     monkeypatch.setattr(cli, "create_app", FakeApp)
 
@@ -85,9 +86,67 @@ def test_main_respects_no_browser(monkeypatch):
         def launch(self, **kwargs):
             captured.update(kwargs)
 
+    monkeypatch.setattr(cli, "server_port_in_use", lambda *_args: False)
     monkeypatch.setattr(cli, "ensure_project_ready", lambda **_kwargs: None)
     monkeypatch.setattr(cli, "create_app", FakeApp)
 
     cli.main(["--no-browser"])
 
     assert captured["inbrowser"] is False
+
+
+def test_main_skips_launch_when_default_server_port_is_in_use(monkeypatch, capsys):
+    launched = False
+
+    class FakeApp:
+        def launch(self, **_kwargs):
+            nonlocal launched
+            launched = True
+
+    monkeypatch.setattr(cli, "server_port_in_use", lambda server_name, port: server_name is None and port == 7860)
+    monkeypatch.setattr(cli, "ensure_project_ready", lambda **_kwargs: None)
+    monkeypatch.setattr(cli, "create_app", FakeApp)
+
+    cli.main([])
+
+    assert not launched
+    assert "already be running at http://127.0.0.1:7860/" in capsys.readouterr().out
+
+
+def test_main_checks_requested_server_port(monkeypatch):
+    captured = {}
+    seen = {}
+
+    class FakeApp:
+        def launch(self, **kwargs):
+            captured.update(kwargs)
+
+    def port_in_use(server_name, port):
+        seen["server_name"] = server_name
+        seen["port"] = port
+        return False
+
+    monkeypatch.setattr(cli, "server_port_in_use", port_in_use)
+    monkeypatch.setattr(cli, "ensure_project_ready", lambda **_kwargs: None)
+    monkeypatch.setattr(cli, "create_app", FakeApp)
+
+    cli.main(["--server-port", "8000"])
+
+    assert seen == {"server_name": None, "port": 8000}
+    assert captured["server_port"] == 8000
+
+
+def test_main_allow_multiple_skips_port_check(monkeypatch):
+    captured = {}
+
+    class FakeApp:
+        def launch(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(cli, "server_port_in_use", lambda *_args: True)
+    monkeypatch.setattr(cli, "ensure_project_ready", lambda **_kwargs: None)
+    monkeypatch.setattr(cli, "create_app", FakeApp)
+
+    cli.main(["--allow-multiple"])
+
+    assert captured["server_port"] is None

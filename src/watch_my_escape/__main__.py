@@ -1,4 +1,4 @@
-"""Command-line entry point for Watch My Escape."""
+"""Command-line entry point for WATCH MY ESCAPE."""
 
 from watch_my_escape.cli import main
 

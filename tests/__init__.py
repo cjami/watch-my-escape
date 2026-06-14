@@ -1,1 +1,1 @@
-"""Tests for Watch My Escape."""
+"""Tests for WATCH MY ESCAPE."""

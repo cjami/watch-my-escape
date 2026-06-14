@@ -1,4 +1,4 @@
-# Watch My Escape
+# WATCH MY ESCAPE
 
 An LLM tries to escape a man-made puzzle room.
 

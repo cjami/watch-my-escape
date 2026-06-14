@@ -1,8 +1,8 @@
-# Watch My Escape
+# WATCH MY ESCAPE
 
 ## Project Description
 
-'Watch My Escape!' is an application where an LLM tries to escape a man-made puzzle room.
+'WATCH MY ESCAPE' is an application where an LLM tries to escape a man-made puzzle room.
 
 ## Project Structure
 

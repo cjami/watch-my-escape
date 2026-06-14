@@ -1,4 +1,4 @@
-"""Gradio Server backend for Watch My Escape."""
+"""Gradio Server backend for WATCH MY ESCAPE."""
 
 from __future__ import annotations
 
@@ -322,7 +322,7 @@ def create_app() -> Server:
             request=request,
             name="index.html.jinja",
             context={
-                "app_name": "Watch My Escape",
+                "app_name": "WATCH MY ESCAPE",
                 "app_data": app_data(),
             },
         )

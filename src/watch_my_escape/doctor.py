@@ -21,7 +21,7 @@ def build_report() -> list[str]:
     """Build a human-readable diagnostic report."""
     config = load_config()
     lines = [
-        "Watch My Escape LLM doctor",
+        "WATCH MY ESCAPE LLM doctor",
         f"Python: {sys.version.split()[0]} ({platform.platform()})",
         f"Hugging Face Space: {'yes' if is_huggingface_space() else 'no'}",
         f"Provider: {config.provider}",
