@@ -1,4 +1,4 @@
-.PHONY: app assets doctor eval-models format lint setup-llm-cpu setup-llm-cuda setup-llm-metal setup-hf-zerogpu test
+.PHONY: app assets doctor eval-models format lint setup setup-llm-cpu setup-llm-cuda setup-llm-metal setup-llm-rocm setup-llm-vulkan setup-hf-zerogpu test
 
 assets:
 	npx @tailwindcss/cli -i src/watch_my_escape/web/static/input.css -o build/web/static/styles.css --minify
@@ -14,6 +14,9 @@ doctor:
 eval-models:
 	uv run python -m watch_my_escape.llm.evaluate_models
 
+setup:
+	uv run watch-my-escape --setup-only
+
 setup-llm-cpu:
 	uv run python -m watch_my_escape.setup_llm cpu
 
@@ -22,6 +25,12 @@ setup-llm-cuda:
 
 setup-llm-metal:
 	uv run python -m watch_my_escape.setup_llm metal
+
+setup-llm-vulkan:
+	uv run python -m watch_my_escape.setup_llm vulkan
+
+setup-llm-rocm:
+	uv run python -m watch_my_escape.setup_llm rocm
 
 setup-hf-zerogpu:
 	uv run python -m watch_my_escape.setup_llm hf-zerogpu
@@ -35,5 +44,4 @@ format:
 	uv run ruff format .
 
 app:
-	$(MAKE) assets
-	uv run python -m watch_my_escape
+	uv run watch-my-escape

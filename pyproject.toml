@@ -31,7 +31,7 @@ zerogpu = [
 ]
 
 [project.scripts]
-watch-my-escape = "watch_my_escape.app.server:main"
+watch-my-escape = "watch_my_escape.cli:main"
 watch-my-escape-doctor = "watch_my_escape.doctor:main"
 watch-my-escape-eval-models = "watch_my_escape.llm.evaluate_models:main"
 watch-my-escape-setup-llm = "watch_my_escape.setup_llm:main"

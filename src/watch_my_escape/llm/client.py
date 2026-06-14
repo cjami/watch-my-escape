@@ -116,7 +116,7 @@ class EmbeddedLlamaCppProvider:
         except (ImportError, RuntimeError) as exc:
             msg = (
                 "llama-cpp-python could not be loaded. Run one setup profile, for example "
-                "`uv run python -m watch_my_escape.setup_llm cpu`."
+                "`uv run watch-my-escape --setup-only`."
             )
             raise LlmConfigurationError(msg) from exc
 

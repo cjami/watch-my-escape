@@ -2,92 +2,102 @@
 
 An LLM tries to escape a man-made puzzle room.
 
+## Quick Start
+
+Install the prerequisites, then run one command from the repository:
+
+```shell
+git clone https://github.com/cjami/watch-my-escape.git
+cd watch-my-escape
+uv run watch-my-escape
+```
+
+The command sets up missing dependencies, builds the browser assets, installs the best local `llama-cpp-python` backend it can detect, starts the local server, and opens the game in your browser.
+
+On first run, the selected GGUF model downloads from Hugging Face. That can take a while and may use several gigabytes of disk space.
+
+## Prerequisites
+
+- Git, if you are cloning the repository.
+- `uv` for Python environment management: https://docs.astral.sh/uv/getting-started/installation/
+- Node.js and npm for building browser assets: https://nodejs.org/
+- Python 3.12 or newer. `uv` can usually install and manage this for you.
+
+Make is not required to run the app.
+
+## Setup Options
+
+Run setup without starting the server:
+
+```shell
+uv run watch-my-escape --setup-only
+```
+
+Force setup to run again:
+
+```shell
+uv run watch-my-escape --force-setup
+```
+
+Start the server without opening a browser:
+
+```shell
+uv run watch-my-escape --no-browser
+```
+
+Override the detected local LLM backend:
+
+```shell
+uv run watch-my-escape --llm-profile metal
+uv run watch-my-escape --llm-profile cuda
+uv run watch-my-escape --llm-profile vulkan
+uv run watch-my-escape --llm-profile rocm
+uv run watch-my-escape --llm-profile cpu
+```
+
+Auto-detection prefers Apple Metal, then NVIDIA CUDA, then Vulkan, then CPU. ROCm is available as an explicit override because ROCm support depends more heavily on the installed OS, GPU, and driver stack.
+
+## Langfuse Tracing
+
+Langfuse tracing is optional. Add these variables to your shell or a local `.env` file:
+
+```shell
+LANGFUSE_TRACING_ENABLED=true
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_BASE_URL=...
+```
+
+Set `LANGFUSE_TRACING_ENABLED=false` to disable tracing locally.
+
 ## Development
 
-Use `uv` for dependency management:
-
-```shell
-uv sync
-```
-
-Run checks with Make:
-
-```shell
-make test
-make lint
-```
-
-Run the app:
+Common contributor commands:
 
 ```shell
 make app
+make test
+make lint
+make format
+make assets
 ```
 
-## LLM setup
-
-The application uses `llama-cpp-python` for inference. Choose one setup profile:
+Without Make:
 
 ```shell
-uv run python -m watch_my_escape.setup_llm cpu
-uv run python -m watch_my_escape.setup_llm cuda
-uv run python -m watch_my_escape.setup_llm metal
-uv run python -m watch_my_escape.setup_llm hf-zerogpu
+uv run watch-my-escape
+uv run pytest
+uv run ruff check .
+uv run ty check
 ```
 
-`make setup-llm-cpu`, `make setup-llm-cuda`, `make setup-llm-metal`, and `make setup-hf-zerogpu` are shortcuts when Make is available.
-
-Configure a custom GGUF model with `WME_MODEL_PATH`, or `WME_MODEL_REPO_ID` plus `WME_MODEL_FILENAME`. The web game selects one of the built-in model presets in the browser. Use `WME_GPU_LAYERS=-1` to offload all supported layers to GPU.
-Flash Attention defaults to `auto`: it is enabled when the installed llama.cpp
-backend supports GPU offload and `WME_GPU_LAYERS` is not `0`. Override it with
-`WME_FLASH_ATTN=true` or `WME_FLASH_ATTN=false`.
-
-Supported Hub presets use Q4_K_M where available:
-
-| Preset | Repository | Filename |
-| --- | --- | --- |
-| `mellum2-12b-a2.5b-thinking` | `JetBrains/Mellum2-12B-A2.5B-Thinking-GGUF-Q4_K_M` | `Mellum2-12B-A2.5B-Thinking-Q4_K_M.gguf` |
-| `nvidia-nemotron-3-nano-4b` | `nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF` | `NVIDIA-Nemotron3-Nano-4B-Q4_K_M.gguf` |
-| `minicpm5-1b` | `openbmb/MiniCPM5-1B-GGUF` | `MiniCPM5-1B-Q4_K_M.gguf` |
-| `tiny-aya-global` | `CohereLabs/tiny-aya-global-GGUF` | `tiny-aya-global-q4_k_m.gguf` |
-| `gemma-4-12b-it` | `ggml-org/gemma-4-12B-it-GGUF` | `gemma-4-12B-it-Q4_K_M.gguf` |
-
-Sampling settings prefer explicit environment overrides, then GGUF model metadata, then reasoning-model fallbacks:
+Check the current local LLM setup:
 
 ```shell
-WME_TEMPERATURE=1.0
-WME_TOP_P=0.95
-WME_TOP_K=64
+uv run watch-my-escape-doctor
 ```
 
-Check the current setup:
-
-```shell
-uv run python -m watch_my_escape.doctor
-```
-
-If local server logs show `Failed to export span batch code: 400`, Langfuse tracing
-is enabled but the configured Langfuse endpoint or keys are rejecting exports. Set
-`LANGFUSE_TRACING_ENABLED=false` while testing locally, or update the Langfuse
-environment variables.
-
-Compare model reliability for Pydantic-constrained action JSON and structured JSON output:
-
-```shell
-uv run watch-my-escape-eval-models --preset minicpm5-1b --preset tiny-aya-global
-uv run watch-my-escape-eval-models --all-presets
-uv run watch-my-escape-eval-models --model-path local-small=~/models/model.gguf
-```
-
-When no model selector is provided, the evaluator uses the currently configured
-`WME_MODEL_PATH` or Hub model source.
-
-The evaluator sends Pydantic JSON Schemas through llama.cpp `response_format`,
-so action commands are measured as structured JSON rather than native model
-tool calls.
-
-Hub presets are downloaded on first use through `huggingface-hub` and then reused
-from the local Hugging Face cache. Prefer testing one preset first before
-running `--all-presets`, since the full set can require many gigabytes:
+Evaluate model reliability for structured action JSON:
 
 ```shell
 uv run watch-my-escape-eval-models --preset minicpm5-1b

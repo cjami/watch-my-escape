@@ -35,7 +35,7 @@ def build_report() -> list[str]:
         f"Flash Attention: {_format_optional_bool(value=config.flash_attn)}",
     ]
     if not _installed("llama_cpp"):
-        lines.append("Suggested fix: uv run python -m watch_my_escape.setup_llm cpu")
+        lines.append("Suggested fix: uv run watch-my-escape --setup-only")
     if not config.has_model_source:
         lines.append("Suggested fix: set WME_MODEL_PATH or WME_MODEL_REPO_ID plus WME_MODEL_FILENAME.")
     return lines
