@@ -31,7 +31,6 @@ node_modules/
 !.env.example
 
 # Editor and OS files
-.agents/
 .idea/
 .vscode/
 *.swp
