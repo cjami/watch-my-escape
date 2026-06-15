@@ -19,7 +19,7 @@ All are using Q4_K_M variants and should fit in about 8GB of VRAM.
 
 - Video: https://www.youtube.com/watch?v=9NdsC1W97oQ
 - Blog: https://che.codes/watch-my-escape/
-- Social: https://www.reddit.com/r/huggingface/comments/1u6eteo/watch_my_escape_llms_try_to_solve_your_handmade/
+- Social: https://www.reddit.com/r/LocalLLaMA/comments/1u6im9i/watch_my_escape_llms_try_to_solve_your_handmade/
 - GitHub: https://github.com/cjami/watch-my-escape (If observing a deployed version: Full commit history here)
 
 ## Tech stack
