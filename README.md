@@ -1,10 +1,34 @@
 # WATCH MY ESCAPE
 
-An LLM tries to escape a man-made puzzle room.
+Watch LLMs try to escape your handmade escape rooms.
+
+Features:
+- LLMs that love your puzzles and trying to escape them.
+- A fully loaded map editor to create your magnum opus.
+
+Supported models:
+- JetBrains Mellum2 12B
+- Nvidia Nemotron 3 Nano 4B
+- OpenBMB MiniCPM5 1B
+- Cohere Tiny Aya
+- Google Gemma 4 12B
+
+All are using Q4_K_M variants and should fit in about 8GB of VRAM.
+
+## Helpful links
+- Video: https://www.youtube.com/watch?v=9NdsC1W97oQ
+- Blog: https://che.codes/watch-my-escape/
+- Social: 
+- GitHub: https://github.com/cjami/watch-my-escape
+
+## Prerequisites
+
+- `uv` for Python environment management: https://docs.astral.sh/uv/getting-started/installation/
+- Node.js and npm for building browser assets: https://nodejs.org/
 
 ## Quick Start
 
-Install the prerequisites, then run one command from the repository:
+Install the prerequisites, then run the following:
 
 ```shell
 git clone https://github.com/cjami/watch-my-escape.git
@@ -15,15 +39,6 @@ uv run watch-my-escape
 The command sets up missing dependencies, builds the browser assets, installs the best local `llama-cpp-python` backend it can detect, starts the local server, and opens the game in your browser.
 
 On first run, the selected GGUF model downloads from Hugging Face. That can take a while and may use several gigabytes of disk space.
-
-## Prerequisites
-
-- Git, if you are cloning the repository.
-- `uv` for Python environment management: https://docs.astral.sh/uv/getting-started/installation/
-- Node.js and npm for building browser assets: https://nodejs.org/
-- Python 3.12 or newer. `uv` can usually install and manage this for you.
-
-Make is not required to run the app.
 
 ## Setup Options
 

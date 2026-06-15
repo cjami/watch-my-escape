@@ -21,3 +21,13 @@ preload_from_hub:
   - openbmb/MiniCPM5-1B-GGUF MiniCPM5-1B-Q4_K_M.gguf
   - CohereLabs/tiny-aya-global-GGUF tiny-aya-global-q4_k_m.gguf
   - ggml-org/gemma-4-12B-it-GGUF gemma-4-12B-it-Q4_K_M.gguf
+tags:
+  - track:wood
+  - sponsor:openbmb
+  - sponsor:openai
+  - sponsor:nvidia
+  - achievement:offgrid
+  - achievement:offbrand
+  - achievement:llama
+  - achievement:sharing
+  - achievement:fieldnotes
