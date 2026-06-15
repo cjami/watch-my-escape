@@ -31,7 +31,7 @@ export function createModelWarmup({ dom, focusScreen = () => {}, getSelectedMode
       if (currentEpoch !== warmupEpoch || error.name === "AbortError") {
         return;
       }
-      completeProgress("WARMUP SKIPPED");
+      completeProgress(error.errorCode === "zerogpu_quota_exhausted" ? "ZEROGPU TIME EXHAUSTED" : "WARMUP SKIPPED");
     }
 
     window.setTimeout(() => {
@@ -93,6 +93,21 @@ async function requestWarmup(sessionId, modelPreset, signal) {
     signal,
   });
   if (!response.ok) {
+    const detail = await warmupErrorDetail(response);
+    if (detail?.error_code === "zerogpu_quota_exhausted") {
+      const error = new Error(detail.message || "ZeroGPU time is exhausted.");
+      error.errorCode = detail.error_code;
+      throw error;
+    }
     throw new Error("Model warmup failed.");
+  }
+}
+
+async function warmupErrorDetail(response) {
+  try {
+    const payload = await response.json();
+    return payload.detail;
+  } catch {
+    return null;
   }
 }

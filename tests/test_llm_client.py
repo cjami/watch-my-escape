@@ -13,6 +13,7 @@ from watch_my_escape.llm.client import (
     EmbeddedLlamaCppProvider,
     LlmConfigurationError,
     ZeroGpuLlamaCppProvider,
+    ZeroGpuQuotaExceededError,
     create_provider,
 )
 from watch_my_escape.llm.config import DEFAULT_SEED, LlamaCppConfig, LlmProviderName
@@ -110,6 +111,21 @@ def test_zerogpu_provider_imports_torch_before_llama_cpp(monkeypatch, tmp_path):
     provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
 
     assert seen_imports.index("torch") < seen_imports.index("llama_cpp")
+
+
+def test_zerogpu_provider_reports_quota_exhaustion(monkeypatch):
+    def quota_completion(_request):
+        cause_message = "You have exceeded your GPU quota."
+        message = "ZeroGPU request failed."
+        cause = RuntimeError(cause_message)
+        raise RuntimeError(message) from cause
+
+    monkeypatch.setattr(ZeroGpuLlamaCppProvider, "_build_gpu_completion", lambda _self: quota_completion)
+
+    provider = ZeroGpuLlamaCppProvider(_config(LlmProviderName.ZEROGPU))
+
+    with pytest.raises(ZeroGpuQuotaExceededError, match="ZeroGPU time is exhausted"):
+        provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
 
 
 def test_create_provider_rejects_unresolved_auto_provider():

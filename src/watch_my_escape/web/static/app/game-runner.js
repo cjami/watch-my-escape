@@ -106,12 +106,7 @@ export function createGameRunner({
       } else {
         hideEscapeResult();
       }
-      if (
-        frame.escaped ||
-        frame.sanity === "0" ||
-        frame.status === "Model is not configured." ||
-        frame.status === "Model run failed."
-      ) {
+      if (isTerminalFrame(frame)) {
         stopStream();
         clearActiveRun(currentRunId);
         dom.runButton.disabled = false;
@@ -329,6 +324,16 @@ async function escapeStreamParams(selectedModel, selectedMap, startupDelay, sess
 
 function newRunId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
+function isTerminalFrame(frame) {
+  return (
+    frame.escaped ||
+    frame.sanity === "0" ||
+    frame.status === "Model is not configured." ||
+    frame.status === "Model run failed." ||
+    frame.error_code === "zerogpu_quota_exhausted"
+  );
 }
 
 async function customMapToken(selectedMap) {

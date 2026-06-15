@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import cached_property
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Final, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -35,11 +35,19 @@ class LlmConfigurationError(RuntimeError):
     """Raised when inference cannot be configured."""
 
 
+class ZeroGpuQuotaExceededError(RuntimeError):
+    """Raised when Hugging Face ZeroGPU daily time is exhausted."""
+
+
 def _zero_gpu_startup_probe() -> None:
     return None
 
 
 ZERO_GPU_NON_THINKING_DURATION = 15
+ZERO_GPU_QUOTA_EXHAUSTED_MESSAGE: Final = (
+    "ZeroGPU time is exhausted for this Hugging Face account. "
+    "Try again after your quota resets, or sign in with more quota."
+)
 
 
 def _decorate_zero_gpu_function(function: Any, *, duration: int | Callable[..., int]) -> Any | None:
@@ -237,7 +245,12 @@ class ZeroGpuLlamaCppProvider(EmbeddedLlamaCppProvider):
 
     def complete(self, request: InferenceRequest) -> InferenceResponse:
         """Run one ZeroGPU-backed chat completion."""
-        return self._complete_on_gpu(request)
+        try:
+            return self._complete_on_gpu(request)
+        except Exception as exc:
+            if _is_zero_gpu_quota_error(exc):
+                raise ZeroGpuQuotaExceededError(ZERO_GPU_QUOTA_EXHAUSTED_MESSAGE) from exc
+            raise
 
     def _build_gpu_completion(self) -> Any:
         complete_on_gpu = _decorate_zero_gpu_function(
@@ -289,3 +302,23 @@ def _first_int(*values: int | None) -> int:
             return value
     msg = "At least one integer fallback is required."
     raise AssertionError(msg)
+
+
+def _is_zero_gpu_quota_error(exc: BaseException) -> bool:
+    for current in _exception_chain(exc):
+        text = f"{type(current).__name__}: {current}".lower()
+        compact_text = "".join(character for character in text if character.isalnum())
+        if "zerogpu" in compact_text and ("quota" in text or "time" in text):
+            return True
+        if "gpu" in text and "quota" in text and any(word in text for word in ("exhaust", "exceed", "limit")):
+            return True
+    return False
+
+
+def _exception_chain(exc: BaseException) -> tuple[BaseException, ...]:
+    chain: list[BaseException] = []
+    current: BaseException | None = exc
+    while current is not None and current not in chain:
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    return tuple(chain)

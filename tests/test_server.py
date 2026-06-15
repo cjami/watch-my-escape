@@ -20,7 +20,7 @@ from watch_my_escape.app.server import (
     premade_map_options,
 )
 from watch_my_escape.game.runtime import ActionEffectSummary
-from watch_my_escape.llm.client import LlmConfigurationError
+from watch_my_escape.llm.client import LlmConfigurationError, ZeroGpuQuotaExceededError
 from watch_my_escape.llm.config import MODEL_PRESETS
 from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceResponse
 
@@ -64,6 +64,8 @@ def test_keyboard_flow_focus_contract_is_wired():
     assert "mapSelector.focusSelectedMapOption();" in app_script
     assert "showSetupScreen: backToModelSelect" in app_script
     assert "showSetupScreen();" in game_runner_script
+    assert "function isTerminalFrame(frame)" in game_runner_script
+    assert 'frame.error_code === "zerogpu_quota_exhausted"' in game_runner_script
     assert "renderTranscript(dom.transcriptOutput, frame, pixelSprite);" in game_runner_script
     assert "transcriptCard(event, pixelSprite, deliberationOpenStates)" in game_runner_script
     assert 'event.kind === "turn"' in game_runner_script
@@ -73,6 +75,8 @@ def test_keyboard_flow_focus_contract_is_wired():
     assert "details.dataset.transcriptKey = key;" in game_runner_script
     assert 'fetch("/runs/cancel"' in game_runner_script
     assert "run_id: runId" in game_runner_script
+    assert 'error.errorCode === "zerogpu_quota_exhausted"' in warmup_script
+    assert '"ZEROGPU TIME EXHAUSTED"' in warmup_script
 
 
 def test_keyboard_escape_in_model_settings_stays_on_model_screen():
@@ -187,6 +191,29 @@ def test_model_warmup_endpoint_reuses_existing_session_provider(monkeypatch):
     assert provider.requests[0].enable_thinking is False
     assert provider.requests[0].settings.max_tokens == 8
     assert _inner_provider(server.warm_provider_store.get(session_id=session_id, model_preset=preset_id)) is provider
+
+
+def test_model_warmup_endpoint_reports_zerogpu_quota_exhaustion(monkeypatch):
+    preset_id = next(iter(MODEL_PRESETS))
+
+    class QuotaProvider:
+        def complete(self, request):
+            del request
+            message = "ZeroGPU time is exhausted for this Hugging Face account."
+            raise ZeroGpuQuotaExceededError(message)
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: QuotaProvider())
+    client = TestClient(create_app())
+
+    response = client.post("/models/warmup", json={"session_id": "quota-session", "model_preset": preset_id})
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": {
+            "error_code": "zerogpu_quota_exhausted",
+            "message": "ZeroGPU time is exhausted for this Hugging Face account.",
+        },
+    }
 
 
 def test_escape_stream_uses_session_warmed_provider(monkeypatch):
@@ -523,6 +550,25 @@ def test_escape_stream_handles_unexpected_provider_errors(monkeypatch):
     assert response.status_code == 200
     assert '"status": "Model run failed."' in response.text
     assert "index 1510 is out of bounds" in response.text
+
+
+def test_escape_stream_reports_zerogpu_quota_exhaustion(monkeypatch):
+    preset_id = next(iter(MODEL_PRESETS))
+
+    def raise_quota_error(**_kwargs):
+        message = "ZeroGPU time is exhausted for this Hugging Face account."
+        raise ZeroGpuQuotaExceededError(message)
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: object())
+    monkeypatch.setattr(server, "run_model_escape_steps", raise_quota_error)
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room")
+
+    assert response.status_code == 200
+    assert '"status": "ZeroGPU time exhausted."' in response.text
+    assert '"error_code": "zerogpu_quota_exhausted"' in response.text
+    assert "ZeroGPU time is exhausted for this Hugging Face account." in response.text
 
 
 def test_escape_stream_stops_after_cancellation(monkeypatch):

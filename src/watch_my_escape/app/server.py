@@ -35,7 +35,12 @@ from watch_my_escape.game.premade_maps import (
     list_premade_maps,
 )
 from watch_my_escape.game.runtime import ActionEffectSummary
-from watch_my_escape.llm.client import LlmConfigurationError, create_provider
+from watch_my_escape.llm.client import (
+    ZERO_GPU_QUOTA_EXHAUSTED_MESSAGE,
+    LlmConfigurationError,
+    ZeroGpuQuotaExceededError,
+    create_provider,
+)
 from watch_my_escape.llm.config import MODEL_PRESETS, ModelPreset, ModelPresetError, config_for_model_preset
 from watch_my_escape.llm.models import ChatMessage, InferenceRequest, InferenceSettings
 
@@ -61,6 +66,8 @@ CUSTOM_MAP_TOKEN_TTL_SECONDS: Final = 15 * 60
 WARM_PROVIDER_SESSION_TTL_SECONDS: Final = 5 * 60
 ESCAPE_RUN_TTL_SECONDS: Final = 30 * 60
 LOGGER = logging.getLogger(__name__)
+ZERO_GPU_QUOTA_EXHAUSTED_CODE: Final = "zerogpu_quota_exhausted"
+ZERO_GPU_QUOTA_EXHAUSTED_STATUS: Final = "ZeroGPU time exhausted."
 
 
 @dataclass(frozen=True, slots=True)
@@ -450,6 +457,14 @@ def warm_model_preset(*, session_id: str, model_preset: str) -> dict[str, object
         _run_warmup_completion(provider)
     except ModelPresetError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ZeroGpuQuotaExceededError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error_code": ZERO_GPU_QUOTA_EXHAUSTED_CODE,
+                "message": str(exc),
+            },
+        ) from exc
     except LlmConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -602,6 +617,8 @@ def _escape_event_stream(
             "escaped": False,
         }
         yield f"data: {json.dumps(payload)}\n\n"
+    except ZeroGpuQuotaExceededError as exc:
+        yield f"data: {json.dumps(_zero_gpu_quota_error_payload(exc))}\n\n"
     except EscapeRunCancelledError:
         return
     except Exception as exc:
@@ -650,6 +667,33 @@ def _stream_error_payload(exc: Exception) -> dict[str, object]:
             {
                 "kind": "intro",
                 "message": f"Model run failed: {exc}",
+                "visible_entities": (),
+            },
+        ),
+        "escaped": False,
+    }
+
+
+def _zero_gpu_quota_error_payload(exc: ZeroGpuQuotaExceededError) -> dict[str, object]:
+    message = str(exc) or ZERO_GPU_QUOTA_EXHAUSTED_MESSAGE
+    return {
+        "status": ZERO_GPU_QUOTA_EXHAUSTED_STATUS,
+        "error_code": ZERO_GPU_QUOTA_EXHAUSTED_CODE,
+        "sanity": "100",
+        "position": "",
+        "action_label": "",
+        "visible_entities": "- None.",
+        "inventory": "- Empty.",
+        "visible_entity_details": (),
+        "inventory_details": (),
+        "map": "",
+        "map_colors": "",
+        "visibility": "",
+        "transcript": message,
+        "transcript_events": (
+            {
+                "kind": "intro",
+                "message": message,
                 "visible_entities": (),
             },
         ),
