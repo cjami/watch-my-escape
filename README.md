@@ -1,12 +1,12 @@
 # WATCH MY ESCAPE
 
-Watch LLMs try to escape your handmade escape rooms.
+Watch LLMs try to solve your handmade escape rooms.
 
 Features:
 - LLMs that love your puzzles and trying to escape them.
 - A fully loaded map editor to create your magnum opus.
 
-Supported models:
+Active participants:
 - JetBrains Mellum2 12B
 - Nvidia Nemotron 3 Nano 4B
 - OpenBMB MiniCPM5 1B
@@ -18,8 +18,15 @@ All are using Q4_K_M variants and should fit in about 8GB of VRAM.
 ## Helpful links
 - Video: https://www.youtube.com/watch?v=9NdsC1W97oQ
 - Blog: https://che.codes/watch-my-escape/
-- Social: 
+- Social: https://www.reddit.com/r/huggingface/comments/1u6eteo/watch_my_escape_llms_try_to_solve_your_handmade/
 - GitHub: https://github.com/cjami/watch-my-escape
+
+## Tech stack
+- Python 3.12+ with Gradio, Jinja2, and Pydantic.
+- Local LLM inference via llama-cpp-python, and Hugging Face ZeroGPU.
+- Browser assets built with Tailwind CSS 4 and esbuild.
+- Development tooling with uv, Ruff, ty, and pytest.
+- Optional tracing with Langfuse.
 
 ## Prerequisites
 
