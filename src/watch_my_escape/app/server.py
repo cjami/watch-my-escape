@@ -63,7 +63,7 @@ GENERATED_STATIC_DIR: Final = PROJECT_DIR / "build" / "web" / "static"
 TEMPLATES_DIR: Final = WEB_DIR / "templates"
 templates: Final = Jinja2Templates(directory=TEMPLATES_DIR)
 CUSTOM_MAP_TOKEN_TTL_SECONDS: Final = 15 * 60
-WARM_PROVIDER_SESSION_TTL_SECONDS: Final = 5 * 60
+WARM_PROVIDER_SESSION_TTL_SECONDS: Final = 2 * 60
 ESCAPE_RUN_TTL_SECONDS: Final = 30 * 60
 LOGGER = logging.getLogger(__name__)
 ZERO_GPU_QUOTA_EXHAUSTED_CODE: Final = "zerogpu_quota_exhausted"
