@@ -1,9 +1,9 @@
 ---
 name: generate-map
-description: Generate, revise, and validate playable WATCH MY ESCAPE escape-room map JSON documents from scenario descriptions. Use when Codex needs to create or improve built-in or custom maps, puzzle chains, entity behavior JSON, inventory/item triggers, map_data files, or solution walkthroughs for this project.
+description: Generate, revise, and validate playable WATCH MY ESCAPE map JSON documents from scenario descriptions. Use when Codex needs to create or improve built-in or custom maps, puzzle chains, entity behavior JSON, inventory/item triggers, map_data files, or solution walkthroughs for this project.
 ---
 
-# Generate Escape Room Map
+# Generate Map
 
 ## Output Contract
 
