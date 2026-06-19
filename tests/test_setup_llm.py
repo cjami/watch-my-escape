@@ -2,36 +2,40 @@ from watch_my_escape import setup_llm
 from watch_my_escape.setup_llm import build_command, detect_local_profile
 
 
+def assert_uv_installs_requirements(command, requirement_file):
+    assert command[:3] == ("uv", "pip", "install")
+    assert command[3] == "--python"
+    assert command[4] == setup_llm.sys.executable
+    assert command[5] == "-r"
+    assert command[6].endswith(f"requirements\\{requirement_file}") or command[6].endswith(
+        f"requirements/{requirement_file}"
+    )
+
+
 def test_cpu_profile_installs_cpu_requirements():
     command, env = build_command("cpu")
 
-    assert command[:4] == ("uv", "pip", "install", "-r")
-    assert command[4].endswith("requirements\\llm-cpu.txt") or command[4].endswith("requirements/llm-cpu.txt")
+    assert_uv_installs_requirements(command, "llm-cpu.txt")
     assert "CMAKE_ARGS" not in env
 
 
 def test_cuda_profile_installs_cuda_requirements():
     command, _env = build_command("cuda")
 
-    assert command[:4] == ("uv", "pip", "install", "-r")
-    assert command[4].endswith("requirements\\llm-cuda-cu124.txt") or command[4].endswith(
-        "requirements/llm-cuda-cu124.txt"
-    )
+    assert_uv_installs_requirements(command, "llm-cuda-cu124.txt")
 
 
 def test_metal_profile_sets_metal_build_flag():
     command, env = build_command("metal")
 
-    assert command[:4] == ("uv", "pip", "install", "-r")
-    assert command[4].endswith("requirements\\llm-metal.txt") or command[4].endswith("requirements/llm-metal.txt")
+    assert_uv_installs_requirements(command, "llm-metal.txt")
     assert "CMAKE_ARGS" not in env
 
 
 def test_vulkan_profile_installs_vulkan_requirements():
     command, _env = build_command("vulkan")
 
-    assert command[:4] == ("uv", "pip", "install", "-r")
-    assert command[4].endswith("requirements\\llm-vulkan.txt") or command[4].endswith("requirements/llm-vulkan.txt")
+    assert_uv_installs_requirements(command, "llm-vulkan.txt")
 
 
 def test_rocm_profile_installs_linux_requirements(monkeypatch):
@@ -39,10 +43,7 @@ def test_rocm_profile_installs_linux_requirements(monkeypatch):
 
     command, _env = build_command("rocm")
 
-    assert command[:4] == ("uv", "pip", "install", "-r")
-    assert command[4].endswith("requirements\\llm-rocm-linux.txt") or command[4].endswith(
-        "requirements/llm-rocm-linux.txt"
-    )
+    assert_uv_installs_requirements(command, "llm-rocm-linux.txt")
 
 
 def test_rocm_profile_installs_windows_requirements(monkeypatch):
@@ -50,10 +51,7 @@ def test_rocm_profile_installs_windows_requirements(monkeypatch):
 
     command, _env = build_command("rocm")
 
-    assert command[:4] == ("uv", "pip", "install", "-r")
-    assert command[4].endswith("requirements\\llm-rocm-windows.txt") or command[4].endswith(
-        "requirements/llm-rocm-windows.txt"
-    )
+    assert_uv_installs_requirements(command, "llm-rocm-windows.txt")
 
 
 def test_auto_detects_metal_first(monkeypatch):

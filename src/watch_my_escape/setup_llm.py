@@ -17,12 +17,17 @@ if TYPE_CHECKING:
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 REQUIREMENTS_DIR = PROJECT_DIR / "requirements"
 
+
+def _install_requirements_command(requirement_file: str) -> tuple[str, ...]:
+    return ("uv", "pip", "install", "--python", sys.executable, "-r", str(REQUIREMENTS_DIR / requirement_file))
+
+
 PROFILE_COMMANDS: dict[str, tuple[str, ...]] = {
-    "cpu": ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "llm-cpu.txt")),
-    "cuda": ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "llm-cuda-cu124.txt")),
-    "hf-zerogpu": ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "hf-zerogpu.txt")),
-    "metal": ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "llm-metal.txt")),
-    "vulkan": ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "llm-vulkan.txt")),
+    "cpu": _install_requirements_command("llm-cpu.txt"),
+    "cuda": _install_requirements_command("llm-cuda-cu124.txt"),
+    "hf-zerogpu": _install_requirements_command("hf-zerogpu.txt"),
+    "metal": _install_requirements_command("llm-metal.txt"),
+    "vulkan": _install_requirements_command("llm-vulkan.txt"),
 }
 LOCAL_PROFILES: tuple[str, ...] = ("metal", "cuda", "vulkan", "cpu")
 MANUAL_LOCAL_PROFILES: tuple[str, ...] = (*LOCAL_PROFILES, "rocm")
@@ -57,15 +62,17 @@ def build_command(profile: str) -> tuple[tuple[str, ...], dict[str, str]]:
 
 def _rocm_command(env: dict[str, str]) -> tuple[tuple[str, ...], dict[str, str]]:
     if sys.platform.startswith("linux"):
-        return ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "llm-rocm-linux.txt")), env
+        return _install_requirements_command("llm-rocm-linux.txt"), env
     if sys.platform == "win32":
-        return ("uv", "pip", "install", "-r", str(REQUIREMENTS_DIR / "llm-rocm-windows.txt")), env
+        return _install_requirements_command("llm-rocm-windows.txt"), env
     env["CMAKE_ARGS"] = "-DGGML_HIP=on"
     return (
         (
             "uv",
             "pip",
             "install",
+            "--python",
+            sys.executable,
             "--force-reinstall",
             "--no-cache-dir",
             "llama-cpp-python",
