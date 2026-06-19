@@ -63,6 +63,31 @@ def test_ensure_llm_installs_when_profile_changes(monkeypatch, tmp_path):
     assert '"llm_profile": "vulkan"' in (tmp_path / "setup-state.json").read_text(encoding="utf-8")
 
 
+def test_ensure_llm_repairs_cuda_when_runtime_packages_are_missing(monkeypatch, tmp_path):
+    calls = []
+    state_path = tmp_path / "setup-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text('{"llm_profile": "cuda"}', encoding="utf-8")
+    monkeypatch.setattr(cli, "SETUP_STATE_PATH", state_path)
+    monkeypatch.setattr(cli, "detect_local_profile", lambda: "cuda")
+
+    def fake_find_spec(name):
+        if name == "llama_cpp":
+            return object()
+        if name in cli.CUDA_RUNTIME_PACKAGES:
+            return None
+        msg = f"No module named {name!r}"
+        raise ModuleNotFoundError(msg)
+
+    monkeypatch.setattr(importlib.util, "find_spec", fake_find_spec)
+    monkeypatch.setattr(cli, "build_command", lambda profile: (("uv", "pip", "install", profile), {}))
+    monkeypatch.setattr(cli, "_run", lambda command, **_kwargs: calls.append(command))
+
+    cli.ensure_llm(profile="auto", force=False)
+
+    assert calls == [("uv", "pip", "install", "cuda")]
+
+
 def test_main_launches_browser_by_default(monkeypatch):
     captured = {}
 

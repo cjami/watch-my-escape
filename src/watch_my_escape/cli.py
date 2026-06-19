@@ -31,6 +31,7 @@ ASSET_OUTPUTS: Final = (
     GENERATED_STATIC_DIR / "fonts" / "Silkscreen-Bold.ttf",
     GENERATED_STATIC_DIR / "fonts" / "Silkscreen-Regular.ttf",
 )
+CUDA_RUNTIME_PACKAGES: Final = ("nvidia.cuda_runtime", "nvidia.cublas")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -131,9 +132,11 @@ def ensure_llm(*, profile: str, force: bool) -> None:
     state = _read_setup_state()
     installed_profile = state.get("llm_profile")
     llama_cpp_installed = importlib.util.find_spec("llama_cpp") is not None
+    cuda_runtime_installed = selected_profile != "cuda" or _packages_installed(CUDA_RUNTIME_PACKAGES)
     needs_install = (
         force
         or not llama_cpp_installed
+        or not cuda_runtime_installed
         or (selected_profile != installed_profile and (profile != "auto" or selected_profile != "cpu"))
     )
     if not needs_install:
@@ -144,6 +147,17 @@ def ensure_llm(*, profile: str, force: bool) -> None:
     command, env = build_command(selected_profile)
     _run(command, env=env)
     _write_setup_state({**state, "llm_profile": selected_profile})
+
+
+def _packages_installed(packages: Iterable[str]) -> bool:
+    return all(_package_installed(package) for package in packages)
+
+
+def _package_installed(package: str) -> bool:
+    try:
+        return importlib.util.find_spec(package) is not None
+    except ModuleNotFoundError:
+        return False
 
 
 def assets_need_build() -> bool:

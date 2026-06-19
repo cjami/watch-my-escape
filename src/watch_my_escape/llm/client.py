@@ -336,6 +336,12 @@ def _add_nvidia_windows_dll_directories() -> None:
     if sys.platform != "win32" or not hasattr(os, "add_dll_directory"):
         return
 
+    for package_dir in _nvidia_cuda_package_dirs():
+        _add_dll_directories(package_dir)
+
+
+def _nvidia_cuda_package_dirs() -> tuple[Path, ...]:
+    package_dirs: list[Path] = []
     for package in NVIDIA_CUDA_PACKAGES:
         try:
             spec = find_spec(package)
@@ -343,22 +349,34 @@ def _add_nvidia_windows_dll_directories() -> None:
             continue
         if spec is None or spec.submodule_search_locations is None:
             continue
-        for package_dir in spec.submodule_search_locations:
-            _add_dll_directories(Path(package_dir))
+        package_dirs.extend(Path(package_dir) for package_dir in spec.submodule_search_locations)
+    return tuple(package_dirs)
 
 
 def _add_dll_directories(package_dir: Path) -> None:
-    for directory_name in ("bin", "lib"):
-        dll_dir = package_dir / directory_name
+    for dll_dir in _dll_directories(package_dir):
         resolved_dir = str(dll_dir.resolve())
         if resolved_dir in _NVIDIA_CUDA_DLL_DIRECTORIES or not dll_dir.is_dir():
             continue
+        _add_path_directory(resolved_dir)
         try:
             handle = os.add_dll_directory(resolved_dir)
         except OSError:
             continue
         _NVIDIA_CUDA_DLL_DIRECTORIES.add(resolved_dir)
         _NVIDIA_CUDA_DLL_HANDLES.append(handle)
+
+
+def _dll_directories(package_dir: Path) -> tuple[Path, ...]:
+    if not package_dir.is_dir():
+        return ()
+    return tuple(dict.fromkeys(dll_path.parent for dll_path in package_dir.rglob("*.dll")))
+
+
+def _add_path_directory(directory: str) -> None:
+    path_parts = os.environ.get("PATH", "").split(os.pathsep)
+    if directory not in path_parts:
+        os.environ["PATH"] = os.pathsep.join((directory, *path_parts))
 
 
 def _is_windows_cuda_runtime_error(exc: BaseException) -> bool:

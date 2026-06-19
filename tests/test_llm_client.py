@@ -232,6 +232,8 @@ def test_embedded_provider_registers_nvidia_cuda_dll_dirs_on_windows(monkeypatch
     cublas_package_dir = tmp_path / "cublas"
     (cuda_package_dir / "bin").mkdir(parents=True)
     (cublas_package_dir / "lib").mkdir(parents=True)
+    (cuda_package_dir / "bin" / "cudart64_12.dll").write_text("stub", encoding="utf-8")
+    (cublas_package_dir / "lib" / "cublas64_12.dll").write_text("stub", encoding="utf-8")
     locations = {
         "nvidia.cuda_runtime": cuda_package_dir,
         "nvidia.cublas": cublas_package_dir,
@@ -253,11 +255,16 @@ def test_embedded_provider_registers_nvidia_cuda_dll_dirs_on_windows(monkeypatch
     monkeypatch.setattr(llm_client.os, "add_dll_directory", fake_add_dll_directory, raising=False)
     monkeypatch.setattr(llm_client, "_NVIDIA_CUDA_DLL_DIRECTORIES", set())
     monkeypatch.setattr(llm_client, "_NVIDIA_CUDA_DLL_HANDLES", [])
+    monkeypatch.setenv("PATH", "C:\\Windows")
 
     EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP))._prepare_runtime_dependencies()  # noqa: SLF001
 
-    assert str((cuda_package_dir / "bin").resolve()) in registered_dirs
-    assert str((cublas_package_dir / "lib").resolve()) in registered_dirs
+    cuda_bin = str((cuda_package_dir / "bin").resolve())
+    cublas_lib = str((cublas_package_dir / "lib").resolve())
+    assert cuda_bin in registered_dirs
+    assert cublas_lib in registered_dirs
+    assert cuda_bin in llm_client.os.environ["PATH"]
+    assert cublas_lib in llm_client.os.environ["PATH"]
 
 
 def test_embedded_provider_reports_missing_huggingface_hub_download(monkeypatch):
