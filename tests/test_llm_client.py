@@ -2,7 +2,7 @@ import importlib
 import sys
 from dataclasses import replace
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import ClassVar
 
 import pytest
@@ -203,6 +203,61 @@ def test_embedded_provider_reports_llama_cpp_load_error(monkeypatch, tmp_path):
 
     with pytest.raises(LlmConfigurationError, match="llama-cpp-python could not be loaded"):
         provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
+
+
+def test_embedded_provider_reports_cuda_runtime_load_hint(monkeypatch, tmp_path):
+    real_import_module = importlib.import_module
+
+    def raising_import_module(name: str):
+        if name == "llama_cpp":
+            message = (
+                "Failed to load shared library "
+                "'C:\\temp\\watch-my-escape\\.venv\\Lib\\site-packages\\llama_cpp\\lib\\llama.dll' "
+                "(or one of its dependencies). Could not find module 'cublas64_12.dll'."
+            )
+            raise RuntimeError(message)
+        return real_import_module(name)
+
+    monkeypatch.setattr(llm_client, "import_module", raising_import_module)
+    model_path = tmp_path / "model.gguf"
+    model_path.write_text("not gguf", encoding="utf-8")
+    provider = EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP, str(model_path)))
+
+    with pytest.raises(LlmConfigurationError, match="CUDA 12 runtime packages"):
+        provider.complete(InferenceRequest(messages=(ChatMessage(role="user", content="Think."),)))
+
+
+def test_embedded_provider_registers_nvidia_cuda_dll_dirs_on_windows(monkeypatch, tmp_path):
+    cuda_package_dir = tmp_path / "cuda_runtime"
+    cublas_package_dir = tmp_path / "cublas"
+    (cuda_package_dir / "bin").mkdir(parents=True)
+    (cublas_package_dir / "lib").mkdir(parents=True)
+    locations = {
+        "nvidia.cuda_runtime": cuda_package_dir,
+        "nvidia.cublas": cublas_package_dir,
+    }
+    registered_dirs = []
+
+    def fake_find_spec(package: str):
+        package_dir = locations.get(package)
+        if package_dir is None:
+            return None
+        return SimpleNamespace(submodule_search_locations=(str(package_dir),))
+
+    def fake_add_dll_directory(directory: str):
+        registered_dirs.append(directory)
+        return object()
+
+    monkeypatch.setattr(llm_client.sys, "platform", "win32")
+    monkeypatch.setattr(llm_client, "find_spec", fake_find_spec)
+    monkeypatch.setattr(llm_client.os, "add_dll_directory", fake_add_dll_directory, raising=False)
+    monkeypatch.setattr(llm_client, "_NVIDIA_CUDA_DLL_DIRECTORIES", set())
+    monkeypatch.setattr(llm_client, "_NVIDIA_CUDA_DLL_HANDLES", [])
+
+    EmbeddedLlamaCppProvider(_config(LlmProviderName.LLAMA_CPP))._prepare_runtime_dependencies()  # noqa: SLF001
+
+    assert str((cuda_package_dir / "bin").resolve()) in registered_dirs
+    assert str((cublas_package_dir / "lib").resolve()) in registered_dirs
 
 
 def test_embedded_provider_reports_missing_huggingface_hub_download(monkeypatch):

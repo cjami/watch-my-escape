@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from functools import cached_property
 from importlib import import_module
+from importlib.util import find_spec
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final, Protocol
 
@@ -44,10 +47,13 @@ def _zero_gpu_startup_probe() -> None:
 
 
 ZERO_GPU_NON_THINKING_DURATION = 15
+NVIDIA_CUDA_PACKAGES: Final = ("nvidia.cuda_runtime", "nvidia.cublas", "nvidia.cuda_nvrtc")
 ZERO_GPU_QUOTA_EXHAUSTED_MESSAGE: Final = (
     "ZeroGPU time is exhausted for this Hugging Face account. "
     "Try again after your quota resets, or sign in with more quota."
 )
+_NVIDIA_CUDA_DLL_DIRECTORIES: set[str] = set()
+_NVIDIA_CUDA_DLL_HANDLES: list[object] = []
 
 
 def _decorate_zero_gpu_function(function: Any, *, duration: int | Callable[..., int]) -> Any | None:
@@ -122,10 +128,7 @@ class EmbeddedLlamaCppProvider:
             llama_module = import_module("llama_cpp")
             llama_cls = llama_module.__dict__["Llama"]
         except (ImportError, RuntimeError) as exc:
-            msg = (
-                "llama-cpp-python could not be loaded. Run one setup profile, for example "
-                "`uv run watch-my-escape --setup-only`."
-            )
+            msg = _llama_cpp_load_error_message(exc)
             raise LlmConfigurationError(msg) from exc
 
         llama_kwargs: dict[str, Any] = {
@@ -142,6 +145,7 @@ class EmbeddedLlamaCppProvider:
 
     def _prepare_runtime_dependencies(self) -> None:
         """Prepare optional runtime dependencies before importing llama.cpp."""
+        _add_nvidia_windows_dll_directories()
 
     def _resolve_flash_attn(self, llama_module: Any) -> bool:
         if self._config.flash_attn is not None:
@@ -311,6 +315,58 @@ def _is_zero_gpu_quota_error(exc: BaseException) -> bool:
         if "zerogpu" in compact_text and ("quota" in text or "time" in text):
             return True
         if "gpu" in text and "quota" in text and any(word in text for word in ("exhaust", "exceed", "limit")):
+            return True
+    return False
+
+
+def _llama_cpp_load_error_message(exc: BaseException) -> str:
+    msg = (
+        "llama-cpp-python could not be loaded. Run one setup profile, for example "
+        "`uv run watch-my-escape --setup-only`."
+    )
+    if _is_windows_cuda_runtime_error(exc):
+        return (
+            f"{msg} The CUDA profile uses the CUDA 12.4 wheel on Windows, which needs the CUDA 12 runtime "
+            "packages. Rerun `uv run watch-my-escape --force-setup --llm-profile cuda`."
+        )
+    return msg
+
+
+def _add_nvidia_windows_dll_directories() -> None:
+    if sys.platform != "win32" or not hasattr(os, "add_dll_directory"):
+        return
+
+    for package in NVIDIA_CUDA_PACKAGES:
+        try:
+            spec = find_spec(package)
+        except ModuleNotFoundError:
+            continue
+        if spec is None or spec.submodule_search_locations is None:
+            continue
+        for package_dir in spec.submodule_search_locations:
+            _add_dll_directories(Path(package_dir))
+
+
+def _add_dll_directories(package_dir: Path) -> None:
+    for directory_name in ("bin", "lib"):
+        dll_dir = package_dir / directory_name
+        resolved_dir = str(dll_dir.resolve())
+        if resolved_dir in _NVIDIA_CUDA_DLL_DIRECTORIES or not dll_dir.is_dir():
+            continue
+        try:
+            handle = os.add_dll_directory(resolved_dir)
+        except OSError:
+            continue
+        _NVIDIA_CUDA_DLL_DIRECTORIES.add(resolved_dir)
+        _NVIDIA_CUDA_DLL_HANDLES.append(handle)
+
+
+def _is_windows_cuda_runtime_error(exc: BaseException) -> bool:
+    for current in _exception_chain(exc):
+        text = str(current).lower()
+        if "llama.dll" in text and ("could not find module" in text or "failed to load shared library" in text):
+            return True
+        if any(dll_name in text for dll_name in ("cudart64_12.dll", "cublas64_12.dll")):
             return True
     return False
 

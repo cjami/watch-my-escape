@@ -25,6 +25,13 @@ def test_cuda_profile_installs_cuda_requirements():
     assert_uv_installs_requirements(command, "llm-cuda-cu124.txt")
 
 
+def test_cuda_requirements_install_nvidia_runtime_packages():
+    requirements = (setup_llm.REQUIREMENTS_DIR / "llm-cuda-cu124.txt").read_text(encoding="utf-8")
+
+    assert "nvidia-cuda-runtime-cu12" in requirements
+    assert "nvidia-cublas-cu12" in requirements
+
+
 def test_metal_profile_sets_metal_build_flag():
     command, env = build_command("metal")
 
