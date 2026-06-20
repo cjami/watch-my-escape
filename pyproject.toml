@@ -21,11 +21,11 @@ dependencies = [
 
 [project.optional-dependencies]
 llm = [
-    "llama-cpp-python==0.3.26",
+    "llama-cpp-python==0.3.30",
 ]
 zerogpu = [
     "hf_transfer",
-    "llama-cpp-python==0.3.26",
+    "llama-cpp-python==0.3.30",
     "spaces",
     "torch==2.8.0",
 ]
