@@ -32,6 +32,22 @@ def test_cuda_requirements_install_nvidia_runtime_packages():
     assert "nvidia-cublas-cu12" in requirements
 
 
+def test_llama_cpp_requirements_are_pinned():
+    requirement_files = (
+        "hf-zerogpu.txt",
+        "llm-cpu.txt",
+        "llm-cuda-cu124.txt",
+        "llm-metal.txt",
+        "llm-rocm-linux.txt",
+        "llm-rocm-windows.txt",
+        "llm-vulkan.txt",
+    )
+
+    for requirement_file in requirement_files:
+        requirements = (setup_llm.REQUIREMENTS_DIR / requirement_file).read_text(encoding="utf-8")
+        assert "llama-cpp-python==0.3.26" in requirements
+
+
 def test_metal_profile_sets_metal_build_flag():
     command, env = build_command("metal")
 

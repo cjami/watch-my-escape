@@ -1,2 +1,2 @@
 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/hip-radeon
-llama-cpp-python
+llama-cpp-python==0.3.26
