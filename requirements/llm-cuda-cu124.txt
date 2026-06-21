@@ -1,4 +1,4 @@
 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
-llama-cpp-python==0.3.30
+llama-cpp-python==0.3.27
 nvidia-cuda-runtime-cu12
 nvidia-cublas-cu12

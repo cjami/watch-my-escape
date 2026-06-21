@@ -610,7 +610,7 @@ wheels = [
 
 [[package]]
 name = "llama-cpp-python"
-version = "0.3.30"
+version = "0.3.27"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "diskcache" },
@@ -618,7 +618,7 @@ dependencies = [
     { name = "numpy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1e/45/2bca210df9ab2403efbd20316b6f53a2c322fd71a313d8bf090e2ee148e4/llama_cpp_python-0.3.30.tar.gz", hash = "sha256:798c9b42652d2e0bff5fe81e7e762089f425a99e67f66ffe5ae156957876e0d1", size = 70191382, upload-time = "2026-06-16T07:51:16.654Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/24/4decbb92a5faff93cd0ac3466ac73ec944ab5f9a4d075e5785ad034536a5/llama_cpp_python-0.3.27.tar.gz", hash = "sha256:b9eb9957de3776c2b1ae2beeccb52d5603e4e84afd94ae0d46bf96e04cbead6a", size = 68294658, upload-time = "2026-06-07T10:56:56.161Z" }
 
 [[package]]
 name = "markdown-it-py"
@@ -1831,8 +1831,8 @@ requires-dist = [
     { name = "huggingface-hub" },
     { name = "jinja2" },
     { name = "langfuse" },
-    { name = "llama-cpp-python", marker = "extra == 'llm'", specifier = "==0.3.30" },
-    { name = "llama-cpp-python", marker = "extra == 'zerogpu'", specifier = "==0.3.30" },
+    { name = "llama-cpp-python", marker = "extra == 'llm'", specifier = "==0.3.27" },
+    { name = "llama-cpp-python", marker = "extra == 'zerogpu'", specifier = "==0.3.27" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "spaces", marker = "extra == 'zerogpu'" },

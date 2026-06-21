@@ -16,21 +16,27 @@ if TYPE_CHECKING:
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 REQUIREMENTS_DIR = PROJECT_DIR / "requirements"
+LLAMA_CPP_PACKAGE = "llama-cpp-python"
 
 
 def _install_requirements_command(requirement_file: str) -> tuple[str, ...]:
     return ("uv", "pip", "install", "--python", sys.executable, "-r", str(REQUIREMENTS_DIR / requirement_file))
 
 
-PROFILE_COMMANDS: dict[str, tuple[str, ...]] = {
-    "cpu": _install_requirements_command("llm-cpu.txt"),
-    "cuda": _install_requirements_command("llm-cuda-cu124.txt"),
-    "hf-zerogpu": _install_requirements_command("hf-zerogpu.txt"),
-    "metal": _install_requirements_command("llm-metal.txt"),
-    "vulkan": _install_requirements_command("llm-vulkan.txt"),
-}
 LOCAL_PROFILES: tuple[str, ...] = ("metal", "cuda", "vulkan", "cpu")
 MANUAL_LOCAL_PROFILES: tuple[str, ...] = (*LOCAL_PROFILES, "rocm")
+PROFILE_REQUIREMENT_FILES: dict[str, str] = {
+    "cpu": "llm-cpu.txt",
+    "cuda": "llm-cuda-cu124.txt",
+    "hf-zerogpu": "hf-zerogpu.txt",
+    "metal": "llm-metal.txt",
+    "vulkan": "llm-vulkan.txt",
+}
+PROFILE_COMMANDS: dict[str, tuple[str, ...]] = {
+    profile: _install_requirements_command(requirement_file)
+    for profile, requirement_file in PROFILE_REQUIREMENT_FILES.items()
+    if profile != "rocm"
+}
 
 
 def detect_local_profile() -> str:
@@ -60,11 +66,36 @@ def build_command(profile: str) -> tuple[tuple[str, ...], dict[str, str]]:
         raise ValueError(msg) from exc
 
 
+def llama_cpp_version_for_profile(profile: str) -> str:
+    """Return the llama-cpp-python version pinned by a setup profile."""
+    if profile == "auto":
+        profile = detect_local_profile()
+    return _pinned_requirement_version(REQUIREMENTS_DIR / _requirement_file_for_profile(profile), LLAMA_CPP_PACKAGE)
+
+
+def _requirement_file_for_profile(profile: str) -> str:
+    if profile == "rocm":
+        return "llm-rocm-windows.txt" if sys.platform == "win32" else "llm-rocm-linux.txt"
+    try:
+        return PROFILE_REQUIREMENT_FILES[profile]
+    except KeyError as exc:
+        msg = f"Unknown setup profile: {profile}"
+        raise ValueError(msg) from exc
+
+
+def _pinned_requirement_version(requirement_path: Path, package: str) -> str:
+    prefix = f"{package}=="
+    for line in requirement_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            return stripped.removeprefix(prefix)
+    msg = f"{requirement_path} must pin {package} with ==."
+    raise ValueError(msg)
+
+
 def _rocm_command(env: dict[str, str]) -> tuple[tuple[str, ...], dict[str, str]]:
-    if sys.platform.startswith("linux"):
-        return _install_requirements_command("llm-rocm-linux.txt"), env
-    if sys.platform == "win32":
-        return _install_requirements_command("llm-rocm-windows.txt"), env
+    if sys.platform.startswith(("linux", "win32")):
+        return _install_requirements_command(_requirement_file_for_profile("rocm")), env
     env["CMAKE_ARGS"] = "-DGGML_HIP=on"
     return (
         (

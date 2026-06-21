@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import importlib.util
 import json
 import shutil
@@ -14,7 +15,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
 from watch_my_escape.app.server import create_app
-from watch_my_escape.setup_llm import MANUAL_LOCAL_PROFILES, build_command, detect_local_profile
+from watch_my_escape.setup_llm import (
+    LLAMA_CPP_PACKAGE,
+    MANUAL_LOCAL_PROFILES,
+    build_command,
+    detect_local_profile,
+    llama_cpp_version_for_profile,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -132,10 +139,13 @@ def ensure_llm(*, profile: str, force: bool) -> None:
     state = _read_setup_state()
     installed_profile = state.get("llm_profile")
     llama_cpp_installed = importlib.util.find_spec("llama_cpp") is not None
+    expected_llama_cpp_version = llama_cpp_version_for_profile(selected_profile)
+    llama_cpp_version_current = _installed_package_version(LLAMA_CPP_PACKAGE) == expected_llama_cpp_version
     cuda_runtime_installed = selected_profile != "cuda" or _packages_installed(CUDA_RUNTIME_PACKAGES)
     needs_install = (
         force
         or not llama_cpp_installed
+        or not llama_cpp_version_current
         or not cuda_runtime_installed
         or (selected_profile != installed_profile and (profile != "auto" or selected_profile != "cpu"))
     )
@@ -151,6 +161,13 @@ def ensure_llm(*, profile: str, force: bool) -> None:
 
 def _packages_installed(packages: Iterable[str]) -> bool:
     return all(_package_installed(package) for package in packages)
+
+
+def _installed_package_version(package: str) -> str | None:
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
 
 def _package_installed(package: str) -> bool:

@@ -42,6 +42,8 @@ def test_ensure_llm_skips_existing_auto_cpu_without_state(monkeypatch, tmp_path)
     monkeypatch.setattr(cli, "SETUP_STATE_PATH", tmp_path / "setup-state.json")
     monkeypatch.setattr(cli, "detect_local_profile", lambda: "cpu")
     monkeypatch.setattr(importlib.util, "find_spec", lambda name: object() if name == "llama_cpp" else None)
+    monkeypatch.setattr(cli, "llama_cpp_version_for_profile", lambda _profile: "0.3.27")
+    monkeypatch.setattr(cli, "_installed_package_version", lambda _package: "0.3.27")
     monkeypatch.setattr(cli, "_run", lambda *_args, **_kwargs: None)
 
     cli.ensure_llm(profile="auto", force=False)
@@ -49,11 +51,31 @@ def test_ensure_llm_skips_existing_auto_cpu_without_state(monkeypatch, tmp_path)
     assert not (tmp_path / "setup-state.json").exists()
 
 
+def test_ensure_llm_installs_when_llama_cpp_version_is_stale(monkeypatch, tmp_path):
+    calls = []
+    state_path = tmp_path / "setup-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text('{"llm_profile": "cuda"}', encoding="utf-8")
+    monkeypatch.setattr(cli, "SETUP_STATE_PATH", state_path)
+    monkeypatch.setattr(cli, "detect_local_profile", lambda: "cuda")
+    monkeypatch.setattr(importlib.util, "find_spec", lambda _name: object())
+    monkeypatch.setattr(cli, "llama_cpp_version_for_profile", lambda _profile: "0.3.27")
+    monkeypatch.setattr(cli, "_installed_package_version", lambda _package: "0.3.30")
+    monkeypatch.setattr(cli, "build_command", lambda profile: (("uv", "pip", "install", profile), {}))
+    monkeypatch.setattr(cli, "_run", lambda command, **_kwargs: calls.append(command))
+
+    cli.ensure_llm(profile="auto", force=False)
+
+    assert calls == [("uv", "pip", "install", "cuda")]
+
+
 def test_ensure_llm_installs_when_profile_changes(monkeypatch, tmp_path):
     calls = []
     monkeypatch.setattr(cli, "SETUP_STATE_PATH", tmp_path / "setup-state.json")
     monkeypatch.setattr(cli, "detect_local_profile", lambda: "vulkan")
     monkeypatch.setattr(importlib.util, "find_spec", lambda name: object() if name == "llama_cpp" else None)
+    monkeypatch.setattr(cli, "llama_cpp_version_for_profile", lambda _profile: "0.3.27")
+    monkeypatch.setattr(cli, "_installed_package_version", lambda _package: "0.3.27")
     monkeypatch.setattr(cli, "build_command", lambda profile: (("uv", "pip", "install", profile), {}))
     monkeypatch.setattr(cli, "_run", lambda command, **_kwargs: calls.append(command))
 
@@ -80,6 +102,8 @@ def test_ensure_llm_repairs_cuda_when_runtime_packages_are_missing(monkeypatch, 
         raise ModuleNotFoundError(msg)
 
     monkeypatch.setattr(importlib.util, "find_spec", fake_find_spec)
+    monkeypatch.setattr(cli, "llama_cpp_version_for_profile", lambda _profile: "0.3.27")
+    monkeypatch.setattr(cli, "_installed_package_version", lambda _package: "0.3.27")
     monkeypatch.setattr(cli, "build_command", lambda profile: (("uv", "pip", "install", profile), {}))
     monkeypatch.setattr(cli, "_run", lambda command, **_kwargs: calls.append(command))
 

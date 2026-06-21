@@ -1,5 +1,5 @@
 from watch_my_escape import setup_llm
-from watch_my_escape.setup_llm import build_command, detect_local_profile
+from watch_my_escape.setup_llm import build_command, detect_local_profile, llama_cpp_version_for_profile
 
 
 def assert_uv_installs_requirements(command, requirement_file):
@@ -45,7 +45,11 @@ def test_llama_cpp_requirements_are_pinned():
 
     for requirement_file in requirement_files:
         requirements = (setup_llm.REQUIREMENTS_DIR / requirement_file).read_text(encoding="utf-8")
-        assert "llama-cpp-python==0.3.30" in requirements
+        assert "llama-cpp-python==0.3.27" in requirements
+
+
+def test_llama_cpp_version_is_read_from_profile_requirements():
+    assert llama_cpp_version_for_profile("cuda") == "0.3.27"
 
 
 def test_metal_profile_sets_metal_build_flag():

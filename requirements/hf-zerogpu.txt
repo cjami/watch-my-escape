@@ -2,5 +2,5 @@
 torch==2.8.0
 hf_transfer
 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
-llama-cpp-python==0.3.30
+llama-cpp-python==0.3.27
 spaces
