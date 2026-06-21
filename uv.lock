@@ -1804,9 +1804,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-llm = [
-    { name = "llama-cpp-python" },
-]
 zerogpu = [
     { name = "hf-transfer" },
     { name = "llama-cpp-python" },
@@ -1831,14 +1828,13 @@ requires-dist = [
     { name = "huggingface-hub" },
     { name = "jinja2" },
     { name = "langfuse" },
-    { name = "llama-cpp-python", marker = "extra == 'llm'", specifier = "==0.3.27" },
     { name = "llama-cpp-python", marker = "extra == 'zerogpu'", specifier = "==0.3.27" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "spaces", marker = "extra == 'zerogpu'" },
     { name = "torch", marker = "extra == 'zerogpu'", specifier = "==2.8.0" },
 ]
-provides-extras = ["llm", "zerogpu"]
+provides-extras = ["zerogpu"]
 
 [package.metadata.requires-dev]
 dev = [

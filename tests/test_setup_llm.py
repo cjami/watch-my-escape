@@ -45,11 +45,12 @@ def test_llama_cpp_requirements_are_pinned():
 
     for requirement_file in requirement_files:
         requirements = (setup_llm.REQUIREMENTS_DIR / requirement_file).read_text(encoding="utf-8")
-        assert "llama-cpp-python==0.3.27" in requirements
+        assert "llama-cpp-python==" in requirements
 
 
 def test_llama_cpp_version_is_read_from_profile_requirements():
     assert llama_cpp_version_for_profile("cuda") == "0.3.27"
+    assert llama_cpp_version_for_profile("metal") == "0.3.25"
 
 
 def test_metal_profile_sets_metal_build_flag():
