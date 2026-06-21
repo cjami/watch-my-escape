@@ -487,6 +487,10 @@ def _stream_provider(*, config: LlamaCppConfig, model_preset: str, session_id: s
         provider = warm_provider_store.get(session_id=session_id, model_preset=model_preset)
         if provider is not None:
             return provider
+        provider = synchronized_provider(create_provider(config))
+        warm_provider_store.add(session_id=session_id, model_preset=model_preset, provider=provider)
+        _run_warmup_completion(provider)
+        return provider
     return synchronized_provider(create_provider(config))
 
 

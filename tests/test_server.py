@@ -233,6 +233,25 @@ def test_escape_stream_uses_session_warmed_provider(monkeypatch):
     assert _inner_provider(seen["provider"]) is provider
 
 
+def test_escape_stream_warms_new_session_provider_when_cache_expired(monkeypatch):
+    seen = {}
+    preset_id = next(iter(MODEL_PRESETS))
+    session_id = "stream-expired-warm-provider"
+    provider = _RecordingProvider()
+
+    monkeypatch.setattr(server, "create_provider", lambda _config: provider)
+    monkeypatch.setattr(server, "run_model_escape_steps", lambda **kwargs: _fake_stream_steps(seen, **kwargs))
+    client = TestClient(create_app())
+
+    response = client.get(f"/escape-stream?model_preset={preset_id}&map_id=key-door-room&session_id={session_id}")
+
+    assert response.status_code == 200
+    assert provider.requests[0].phase == "warmup"
+    assert provider.requests[0].messages[0].content == "Reply with OK."
+    assert _inner_provider(seen["provider"]) is provider
+    assert _inner_provider(server.warm_provider_store.get(session_id=session_id, model_preset=preset_id)) is provider
+
+
 def test_escape_stream_reuses_session_provider_for_multiple_runs(monkeypatch):
     seen_providers = []
     preset_id = next(iter(MODEL_PRESETS))
